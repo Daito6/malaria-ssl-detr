@@ -1,0 +1,7 @@
+# Reference: ImageNet ResNet-50 backbone + randomly initialized transformer, same budget as A.
+base: configs/detr/base.yaml
+label_mode: binary
+model:
+  name: scratch_r50
+train:
+  epochs: 40
