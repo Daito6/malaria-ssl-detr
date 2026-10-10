@@ -42,5 +42,24 @@ data/raw, data/processed, data/splits   (git-ignored)
 runs/                                   (git-ignored)
 ```
 
+## Data pipeline
+```
+python scripts/check_env.py
+python scripts/prepare_data.py      # download -> convert -> split (idempotent)
+python scripts/compute_stats.py     # reports/tables/
+python scripts/draw_boxes.py        # reports/figures/box_check/
+pytest -q
+```
+Facts worth remembering (details in `reports/phase1_summary.md`):
+- The zip has 1328 images (not 1364), all annotated; no extra unlabeled images.
+- Source bbox key is `bounding_box` with r = row = y, c = col = x (verified).
+- train/val: PNG 1600x1200; test: JPG 1944x1383, cells ~1.27x larger in px -> domain shift.
+- Max 223 boxes per image; 10.5% of images have >100 -> DETR needs >100 queries.
+- Leukocyte has 0 boxes in test.
+- torchvision in `medthesis` is a CPU build (CUDA ops fail) — reinstall the cu130 wheel before DETR.
+- If Git Bash `python.exe` hits "Application Control policy has blocked" DLL errors,
+  use `conda run -n medthesis python ...` from PowerShell.
+
 ## Status
-- Phase 1 (scaffold + data pipeline + EDA): in progress.
+- Phase 1 (scaffold + data pipeline + EDA): done, awaiting user review.
+- Next: SSL pretraining (MAE + InfoNCE) — not started.
