@@ -10,18 +10,26 @@ import pandas as pd
 from matplotlib.patches import Patch, Rectangle
 from PIL import Image
 
-# Fixed per-class colours (colour-blind friendly where possible); RBC is muted on purpose.
+# Categorical slots in a fixed order (CVD-validated); RBC is a muted neutral on purpose.
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]
 CLASS_COLORS = {
-    "red blood cell": "#b0b0b0",
-    "leukocyte": "#1f77b4",
-    "gametocyte": "#9467bd",
-    "ring": "#2ca02c",
-    "trophozoite": "#ff7f0e",
-    "schizont": "#d62728",
-    "difficult": "#e7d40a",
-    "uninfected": "#b0b0b0",
-    "infected": "#d62728",
+    "red blood cell": "#9a9a9a",
+    "leukocyte": SERIES[0],
+    "gametocyte": SERIES[1],
+    "ring": SERIES[2],
+    "trophozoite": SERIES[3],
+    "schizont": SERIES[4],
+    "difficult": SERIES[5],
+    "uninfected": "#9a9a9a",
+    "infected": SERIES[1],
 }
+SPLIT_COLORS = {"train": SERIES[0], "val": SERIES[1], "test": SERIES[2]}
+
+
+def _recessive_axes(ax) -> None:
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.grid(axis="y", color="#e5e5e5", lw=0.8)
+    ax.set_axisbelow(True)
 
 
 def draw_image_with_boxes(ax, image_path: Path, anns: list[dict[str, Any]], cat_names: dict[int, str],
@@ -66,13 +74,14 @@ def plot_class_distribution(class_counts: pd.DataFrame, splits: list[str], log: 
     x = np.arange(len(class_counts))
     for k, s in enumerate(splits):
         vals = class_counts[f"{s}_boxes"].to_numpy()
-        bars = ax.bar(x + k * width, vals, width, label=s)
+        bars = ax.bar(x + k * width, vals, width * 0.9, label=s, color=SPLIT_COLORS.get(s))
         ax.bar_label(bars, labels=[str(v) for v in vals], fontsize=7, padding=1)
     ax.set_xticks(x + width * (len(splits) - 1) / 2, class_counts.index, rotation=20)
     if log:
         ax.set_yscale("log")
     ax.set_ylabel("boxes" + (" (log)" if log else ""))
     ax.set_title("Boxes per class per split")
+    _recessive_axes(ax)
     ax.legend()
     fig.tight_layout()
     return fig
@@ -81,12 +90,15 @@ def plot_class_distribution(class_counts: pd.DataFrame, splits: list[str], log: 
 def plot_boxes_per_image(images: pd.DataFrame, queries: int = 100):
     fig, ax = plt.subplots(figsize=(8, 4))
     bins = np.arange(0, images["n_boxes"].max() + 6, 5)
-    for s, sub in images.groupby("split"):
-        ax.hist(sub["n_boxes"], bins=bins, alpha=0.6, label=s)
-    ax.axvline(queries, color="red", ls="--", label=f"DETR default queries = {queries}")
+    for s in [k for k in SPLIT_COLORS if k in set(images["split"])]:
+        sub = images[images["split"] == s]
+        ax.hist(sub["n_boxes"], bins=bins, histtype="step", lw=2, label=s, color=SPLIT_COLORS.get(s),
+                density=True)
+    ax.axvline(queries, color="#333333", ls="--", label=f"DETR default queries = {queries}")
     ax.set_xlabel("boxes per image")
-    ax.set_ylabel("images")
+    ax.set_ylabel("fraction of images (density)")
     ax.set_title("Boxes per image")
+    _recessive_axes(ax)
     ax.legend()
     fig.tight_layout()
     return fig
@@ -96,25 +108,27 @@ def plot_image_sizes(images: pd.DataFrame):
     sizes = images.assign(size=images["width"].astype(str) + "x" + images["height"].astype(str))
     tbl = sizes.groupby(["size", "split"]).size().unstack(fill_value=0)
     fig, ax = plt.subplots(figsize=(7, 3))
-    tbl.plot.barh(stacked=True, ax=ax)
+    tbl.plot.barh(stacked=True, ax=ax, color=[SPLIT_COLORS.get(c) for c in tbl.columns])
     ax.set_xlabel("images")
     ax.set_title("Image size (W x H) per split")
     fig.tight_layout()
     return fig
 
 
-def plot_box_sizes(boxes: pd.DataFrame, patch_sizes: tuple[int, ...] = (8, 16, 32)):
-    """Per-class boxplot of the longer box side in pixels, with ViT patch sizes marked."""
-    order = [c for c in CLASS_COLORS if c in set(boxes["class"])]
+def plot_box_sizes(boxes: pd.DataFrame, by: str = "class", patch_sizes: tuple[int, ...] = (8, 16, 32)):
+    """Boxplot of the longer box side in pixels grouped by `by` ("class" or "split")."""
+    present = set(boxes[by])
+    order = [k for k in (CLASS_COLORS if by == "class" else SPLIT_COLORS) if k in present]
     side = boxes[["w", "h"]].max(axis=1)
-    fig, ax = plt.subplots(figsize=(9, 4))
-    ax.boxplot([side[boxes["class"] == c] for c in order], tick_labels=order, showfliers=False)
+    fig, ax = plt.subplots(figsize=(9 if by == "class" else 6, 4))
+    ax.boxplot([side[boxes[by] == k] for k in order], tick_labels=order, showfliers=False)
     for p in patch_sizes:
-        ax.axhline(p, ls=":", color="gray")
-        ax.text(len(order) + 0.45, p, f"patch {p}px", va="center", fontsize=7, color="gray")
+        ax.axhline(p, ls=":", color="#9a9a9a")
+        ax.text(len(order) + 0.45, p, f"patch {p}px", va="center", fontsize=7, color="#555555")
     ax.set_ylabel("max(w, h), px (original resolution)")
-    ax.set_title("Box size per class (whiskers 1.5 IQR, outliers hidden)")
+    ax.set_title(f"Box size per {by} (whiskers 1.5 IQR, outliers hidden)")
     ax.tick_params(axis="x", rotation=20)
+    _recessive_axes(ax)
     fig.tight_layout()
     return fig
 
