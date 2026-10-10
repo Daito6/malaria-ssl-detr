@@ -1,0 +1,8 @@
+class,test_boxes,train_boxes,val_boxes,test_images,train_images,val_images,total_boxes,share_of_boxes,imbalance_vs_majority
+red blood cell,5614,65401,12019,120,1027,181,83034,0.9651,1.0000
+leukocyte,0,89,14,0,80,14,103,0.0012,806.1553
+gametocyte,12,124,20,11,116,20,156,0.0018,532.2692
+ring,169,304,49,57,207,37,522,0.0061,159.0690
+trophozoite,111,1269,204,59,507,89,1584,0.0184,52.4205
+schizont,11,154,25,9,133,24,190,0.0022,437.0211
+difficult,5,378,63,5,291,51,446,0.0052,186.1749

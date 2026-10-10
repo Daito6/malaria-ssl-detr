@@ -1,0 +1,7 @@
+# Baseline A, secondary: COCO-pretrained DETR-R50 fine-tuned, all 7 classes.
+base: configs/detr/base.yaml
+label_mode: multiclass
+model:
+  name: coco_detr_r50
+train:
+  epochs: 40
