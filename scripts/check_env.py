@@ -96,6 +96,17 @@ def main() -> None:
               f"{torchvision.__version__.split('+')[0]} "
               f"--index-url https://download.pytorch.org/whl/cu{torch.version.cuda.replace('.', '')}")
 
+    # Third-party native extensions: Windows Smart App Control can block unsigned DLLs.
+    import importlib
+    for mod in ("transformers", "transformers.models.detr.modeling_detr", "timm", "peft",
+                "albumentations", "cv2", "pycocotools.cocoeval", "scipy.optimize",
+                "torch.utils.tensorboard", "grpc"):
+        try:
+            m = importlib.import_module(mod)
+            print(f"import {mod:40s}: OK {getattr(m, '__version__', '')}")
+        except ImportError as e:
+            print(f"[WARN] import {mod} failed: {e}")
+
     free, total = torch.cuda.mem_get_info(device)
     print(f"GPU memory   : total {gib(total)}, free {gib(free)}, "
           f"allocated by torch {gib(torch.cuda.memory_allocated(device))}, "
