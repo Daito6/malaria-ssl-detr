@@ -32,7 +32,7 @@ Windows 11, RTX 5060 Ti 16 GB (Blackwell, sm_120), 32 GB RAM, conda env `medthes
 
 ## Layout
 ```
-configs/               data.yaml (later: pretrain/, detr/, experiments/)
+configs/               data.yaml, detr/, experiments/, ssl/
 src/malaria_ssl/       data/, ssl/, detr/, eval/, utils/   (pip install -e .)
 scripts/               CLI entry points
 notebooks/             01_eda.ipynb ...
@@ -78,14 +78,46 @@ Non-obvious decisions (details in `reports/phase2_summary.md`):
 - Batches are deterministic via `SeededSampler` yielding (index, seed) pairs.
 - Measured: micro-batch 8 fits (6.98 GiB probe peak), ~58 s/epoch, ~43 min per 40-epoch run.
 
+## Evaluation protocol (applies to every phase)
+- Headline metric for comparing variants: **infected AP50 on test** (threshold-free).
+- Also report F1 / precision / recall at the per-class thresholds selected on val (max F1).
+- Test is NEVER used for tuning, model/lambda selection or threshold selection; SSL lambdas are
+  chosen by probe metrics on VAL crops only.
+- The val -> test domain shift is a central theme of the thesis. Baseline A binary: infected AP50
+  val 0.778 -> test 0.551; at the val threshold recall 0.883 -> 0.376; 35% of test infected cells
+  are found but called uninfected (`scripts/diagnose_shift.py`, `reports/phase3_summary.md`).
+
+## SSL pipeline (phase 3)
+```
+python scripts/pretrain.py --config configs/ssl/<exp>.yaml [--resume] [--set key=value] [--name ...]
+python scripts/probe.py --run runs/ssl_<exp>        # or --encoder <pt> | --ref random | --ref imagenet
+python scripts/diagnose_shift.py runs/<binary DETR run>
+```
+Config chain: `configs/ssl/data.yaml` <- `probe.yaml` <- `base.yaml` <- experiment files.
+Non-obvious decisions (details in `reports/phase3_summary.md`):
+- SSL trains on train images only (labels unused); val only for monitoring; test never read.
+  Images are cached once as uint8 memmaps at long side 960 in `data/processed/ssl_cache/`.
+- Views: random DETR train scale L in [640, 960] -> 260 px anchor at scale L -> two crops
+  (area 0.5-1, aspect 3/4-4/3) -> 224. Cells stay at DETR scale (x0.86-1.22).
+- Encoder = timm `vit_small_patch16_224`, random init, `dynamic_img_size=True`; exported as a
+  plain timm state dict (`encoder_final.pt`) that loads strict=True. A branch with lambda 0 is
+  not computed. `uncertainty` weighting = sum exp(-s_i) L_i + s_i.
+- Batch fixed at 128 pairs (256 pairs need 20.8 GiB); no gradient accumulation (InfoNCE negatives).
+  Measured: joint 258 pairs/s, mae_only 542 (loader-bound), con_only 311; epoch = 25600 pairs.
+- Probe: box-centred 224 windows at long side 800, mean of patch tokens inside the box; RBC
+  subsampled 4000/2000, difficult excluded; kNN + L-BFGS logreg with fixed hyperparameters;
+  bootstrap over val images. Random-init linear AUPRC infected is already 0.924 (ImageNet 0.981):
+  the 100%-label binary metric has little headroom.
+- `runs/dry_a_*` prefix also matches phase-2 DETR dry runs; SSL overfit run is `dry_a_overfit_mae64`.
+
 ## Status
 - Phase 1 (scaffold + data pipeline + EDA): done.
-- Phase 2 (detection pipeline, eval module, baseline A tooling, dry runs): code done and tested
-  (30 tests pass).
-- The full 40-epoch runs `a_coco_detr_binary`, `a_coco_detr_multiclass`, `a_scratch_r50_binary`
-  have NOT been started yet (the user runs them; exact commands in README.md).
-- Next steps:
-  1. Run the three baseline-A trainings.
-  2. Evaluate each run on val (picks F1 thresholds), then on test; re-execute
-     `notebooks/02_baseline_analysis.ipynb`.
-  3. Phase 3: SSL pretraining (MAE + InfoNCE) — not started.
+- Phase 2 (detection pipeline, eval module, baseline A tooling): done. `a_coco_detr_binary` trained
+  and evaluated on val/test. `a_coco_detr_multiclass` and `a_scratch_r50_binary` not run yet.
+- Phase 3 (SSL code, probe, dry runs, references, shift diagnostic): done, 51 tests pass,
+  awaiting user review. Long runs NOT started (user runs them; commands in
+  `reports/phase3_summary.md`): 4 sweep runs (~55 min each), then joint (~2.8 h), mae_only,
+  con_only, probes; plus `a_coco_detr_binary_stain`. `configs/ssl/joint.yaml` lambda_con is a
+  placeholder until the sweep picks it.
+- Open questions for the user: lr at batch 128 (7.5e-5 by linear scaling; optional blr 5e-4 run),
+  second tie-break by 10%-label AUPRC.
