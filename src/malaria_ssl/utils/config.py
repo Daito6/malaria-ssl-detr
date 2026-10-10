@@ -15,6 +15,21 @@ def load_config(path: str | Path) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
+def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Recursively merge `override` into a copy of `base` (dicts merge, everything else replaces)."""
+    out = dict(base)
+    for k, v in override.items():
+        out[k] = deep_merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
+def load_experiment(path: str | Path) -> dict[str, Any]:
+    """Load a config with an optional `base:` key (path to a parent config, applied first)."""
+    cfg = load_config(resolve_path(path))
+    base = cfg.pop("base", None)
+    return deep_merge(load_experiment(base), cfg) if base else cfg
+
+
 def resolve_path(p: str | Path) -> Path:
     """Resolve a config path relative to the project root (absolute paths pass through)."""
     p = Path(p)
