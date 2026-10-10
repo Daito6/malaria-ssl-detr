@@ -1,0 +1,62 @@
+# Base config for DETR runs. Experiment files under configs/experiments/ set `base:` to this
+# file and override only what differs.
+
+data_config: configs/data.yaml
+label_mode: binary            # binary | multiclass
+seed: 42
+
+augment:
+  eval_long_side: 800
+  train_long_side: [640, 960, 32]   # [min, max, step] for the random longest side
+  crop:
+    p: 0.3
+    max_fraction_per_side: 0.1      # RandomCropFromBorders
+  min_bbox_visibility: 0.6          # boxes cut by a crop below this visible fraction are dropped
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rot90_p: 0.5
+  color_jitter: {brightness: 0.1, contrast: 0.1, saturation: 0.1, hue: 0.02, p: 0.5}
+  hed_jitter: {enabled: false, sigma: 0.03, p: 0.5}
+  blur: {sigma: [0.1, 1.0], p: 0.1}
+  jpeg: {quality: [60, 100], p: 0.3}   # the test split is JPEG-compressed
+
+model:
+  name: coco_detr_r50                 # coco_detr_r50 | scratch_r50
+  pretrained: facebook/detr-resnet-50
+  num_queries: 300
+  extra_query_noise: 0.1              # x std of the pretrained query embeddings
+  auxiliary_loss: true
+
+loss:
+  eos_coefficient: 0.1                # HF / original DETR default
+  class_weights: null                 # list of K weights (null = all 1.0)
+  class_cost: 1
+  bbox_cost: 5
+  giou_cost: 2
+  bbox_loss_coefficient: 5
+  giou_loss_coefficient: 2
+
+optim:
+  lr: 1.0e-4
+  lr_backbone: 1.0e-5
+  weight_decay: 1.0e-4
+  grad_clip: 0.1
+  warmup_steps: 200                   # optimizer steps
+  min_lr_ratio: 0.01                  # cosine floor as a fraction of the base LR
+
+train:
+  epochs: 40
+  effective_batch: 8
+  micro_batch: auto                   # auto = probe the largest that fits
+  probe_memory_fraction: 0.85         # max share of GPU memory the probe may use
+  eval_every: 2
+  num_workers: 6
+  persistent_workers: true
+  amp_dtype: bfloat16
+  max_steps: null                     # debug: stop after this many optimizer steps
+  overfit_images: null                # debug: train on the first N train images without augmentation
+
+eval:
+  batch_size: 4
+  iou_threshold: 0.5
+  bootstrap: 200
