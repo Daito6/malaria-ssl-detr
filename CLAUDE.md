@@ -80,6 +80,12 @@ Non-obvious decisions (details in `reports/phase2_summary.md`):
 
 ## Status
 - Phase 1 (scaffold + data pipeline + EDA): done.
-- Phase 2 (detection pipeline, eval, baseline A tooling, dry runs): done, awaiting user review.
-  Full baseline-A runs not launched yet (user runs them).
-- Next: SSL pretraining (MAE + InfoNCE) — not started.
+- Phase 2 (detection pipeline, eval module, baseline A tooling, dry runs): code done and tested
+  (30 tests pass).
+- The full 40-epoch runs `a_coco_detr_binary`, `a_coco_detr_multiclass`, `a_scratch_r50_binary`
+  have NOT been started yet (the user runs them; exact commands in README.md).
+- Next steps:
+  1. Run the three baseline-A trainings.
+  2. Evaluate each run on val (picks F1 thresholds), then on test; re-execute
+     `notebooks/02_baseline_analysis.ipynb`.
+  3. Phase 3: SSL pretraining (MAE + InfoNCE) — not started.
