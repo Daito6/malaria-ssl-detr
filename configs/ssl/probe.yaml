@@ -1,0 +1,18 @@
+# Cell-level probe without DETR (scripts/probe.py, also the light probe during pretraining).
+# Fit on TRAIN crops, evaluate on VAL crops. The test split is never used here.
+base: configs/ssl/data.yaml
+
+probe:
+  long_side: 800                 # DETR eval scale
+  window: 224
+  exclude: [difficult]           # as in the binary mapping
+  rbc_per_split: {train: 4000, val: 2000}   # all other classes are kept
+  seed: 0
+  batch_size: 256
+  knn: {k: 20, temperature: 0.07}
+  linear: {l2: 1.0e-3, max_iter: 500}       # fixed for every encoder (no tuning)
+  bootstrap: 1000                # resamples of val images
+  low_label: {fractions: [0.01, 0.1, 1.0], seeds: 5}
+  references:
+    random_init_seed: 42
+    imagenet: vit_small_patch16_224.augreg_in21k_ft_in1k

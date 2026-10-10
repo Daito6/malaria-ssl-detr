@@ -1,6 +1,6 @@
 # Base config for SSL pretraining (scripts/pretrain.py). Experiment files set `base:` to this file
 # and override only what differs.
-base: configs/ssl/data.yaml
+base: configs/ssl/probe.yaml
 
 model:
   encoder: vit_small_patch16_224     # random init, never pretrained weights
