@@ -1,0 +1,23 @@
+# SSL data: decoded-image cache and two-view crop augmentations (see src/malaria_ssl/ssl/data.py).
+# Only train images are used for SSL training; val images only for monitoring. Test is never read.
+
+data_config: configs/data.yaml
+seed: 42
+
+cache:
+  dir: data/processed/ssl_cache
+  long_side: 960                    # = max of the DETR train range; views are only downscaled from it
+
+views:
+  train_long_side: [640, 960, 32]   # same random long side as the DETR train pipeline
+  anchor: 260                       # anchor window side at training scale (px)
+  out_size: 224
+  crop_scale: [0.5, 1.0]            # crop area as a fraction of the anchor area
+  crop_ratio: [0.75, 1.3333]        # crop aspect ratio range (log-uniform)
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rot90_p: 0.5
+  color_jitter: {brightness: 0.2, contrast: 0.2, saturation: 0.2, hue: 0.02, p: 0.8}
+  hed_jitter: {enabled: true, sigma: 0.03, p: 0.5}
+  blur: {sigma: [0.1, 1.5], p: 0.2}
+  jpeg: {quality: [60, 100], p: 0.3}   # the test split is JPEG-compressed
