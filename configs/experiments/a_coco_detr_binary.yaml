@@ -1,0 +1,7 @@
+# Baseline A, headline: COCO-pretrained DETR-R50 fine-tuned, binary (infected vs uninfected).
+base: configs/detr/base.yaml
+label_mode: binary
+model:
+  name: coco_detr_r50
+train:
+  epochs: 40

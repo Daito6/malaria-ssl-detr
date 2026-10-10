@@ -1,0 +1,24 @@
+# data and experiment outputs
+/data/
+/runs/
+*.pth
+*.ckpt
+*.pt
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# notebooks
+.ipynb_checkpoints/
+
+# IDE / OS
+.idea/
+.vscode/
+.venv/
+Thumbs.db
+.DS_Store

@@ -1,0 +1,38 @@
+# Pinned versions of the `medthesis` conda env (Python 3.11).
+#
+# torch / torchvision must be CUDA builds with Blackwell (sm_120) support:
+#   pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cu130
+torch==2.14.0
+torchvision==0.29.0
+
+numpy==2.4.6
+pandas==3.0.6
+pillow==12.3.0
+PyYAML==6.0.3
+matplotlib==3.11.2
+scipy==1.17.1
+pycocotools==2.0.11
+
+# models / training
+transformers==5.17.0
+huggingface_hub==1.33.0
+safetensors==0.8.0
+tokenizers==0.23.2
+accelerate==1.15.0
+timm==1.0.30
+peft==0.21.2
+albumentations==2.0.8
+albucore==0.0.24
+opencv-python-headless==5.0.0.93
+tensorboard==2.21.0
+# Windows Smart App Control blocks the DLLs of newer grpcio wheels; 1.76.0 loads.
+grpcio==1.76.0
+# NOTE: scikit-learn must NOT be installed: Smart App Control blocks its DLLs and
+# transformers then fails on import (it imports sklearn whenever it is present).
+
+# dev
+pytest==9.1.1
+nbconvert==7.17.1
+nbformat==5.11.1
+ipykernel==7.4.0
+jupyterlab==4.6.4
