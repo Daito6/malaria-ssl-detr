@@ -14,19 +14,7 @@ from pathlib import Path
 import yaml
 
 from malaria_ssl.detr.trainer import Trainer
-from malaria_ssl.utils.config import load_experiment, resolve_path
-
-
-def apply_overrides(cfg: dict, items: list[str]) -> dict:
-    """`--set a.b=value` (value parsed as YAML)."""
-    for item in items:
-        key, _, raw = item.partition("=")
-        node = cfg
-        *parents, leaf = key.split(".")
-        for p in parents:
-            node = node[p]
-        node[leaf] = yaml.safe_load(raw)
-    return cfg
+from malaria_ssl.utils.config import apply_overrides, load_experiment, resolve_path
 
 
 def main() -> None:
