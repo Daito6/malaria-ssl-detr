@@ -78,15 +78,17 @@ def compute_stats(cocos: dict[str, dict[str, Any]]) -> tuple[dict[str, Any], dic
     sizes["total"] = sizes.sum(axis=1)
     sizes = sizes.sort_values("total", ascending=False)
 
-    # box sizes in pixels, per class (all splits)
+    # box sizes in pixels, per split and class (split "ALL" pools all splits)
     box_size_rows = []
-    for cls in class_names + ["ALL"]:
-        sub = boxes if cls == "ALL" else boxes[boxes["class"] == cls]
-        if sub.empty:
-            continue
-        for col in ("w", "h", "sqrt_area", "side_max", "side_min"):
-            box_size_rows.append({"class": cls, "measure": col, "n": len(sub), "mean": float(sub[col].mean()),
-                                  **_quantiles(sub[col])})
+    for split in list(cocos) + ["ALL"]:
+        in_split = boxes if split == "ALL" else boxes[boxes["split"] == split]
+        for cls in class_names + ["ALL"]:
+            sub = in_split if cls == "ALL" else in_split[in_split["class"] == cls]
+            if sub.empty:
+                continue
+            for col in ("w", "h", "sqrt_area", "side_max", "side_min"):
+                box_size_rows.append({"split": split, "class": cls, "measure": col, "n": len(sub),
+                                      "mean": float(sub[col].mean()), **_quantiles(sub[col])})
     box_sizes = pd.DataFrame(box_size_rows)
 
     worst = images.loc[images["n_boxes"].idxmax()]
@@ -102,6 +104,7 @@ def compute_stats(cocos: dict[str, dict[str, Any]]) -> tuple[dict[str, Any], dic
         "imbalance_vs_majority": {c: (None if pd.isna(v) else float(v))
                                   for c, v in class_tbl["imbalance_vs_majority"].items()},
         "box_side_px_all": _quantiles(boxes["side_max"]),
+        "box_side_px_by_split": {s: _quantiles(g["side_max"]) for s, g in boxes.groupby("split")},
         "box_sqrt_area_px_all": _quantiles(boxes["sqrt_area"]),
     }
     tables = {"class_counts": class_tbl, "boxes_per_image": bpi, "image_sizes": sizes,
