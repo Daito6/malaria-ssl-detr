@@ -1,0 +1,209 @@
+"""Loading SSL run / probe artifacts and plotting for notebooks/03_ssl_analysis.ipynb (reads only)."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
+import yaml
+from PIL import Image
+
+from malaria_ssl.data.viz import CLASS_COLORS, SERIES, _recessive_axes
+from malaria_ssl.utils.config import resolve_path
+
+HEADLINE = ("auroc_infected", "auprc_infected", "balanced_acc", "macro_f1")
+
+
+# --------------------------------------------------------------------------- loading
+
+def load_ssl_run(run_dir: str | Path) -> dict[str, Any]:
+    run_dir = Path(run_dir)
+    return {"name": run_dir.name, "dir": run_dir,
+            "config": yaml.safe_load((run_dir / "config.yaml").read_text(encoding="utf-8")),
+            "history": pd.read_csv(run_dir / "metrics.csv"),
+            "recon": sorted((run_dir / "recon").glob("*.png"))}
+
+
+def find_ssl_runs(prefix: str = "ssl_") -> list[dict[str, Any]]:
+    """All runs/<prefix>*/ with a metrics.csv, sorted by name."""
+    return [load_ssl_run(d) for d in sorted(resolve_path("runs").glob(f"{prefix}*")) if (d / "metrics.csv").exists()]
+
+
+def load_probes(tags: list[str] | None = None) -> list[dict[str, Any]]:
+    """reports/tables/probe_<tag>.json (all present if tags is None)."""
+    paths = (sorted(resolve_path("reports/tables").glob("probe_*.json")) if tags is None
+             else [resolve_path("reports/tables") / f"probe_{t}.json" for t in tags])
+    return [json.loads(p.read_text(encoding="utf-8")) for p in paths if p.exists()]
+
+
+# --------------------------------------------------------------------------- tables
+
+def _fmt_ci(ci: dict[str, float] | None) -> str:
+    return f"[{ci['low']:.3f}, {ci['high']:.3f}]" if ci else ""
+
+
+def probe_table(probes: list[dict[str, Any]], methods: tuple[str, ...] = ("knn", "linear")) -> pd.DataFrame:
+    """One row per (encoder, method): headline metrics with 95% bootstrap CIs (val crops, 100% labels)."""
+    rows = []
+    for p in probes:
+        for m in methods:
+            e = p["methods"][m]
+            row = {"encoder": p["tag"], "method": m}
+            for k in HEADLINE:
+                row[k] = e["metrics"][k]
+                row[f"{k}_CI95"] = _fmt_ci(e.get("ci95", {}).get(k))
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def per_class_recall_table(probes: list[dict[str, Any]], method: str = "linear") -> pd.DataFrame:
+    rows = []
+    for p in probes:
+        e = p["methods"][method]
+        for c in p["classes"]:
+            k = f"recall/{c}"
+            rows.append({"encoder": p["tag"], "class": c, "n_val": p["n_crops"]["val"][c],
+                         "recall": e["metrics"][k], "CI95": _fmt_ci(e.get("ci95", {}).get(k))})
+    return pd.DataFrame(rows)
+
+
+def low_label_table(probes: list[dict[str, Any]], metric: str = "auprc_infected") -> pd.DataFrame:
+    rows = []
+    for p in probes:
+        for m in ("knn", "linear"):
+            rows.append({"encoder": p["tag"], "method": m, "fraction": 1.0, "mean": p["methods"][m]["metrics"][metric],
+                         "std": 0.0})
+            for frac, by_m in p.get("low_label", {}).items():
+                rows.append({"encoder": p["tag"], "method": m, "fraction": float(frac),
+                             "mean": by_m[m]["mean"][metric], "std": by_m[m]["std"][metric],
+                             "n_train": by_m[m]["mean"]["n_train"]})
+    return pd.DataFrame(rows).sort_values(["encoder", "method", "fraction"])
+
+
+# --------------------------------------------------------------------------- curves
+
+def _series(ax, runs, col, title, logy=False):
+    for k, r in enumerate(runs):
+        h = r["history"]
+        if col in h and h[col].notna().any():
+            ax.plot(h["epoch"], h[col], color=SERIES[k % len(SERIES)], lw=2, label=r["name"])
+    ax.set_title(title, fontsize=10)
+    ax.set_xlabel("epoch")
+    if logy:
+        ax.set_yscale("log")
+    _recessive_axes(ax)
+
+
+def plot_losses(runs: list[dict[str, Any]]):
+    fig, axes = plt.subplots(1, 4, figsize=(17, 3.4))
+    for ax, (col, title) in zip(axes, [("loss_mae", "train L_mae"), ("val_loss_mae", "val L_mae (fixed masks)"),
+                                       ("loss_con", "train L_con"), ("val_loss_con", "val L_con")]):
+        _series(ax, runs, col, title)
+    axes[0].legend(fontsize=7)
+    fig.tight_layout()
+    return fig
+
+
+def plot_weights_lr(runs: list[dict[str, Any]]):
+    fig, axes = plt.subplots(1, 4, figsize=(17, 3.2))
+    for ax, (col, title, logy) in zip(axes, [("w_mae", "effective weight MAE", False), ("w_con", "effective weight InfoNCE", False),
+                                             ("lr", "learning rate (end of epoch)", True), ("grad_norm", "grad norm before clipping", False)]):
+        _series(ax, runs, col, title, logy)
+    axes[0].legend(fontsize=7)
+    fig.tight_layout()
+    return fig
+
+
+def plot_collapse(runs: list[dict[str, Any]], space: str = "rep"):
+    """Collapse diagnostics on fixed val pairs; space = rep (backbone mean-patch) or proj (projector)."""
+    fig, axes = plt.subplots(1, 4, figsize=(17, 3.2))
+    for ax, (col, title) in zip(axes, [("std_x_sqrt_d", "std of L2-normed emb. x sqrt(d) (1 = spread)"),
+                                       ("erank", "effective rank"), ("alignment", "alignment (lower = views closer)"),
+                                       ("uniformity", "uniformity (lower = more uniform)")]):
+        _series(ax, runs, f"{space}/{col}", f"{space}: {title}")
+    axes[0].legend(fontsize=7)
+    fig.tight_layout()
+    return fig
+
+
+def plot_light_probe(runs: list[dict[str, Any]], metric: str = "auprc_infected"):
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3.2))
+    for ax, m in zip(axes, ("knn", "linear")):
+        for k, r in enumerate(runs):
+            h = r["history"]
+            col = f"probe/{m}/{metric}"
+            if col in h:
+                hh = h.dropna(subset=[col])
+                ax.plot(hh["epoch"], hh[col], color=SERIES[k % len(SERIES)], lw=2, marker="o", ms=4, label=r["name"])
+        ax.set_title(f"light probe ({m}): val {metric}", fontsize=10)
+        ax.set_xlabel("epoch")
+        _recessive_axes(ax)
+    axes[0].legend(fontsize=7)
+    fig.tight_layout()
+    return fig
+
+
+def show_recon(run: dict[str, Any], which: tuple[int, ...] = (0, -1)):
+    """Reconstruction grids (rows: original | masked | reconstruction) for selected files."""
+    files = [run["recon"][i] for i in which if run["recon"]]
+    fig, axes = plt.subplots(len(files), 1, figsize=(16, 2.4 * len(files)), squeeze=False)
+    for ax, f in zip(axes[:, 0], files):
+        ax.imshow(Image.open(f))
+        ax.set_title(f"{run['name']}: {f.stem}", fontsize=10)
+        ax.axis("off")
+    fig.tight_layout()
+    return fig
+
+
+def plot_low_label(probes: list[dict[str, Any]], metric: str = "auprc_infected"):
+    df = low_label_table(probes, metric)
+    fig, axes = plt.subplots(1, 2, figsize=(11, 3.4))
+    for ax, m in zip(axes, ("knn", "linear")):
+        for k, (enc, g) in enumerate(df[df["method"] == m].groupby("encoder", sort=False)):
+            ax.errorbar(g["fraction"], g["mean"], yerr=g["std"], color=SERIES[k % len(SERIES)], lw=2, marker="o",
+                        ms=4, capsize=3, label=enc)
+        ax.set_xscale("log")
+        ax.set_xlabel("fraction of labelled train crops")
+        ax.set_title(f"{m}: val {metric} (mean ± std over seeds)", fontsize=10)
+        _recessive_axes(ax)
+    axes[0].legend(fontsize=7)
+    fig.tight_layout()
+    return fig
+
+
+# --------------------------------------------------------------------------- PCA
+
+def pca_2d(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Projection on the top-2 principal components (torch SVD) and their explained variance ratio."""
+    xc = x.float() - x.float().mean(0)
+    _, s, vh = torch.linalg.svd(xc, full_matrices=False)
+    var = s ** 2
+    return xc @ vh[:2].t(), var[:2] / var.sum()
+
+
+def plot_pca(tags: list[str], split: str = "val", max_rbc: int = 600, seed: int = 0):
+    """PCA scatter of probe features per encoder, coloured by class (RBC thinned for legibility)."""
+    fig, axes = plt.subplots(1, len(tags), figsize=(5 * len(tags), 4.4), squeeze=False)
+    for ax, tag in zip(axes[0], tags):
+        d = torch.load(resolve_path("runs/probe") / tag / f"features_{split}.pt", weights_only=False)
+        y = d["label"].numpy()
+        xy, ratio = pca_2d(d["features"])
+        xy = xy.numpy()
+        rbc = d["classes"].index("red blood cell")
+        rng = np.random.default_rng(seed)
+        rbc_idx = np.nonzero(y == rbc)[0]
+        keep = np.r_[rng.choice(rbc_idx, size=min(max_rbc, len(rbc_idx)), replace=False), np.nonzero(y != rbc)[0]]
+        for c, name in enumerate(d["classes"]):
+            sel = keep[y[keep] == c]
+            ax.scatter(xy[sel, 0], xy[sel, 1], s=6 if c == rbc else 10, alpha=0.4 if c == rbc else 0.8,
+                       color=CLASS_COLORS[name], label=name, linewidths=0)
+        ax.set_title(f"{tag} ({split}); PC1+PC2 = {ratio.sum():.1%} var.", fontsize=10)
+        ax.set_xticks([]), ax.set_yticks([])
+        _recessive_axes(ax)
+    axes[0, 0].legend(fontsize=7, markerscale=2)
+    fig.tight_layout()
+    return fig
