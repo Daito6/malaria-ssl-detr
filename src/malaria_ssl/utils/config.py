@@ -30,6 +30,18 @@ def load_experiment(path: str | Path) -> dict[str, Any]:
     return deep_merge(load_experiment(base), cfg) if base else cfg
 
 
+def apply_overrides(cfg: dict[str, Any], items: list[str]) -> dict[str, Any]:
+    """`--set a.b=value` overrides (value parsed as YAML)."""
+    for item in items:
+        key, _, raw = item.partition("=")
+        node = cfg
+        *parents, leaf = key.split(".")
+        for p in parents:
+            node = node[p]
+        node[leaf] = yaml.safe_load(raw)
+    return cfg
+
+
 def resolve_path(p: str | Path) -> Path:
     """Resolve a config path relative to the project root (absolute paths pass through)."""
     p = Path(p)

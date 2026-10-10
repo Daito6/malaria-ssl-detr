@@ -10,12 +10,9 @@ Run directory layout (runs/<name>/):
 """
 from __future__ import annotations
 
-import csv
 import json
 import logging
 import math
-import platform
-import subprocess
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -35,6 +32,7 @@ from malaria_ssl.detr.loss import DetrCriterion
 from malaria_ssl.eval.coco_metrics import evaluate_coco
 from malaria_ssl.eval.inference import predict
 from malaria_ssl.utils.config import load_config, resolve_path
+from malaria_ssl.utils.run import append_csv, lr_lambda, run_info, save_checkpoint
 from malaria_ssl.utils.seed import set_seed
 
 log = logging.getLogger(__name__)
@@ -102,15 +100,6 @@ def to_device(targets: list[dict[str, Any]], device: torch.device) -> list[dict[
              "boxes": t["boxes"].to(device, non_blocking=True)} for t in targets]
 
 
-def lr_lambda(warmup: int, total: int, min_ratio: float):
-    def f(step: int) -> float:
-        if step < warmup:
-            return (step + 1) / warmup
-        progress = min((step - warmup) / max(total - warmup, 1), 1.0)
-        return min_ratio + (1 - min_ratio) * 0.5 * (1 + math.cos(math.pi * progress))
-    return f
-
-
 def probe_micro_batch(model: Detr, criterion: DetrCriterion, cfg: dict[str, Any], device: torch.device,
                       n_boxes: int = 223) -> dict[str, Any]:
     """Largest micro-batch (dividing effective_batch) whose fwd+bwd peak memory fits the budget.
@@ -156,32 +145,6 @@ def probe_micro_batch(model: Detr, criterion: DetrCriterion, cfg: dict[str, Any]
     log.info("micro-batch probe (peak GiB per candidate): %s -> %d", results, chosen)
     return {"micro_batch": chosen, "probe_peak_gib": results, "probe_canvas": side,
             "budget_gib": round(budget / 2**30, 2)}
-
-
-def run_info() -> dict[str, Any]:
-    def git(*args):
-        try:
-            return subprocess.run(["git", *args], capture_output=True, text=True, cwd=resolve_path("."),
-                                  check=True).stdout.strip()
-        except (OSError, subprocess.CalledProcessError):
-            return None
-    import importlib.metadata as md
-    versions = {}
-    for p in ("torch", "torchvision", "transformers", "timm", "albumentations", "pycocotools", "numpy"):
-        try:
-            versions[p] = md.version(p)
-        except md.PackageNotFoundError:
-            versions[p] = None
-    return {"git_commit": git("rev-parse", "HEAD"), "git_dirty": bool(git("status", "--porcelain")),
-            "python": platform.python_version(), "packages": versions, "cuda": torch.version.cuda,
-            "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None}
-
-
-def save_checkpoint(path: Path, **state) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    torch.save(state, tmp)
-    tmp.replace(path)
 
 
 # --------------------------------------------------------------------------- training
@@ -330,23 +293,10 @@ class Trainer:
             for k, v in row.items():
                 if isinstance(v, (int, float)) and k != "epoch":
                     self.tb.add_scalar(f"epoch/{k}", v, self.epoch)
-            self._append_csv(metrics_path, row)
+            append_csv(metrics_path, row)
             log.info("epoch %d: %s", self.epoch, {k: round(v, 4) if isinstance(v, float) else v for k, v in row.items()})
             self.epoch += 1
             save_checkpoint(self.run_dir / "checkpoints" / "last.pt", **self.state())
             if last_epoch:
                 break
         self.tb.close()
-
-    @staticmethod
-    def _append_csv(path: Path, row: dict[str, Any]) -> None:
-        rows = []
-        if path.exists():
-            with path.open(newline="", encoding="utf-8") as f:
-                rows = list(csv.DictReader(f))
-        rows = [r for r in rows if int(r["epoch"]) != row["epoch"]] + [row]  # idempotent on resume
-        fields = list(dict.fromkeys(k for r in rows for k in r))
-        with path.open("w", newline="", encoding="utf-8") as f:
-            w = csv.DictWriter(f, fieldnames=fields)
-            w.writeheader()
-            w.writerows(rows)
