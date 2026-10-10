@@ -1,0 +1,7 @@
+# Contrastive only (MAE branch not computed). Same sample budget as joint.
+base: configs/ssl/base.yaml
+
+loss:
+  loss_weighting: fixed
+  lambda_mae: 0.0
+  lambda_con: 1.0

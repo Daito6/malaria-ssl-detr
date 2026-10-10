@@ -1,0 +1,7 @@
+# Main joint run: MAE + InfoNCE with fixed weights (lambda_con set after the sweep selects it).
+base: configs/ssl/base.yaml
+
+loss:
+  loss_weighting: fixed
+  lambda_mae: 1.0
+  lambda_con: 0.2
