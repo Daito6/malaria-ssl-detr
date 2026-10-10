@@ -31,11 +31,12 @@ optim:
   min_lr_ratio: 0.01
 
 train:
-  batch: auto                        # pairs per step (2 crops each); auto = largest that fits
+  batch: 128                         # pairs per step (2 crops each); auto = probe. Measured: 256 pairs need
+                                     # 20.8 GiB, 128 pairs 10.75 GiB (joint) -> fixed for reproducibility
   batch_candidates: [512, 384, 256, 192, 128]
   probe_memory_fraction: 0.85
-  samples_per_epoch: 20480           # PROVISIONAL: set from the measured throughput after the smoke
-  epochs: 50                         # PROVISIONAL
+  samples_per_epoch: 25600           # 200 steps; joint measured 258 pairs/s -> ~99 s per epoch
+  epochs: 100                        # main budget 2.56 M pairs: joint ~2.8 h, mae_only ~1.3 h, con_only ~2.3 h
   num_workers: 6
   persistent_workers: true
   amp_dtype: bfloat16
