@@ -42,6 +42,8 @@ binary:
 
 split:
   val_fraction: 0.15   # carved out of the official train split, by image
+  # images whose dHash (256 bit) differs by <= this many bits are kept on the same side
+  near_duplicate_max_hamming: 20
 
 loader:
   num_workers: 4

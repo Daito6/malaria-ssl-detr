@@ -11,10 +11,11 @@ import logging
 
 from malaria_ssl.data.convert import convert_dataset, save_json, to_binary
 from malaria_ssl.data.download import fetch_dataset
+from malaria_ssl.data.splits import make_splits
 from malaria_ssl.data.stats import load_coco
 from malaria_ssl.utils.config import load_config, resolve_path
 
-ALL_STEPS = ("download", "convert")
+ALL_STEPS = ("download", "convert", "split")
 log = logging.getLogger("prepare_data")
 
 
@@ -47,6 +48,12 @@ def main() -> None:
             log.info("binary mode drops in %s: %s", name, dropped)
         save_json(summary, coco_dir.parent / "convert_summary.json")
         log.info("conversion summary:\n%s", json.dumps(summary, indent=2))
+
+    if "split" in steps:
+        meta = make_splits(cfg, resolve_path)
+        log.info("split sizes: %s (val fraction %.3f)", meta["n_images"], meta["val_fraction_actual"])
+        log.info("near-duplicate pairs: %s", meta["near_duplicate_pairs"])
+        log.info("val class counts: %s", meta["class_counts"]["val"])
 
 
 if __name__ == "__main__":
