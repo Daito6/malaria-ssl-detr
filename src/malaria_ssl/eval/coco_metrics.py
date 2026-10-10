@@ -43,6 +43,9 @@ def run_cocoeval(gt: dict[str, Any], dets: list[dict[str, Any]], img_ids: list[i
         ev = COCOeval(gt_coco, dt_coco, iouType="bbox")
         ev.params.maxDets = list(max_dets)
         ev.params.imgIds = ids
+        # only the "all" area range is reported; dropping small/medium/large cuts evaluate() time ~4x
+        ev.params.areaRng = [ev.params.areaRng[0]]
+        ev.params.areaRngLbl = [ev.params.areaRngLbl[0]]
         ev.evaluate()
         ev.accumulate()
         ev.summarize()
