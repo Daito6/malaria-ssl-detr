@@ -1,0 +1,51 @@
+# Base config for SSL pretraining (scripts/pretrain.py). Experiment files set `base:` to this file
+# and override only what differs.
+base: configs/ssl/data.yaml
+
+model:
+  encoder: vit_small_patch16_224     # random init, never pretrained weights
+  drop_path_rate: 0.0
+
+mae:
+  mask_ratio: 0.75
+  decoder_dim: 256
+  decoder_depth: 4
+  decoder_heads: 8
+
+contrastive:
+  temperature: 0.2
+  proj_hidden: 2048
+  proj_dim: 256
+
+loss:
+  loss_weighting: fixed              # fixed | uncertainty (Kendall et al. 2018)
+  lambda_mae: 1.0
+  lambda_con: 0.2                    # with uncertainty weighting lambdas only switch branches on
+
+optim:
+  blr: 1.5e-4                        # lr = blr * batch / 256
+  betas: [0.9, 0.95]
+  weight_decay: 0.05
+  grad_clip: 3.0
+  warmup_fraction: 0.05              # of all optimizer steps
+  min_lr_ratio: 0.01
+
+train:
+  batch: auto                        # pairs per step (2 crops each); auto = largest that fits
+  batch_candidates: [512, 384, 256, 192, 128]
+  probe_memory_fraction: 0.85
+  samples_per_epoch: 20480           # PROVISIONAL: set from the measured throughput after the smoke
+  epochs: 50                         # PROVISIONAL
+  num_workers: 6
+  persistent_workers: true
+  amp_dtype: bfloat16
+  max_steps: null                    # debug: stop after this many optimizer steps
+  overfit_crops: null                # debug: train on N fixed train crops without augmentation
+
+monitor:
+  val_pairs: 512                     # fixed val pairs: val losses + collapse diagnostics, every epoch
+  monitor_seed: 1234
+  recon_every: 5
+  recon_crops: 8
+  probe_every: 10                    # light probe (kNN + linear, no bootstrap); 0 = off
+  save_every: 10                     # encoder_epXXX.pt
