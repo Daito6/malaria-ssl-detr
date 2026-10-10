@@ -1,4 +1,4 @@
-# Main joint run: MAE + InfoNCE with fixed weights (lambda_con set after the sweep selects it).
+# Main joint run (100 epochs, ~2.8 h). lambda_con = PLACEHOLDER: set to the sweep winner before launching.
 base: configs/ssl/base.yaml
 
 loss:

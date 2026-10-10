@@ -1,0 +1,14 @@
+# Lambda sweep (selection by linear-probe val AUPRC infected): lambda_mae = 1, lambda_con = 0.05.
+# Sweep budget: 32 epochs x 25600 pairs = 0.82 M pairs (~55 min at the measured 258 pairs/s).
+base: configs/ssl/base.yaml
+
+loss:
+  loss_weighting: fixed
+  lambda_mae: 1.0
+  lambda_con: 0.05
+
+train:
+  epochs: 32
+
+monitor:
+  probe_every: 8

@@ -1,0 +1,14 @@
+# Lambda sweep, uncertainty weighting (Kendall et al. 2018): learnable log-variances, both branches on.
+# Sweep budget: 32 epochs x 25600 pairs = 0.82 M pairs (~55 min at the measured 258 pairs/s).
+base: configs/ssl/base.yaml
+
+loss:
+  loss_weighting: uncertainty
+  lambda_mae: 1.0
+  lambda_con: 1.0
+
+train:
+  epochs: 32
+
+monitor:
+  probe_every: 8
