@@ -56,10 +56,30 @@ Facts worth remembering (details in `reports/phase1_summary.md`):
 - train/val: PNG 1600x1200; test: JPG 1944x1383, cells ~1.27x larger in px -> domain shift.
 - Max 223 boxes per image; 10.5% of images have >100 -> DETR needs >100 queries.
 - Leukocyte has 0 boxes in test.
-- torchvision in `medthesis` is a CPU build (CUDA ops fail) — reinstall the cu130 wheel before DETR.
 - If Git Bash `python.exe` hits "Application Control policy has blocked" DLL errors,
   use `conda run -n medthesis python ...` from PowerShell.
+- Smart App Control blocks some pip DLLs: scikit-learn must stay uninstalled (else
+  `import transformers` fails); grpcio is pinned to 1.76.0 (newer builds are blocked).
+
+## DETR pipeline (phase 2)
+```
+python scripts/train_detr.py --config configs/experiments/<exp>.yaml [--resume] [--set key=value]
+python scripts/evaluate.py runs/<name> --split val --bootstrap   # val first: picks F1 thresholds
+python scripts/evaluate.py runs/<name> --split test --bootstrap  # reuses val thresholds
+```
+Non-obvious decisions (details in `reports/phase2_summary.md`):
+- Model is called WITHOUT labels; loss is ours (`detr/loss.py`, HF matcher/ImageLoss reused)
+  so class weights work. Aux outputs come from decoder hooks: HF `auxiliary_loss=True`
+  layer-norms the running decoder state and breaks the COCO-pretrained model.
+- ResNet stem + layer1 are frozen explicitly (HF v5 does not). scratch_r50 loads
+  `resnet50.tv_in1k` explicitly and verifies it.
+- COCOeval uses maxDets [1,10,300]; never read `ev.stats[0]` (hard-coded maxDets=100 -> -1);
+  summaries come from `eval["precision"/"recall"]`. Only area range "all" is evaluated.
+- Batches are deterministic via `SeededSampler` yielding (index, seed) pairs.
+- Measured: micro-batch 8 fits (6.98 GiB probe peak), ~58 s/epoch, ~43 min per 40-epoch run.
 
 ## Status
-- Phase 1 (scaffold + data pipeline + EDA): done, awaiting user review.
+- Phase 1 (scaffold + data pipeline + EDA): done.
+- Phase 2 (detection pipeline, eval, baseline A tooling, dry runs): done, awaiting user review.
+  Full baseline-A runs not launched yet (user runs them).
 - Next: SSL pretraining (MAE + InfoNCE) — not started.
