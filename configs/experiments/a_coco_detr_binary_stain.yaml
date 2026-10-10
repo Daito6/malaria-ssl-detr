@@ -1,0 +1,10 @@
+# Baseline A + HED stain jitter: identical to a_coco_detr_binary.yaml except the stain augmentation
+# (targets the val -> test colour/stain shift; see scripts/diagnose_shift.py).
+base: configs/detr/base.yaml
+label_mode: binary
+model:
+  name: coco_detr_r50
+train:
+  epochs: 40
+augment:
+  hed_jitter: {enabled: true, sigma: 0.03, p: 0.5}
