@@ -6,12 +6,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 
+from malaria_ssl.data.convert import convert_dataset, save_json, to_binary
 from malaria_ssl.data.download import fetch_dataset
+from malaria_ssl.data.stats import load_coco
 from malaria_ssl.utils.config import load_config, resolve_path
 
-ALL_STEPS = ("download",)
+ALL_STEPS = ("download", "convert")
+log = logging.getLogger("prepare_data")
 
 
 def main() -> None:
@@ -30,6 +34,19 @@ def main() -> None:
     if "download" in steps:
         d = cfg["download"]
         fetch_dataset(d["url"], resolve_path(d["zip_path"]), resolve_path(d["extract_dir"]))
+
+    coco_dir = resolve_path(cfg["paths"]["coco_dir"])
+    if "convert" in steps:
+        summary = convert_dataset(cfg, resolve_path)
+        # binary mode is derived on the fly; here we only report what it would drop
+        summary["binary_dropped"] = {}
+        for name in ("train_full", "test"):
+            _, dropped = to_binary(load_coco(coco_dir / f"{name}.json"),
+                                   cfg["binary"]["mapping"], cfg["binary"]["categories"])
+            summary["binary_dropped"][name] = dropped
+            log.info("binary mode drops in %s: %s", name, dropped)
+        save_json(summary, coco_dir.parent / "convert_summary.json")
+        log.info("conversion summary:\n%s", json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":
