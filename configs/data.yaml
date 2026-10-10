@@ -1,0 +1,48 @@
+# Data pipeline config for BBBC041v1 (P. vivax blood smears).
+# All paths are relative to the project root.
+
+seed: 42
+
+download:
+  url: https://data.broadinstitute.org/bbbc/BBBC041/malaria.zip
+  zip_path: data/raw/malaria.zip
+  extract_dir: data/raw          # the zip contains a top-level `malaria/` folder
+
+paths:
+  raw_root: data/raw/malaria     # contains images/, training.json, test.json
+  coco_dir: data/processed/coco
+  images_index: data/processed/images_index.csv
+  unlabeled_list: data/processed/unlabeled_images.json
+  splits_dir: data/splits
+
+# Fixed category ids for the multiclass COCO files (all 7 original categories).
+categories:
+  - {id: 1, name: red blood cell}
+  - {id: 2, name: leukocyte}
+  - {id: 3, name: gametocyte}
+  - {id: 4, name: ring}
+  - {id: 5, name: trophozoite}
+  - {id: 6, name: schizont}
+  - {id: 7, name: difficult}
+
+# Binary mode (infected vs uninfected) is derived from the multiclass files.
+# A class mapped to null is dropped.
+binary:
+  categories:
+    - {id: 1, name: uninfected}
+    - {id: 2, name: infected}
+  mapping:
+    red blood cell: uninfected
+    leukocyte: uninfected
+    gametocyte: infected
+    ring: infected
+    trophozoite: infected
+    schizont: infected
+    difficult: null
+
+split:
+  val_fraction: 0.15   # carved out of the official train split, by image
+
+loader:
+  num_workers: 4
+  persistent_workers: true
