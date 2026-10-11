@@ -20,10 +20,12 @@ contrastive:
 loss:
   loss_weighting: fixed              # fixed | uncertainty (Kendall et al. 2018)
   lambda_mae: 1.0
-  lambda_con: 0.2                    # with uncertainty weighting lambdas only switch branches on
+  lambda_con: 0.2                    # sweep choice (phase3_sweep); with uncertainty weighting lambdas only
+                                     # switch branches on
 
 optim:
-  blr: 1.5e-4                        # lr = blr * batch / 256
+  blr: 5.0e-4                        # lr = blr * batch / 256 = 2.5e-4; sweep choice (sweep_lr5e4), shared by
+                                     # joint / mae_only / con_only
   betas: [0.9, 0.95]
   weight_decay: 0.05
   grad_clip: 3.0
@@ -36,7 +38,7 @@ train:
   batch_candidates: [512, 384, 256, 192, 128]
   probe_memory_fraction: 0.85
   samples_per_epoch: 25600           # 200 steps; joint measured 258 pairs/s -> ~99 s per epoch
-  epochs: 100                        # main budget 2.56 M pairs: joint ~2.8 h, mae_only ~1.3 h, con_only ~2.3 h
+  epochs: 100                        # main budget 2.56 M pairs: joint ~2.6 h, mae_only ~1.4 h, con_only ~2.4 h
   num_workers: 6
   persistent_workers: true
   amp_dtype: bfloat16

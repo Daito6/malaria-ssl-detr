@@ -1,0 +1,13 @@
+# Phase 3, final queue: joint / mae_only / con_only, 100 epochs each (2.56 M pairs), lambda_con 0.2 and
+# blr 5e-4 (shared via base.yaml), then the probes (clean, stain-shifted, low-label).
+# Estimate from measured throughput: joint ~2.6 h, mae_only ~1.4 h, con_only ~2.4 h, probes ~3 min -> ~6.4 h.
+# Run:  powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase3_final.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+ssl_joint    | python scripts/pretrain.py --config configs/ssl/joint.yaml
+ssl_mae_only | python scripts/pretrain.py --config configs/ssl/mae_only.yaml
+ssl_con_only | python scripts/pretrain.py --config configs/ssl/con_only.yaml
+
+ssl_joint    | python scripts/probe.py --run runs/ssl_joint
+ssl_mae_only | python scripts/probe.py --run runs/ssl_mae_only
+ssl_con_only | python scripts/probe.py --run runs/ssl_con_only

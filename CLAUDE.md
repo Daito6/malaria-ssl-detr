@@ -121,16 +121,18 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   AUPRC -> 10%-label linear AUPRC -> linear macro-F1; a run is tied if its value is inside the
   leader's interval (95% CI lower bound; mean - std for the 10%-label step).
 - `runs/dry_a_*` prefix also matches phase-2 DETR dry runs; SSL overfit run is `dry_a_overfit_mae64`.
+- Checkpoints (`utils/run.py`): .tmp + fsync + os.replace; last.pt keeps the previous state as
+  last.prev.pt and `load_checkpoint` falls back to it (lc02 once died on a truncated last.pt).
 
 ## Status
 - Phase 1 (scaffold + data pipeline + EDA): done.
 - Phase 2 (detection pipeline, eval module, baseline A tooling): done. `a_coco_detr_binary` trained
   and evaluated on val/test. `a_coco_detr_multiclass` and `a_scratch_r50_binary` not run yet.
 - Phase 3 (SSL code, probe incl. stain-shifted probe, dry runs, references, shift diagnostic, run
-  queue): done, 53 tests pass, awaiting user review. Long runs NOT started (user runs them).
-  First queue `configs/queues/phase3_sweep.txt` (~5.5 h): sweep lc005 / lc02 / lc10 / uncertainty /
-  lr5e4 (blr 5e-4) + probes, then `a_coco_detr_binary_stain` + val/test eval + diagnose_shift.
-  After it: set lambda_con (and blr if lr5e4 wins) in `configs/ssl/joint.yaml` (placeholder now),
-  then joint (~2.8 h), mae_only, con_only + probes.
+  queue): done. `phase3_sweep` queue finished (5 sweeps + probes, `a_coco_detr_binary_stain` + eval).
+  `select_run` picks lc005 (decided at the 10%-label step), but the user's final rule (stain-shifted
+  AUPRC: lr5e4 0.973 within lc02's CI [0.956, 0.987]) chose lambda_con 0.2 + blr 5e-4, now in
+  `configs/ssl/base.yaml` (shared lr for joint / mae_only / con_only, 100 epochs). Sweep configs pin
+  their own blr 1.5e-4. Next: `configs/queues/phase3_final.txt` (~6.4 h), not launched yet.
 - User decisions: extra lr run (blr 5e-4) added; tie-breaks as in the selection rule; mae_only
   embedding anisotropy (std x sqrt(d) ~ 0.09) is acceptable, keep monitoring.
