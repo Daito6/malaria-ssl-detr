@@ -1,0 +1,18 @@
+# Lambda sweep, learning-rate check: as sweep_lc02 (lambda_con 0.2) but blr 5.0e-4
+# (lr = 5.0e-4 * 128 / 256 = 2.5e-4 instead of 7.5e-5).
+# Sweep budget: 32 epochs x 25600 pairs = 0.82 M pairs (~55 min at the measured 258 pairs/s).
+base: configs/ssl/base.yaml
+
+loss:
+  loss_weighting: fixed
+  lambda_mae: 1.0
+  lambda_con: 0.2
+
+optim:
+  blr: 5.0e-4
+
+train:
+  epochs: 32
+
+monitor:
+  probe_every: 8
