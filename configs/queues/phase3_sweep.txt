@@ -1,0 +1,20 @@
+# Phase 3, first queue: lambda / lr sweep (5 x ~55 min) + probes (clean, stain-shifted, low-label),
+# then the stain-jitter DETR baseline (~43 min) with val/test evaluation and the shift diagnostic.
+# Run:  powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase3_sweep.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+ssl_sweep_lc005       | python scripts/pretrain.py --config configs/ssl/sweep_lc005.yaml
+ssl_sweep_lc005       | python scripts/probe.py --run runs/ssl_sweep_lc005
+ssl_sweep_lc02        | python scripts/pretrain.py --config configs/ssl/sweep_lc02.yaml
+ssl_sweep_lc02        | python scripts/probe.py --run runs/ssl_sweep_lc02
+ssl_sweep_lc10        | python scripts/pretrain.py --config configs/ssl/sweep_lc10.yaml
+ssl_sweep_lc10        | python scripts/probe.py --run runs/ssl_sweep_lc10
+ssl_sweep_uncertainty | python scripts/pretrain.py --config configs/ssl/sweep_uncertainty.yaml
+ssl_sweep_uncertainty | python scripts/probe.py --run runs/ssl_sweep_uncertainty
+ssl_sweep_lr5e4       | python scripts/pretrain.py --config configs/ssl/sweep_lr5e4.yaml
+ssl_sweep_lr5e4       | python scripts/probe.py --run runs/ssl_sweep_lr5e4
+
+a_coco_detr_binary_stain | python scripts/train_detr.py --config configs/experiments/a_coco_detr_binary_stain.yaml
+a_coco_detr_binary_stain | python scripts/evaluate.py runs/a_coco_detr_binary_stain --split val --bootstrap
+a_coco_detr_binary_stain | python scripts/evaluate.py runs/a_coco_detr_binary_stain --split test --bootstrap
+a_coco_detr_binary_stain | python scripts/diagnose_shift.py runs/a_coco_detr_binary_stain
