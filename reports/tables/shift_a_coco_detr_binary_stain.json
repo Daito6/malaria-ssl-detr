@@ -1,0 +1,20 @@
+{
+  "run": "a_coco_detr_binary_stain",
+  "class": "infected",
+  "val_threshold": 0.900140106678009,
+  "iou": 0.5,
+  "val": {
+    "n_gt": 298,
+    "median_score": 0.964910089969635,
+    "frac_ge_val_threshold": 0.8590604026845637,
+    "frac_no_target_detection": 0.04697986577181208,
+    "frac_other_class_scores_higher": 0.040268456375838924
+  },
+  "test": {
+    "n_gt": 303,
+    "median_score": 0.718992292881012,
+    "frac_ge_val_threshold": 0.31353135313531355,
+    "frac_no_target_detection": 0.2871287128712871,
+    "frac_other_class_scores_higher": 0.35973597359735976
+  }
+}
