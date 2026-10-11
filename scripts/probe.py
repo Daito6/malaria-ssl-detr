@@ -6,7 +6,11 @@ Usage:
     python scripts/probe.py --ref random                         # random-init ViT-S/16 reference
     python scripts/probe.py --ref imagenet                       # ImageNet ViT-S/16 (timm) reference
 
-Writes reports/tables/probe_<tag>.{json,csv} and runs/probe/<tag>/features_{train,val}.pt.
+Also runs the stain-shifted probe (same classifiers, fitted on clean train crops, evaluated on val
+crops with the fixed seeded shift of `probe.stain_shift`): `stain_shift` in the JSON, rows with
+eval_set=val_stain in the CSV.
+
+Writes reports/tables/probe_<tag>.{json,csv} and runs/probe/<tag>/features_{train,val,val_stain}.pt.
 """
 from __future__ import annotations
 
@@ -67,7 +71,7 @@ def main() -> None:
     log.info("crops per class: %s", prober.counts())
 
     t0 = time.time()
-    feats = prober.features(encoder)
+    feats = prober.features(encoder, stain_shift=True)
     t_feat = time.time() - t0
     res = prober.evaluate(encoder, full=True, feats=feats)
     res.update(tag=tag, source=source, probe_config=cfg["probe"],
@@ -80,11 +84,13 @@ def main() -> None:
     feat_dir = resolve_path("runs/probe") / tag
     feat_dir.mkdir(parents=True, exist_ok=True)
     for split, f in feats.items():
-        c = prober.crops[split]
+        c = prober.crops[split.removesuffix("_stain")]
         torch.save({"features": f, "label": torch.as_tensor(c["label"]), "image_id": torch.as_tensor(c["image_id"]),
                     "classes": prober.names}, feat_dir / f"features_{split}.pt")
     for m, e in res["methods"].items():
         log.info("%s: %s", m, {k: round(v, 4) for k, v in e["metrics"].items()})
+    for m, e in res["stain_shift"]["methods"].items():
+        log.info("%s (stain-shifted val): %s", m, {k: round(v, 4) for k, v in e["metrics"].items()})
     log.info("wrote %s", out_dir / f"probe_{tag}.json")
 
 

@@ -14,6 +14,16 @@ Binary score P(infected) = sum of the probabilities of the infected classes.
 Metrics (numpy, no sklearn): binary AUROC / AUPRC / balanced accuracy; multiclass balanced accuracy,
 macro-F1, per-class recall. 95% CIs by bootstrap over val IMAGES (crops of one image are correlated).
 Low-label: class-stratified fractions of the train crops (>= 1 per class), several seeds.
+
+Stain-shifted probe: the same classifiers (fitted on CLEAN train crops) are also evaluated on the val
+crops after a fixed, seeded, strong photometric shift (HED stain jitter, brightness / contrast /
+saturation / hue, mild blur, JPEG). The shift is drawn once per val image (seed = (shift seed, image
+id)) and applied to the whole long-side-800 image before cropping, like a slide-level stain change.
+
+Lambda selection (`select_run`): linear AUPRC infected on clean val -> stain-shifted linear AUPRC ->
+10%-label linear AUPRC -> linear macro-F1. At each step the runs whose value lies inside the leader's
+interval (95% bootstrap CI; mean - std over seeds for the 10%-label step) stay tied and go to the
+next criterion; the last criterion is decided by the point estimate.
 """
 from __future__ import annotations
 
@@ -23,12 +33,13 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+import albumentations as A
 import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
 
-from malaria_ssl.data.detection import load_split_coco
+from malaria_ssl.data.detection import HEDJitter, load_split_coco
 from malaria_ssl.ssl.data import normalize
 
 log = logging.getLogger(__name__)
@@ -90,10 +101,30 @@ def window_and_patch_mask(box: np.ndarray, img_w: int, img_h: int, window: int, 
     return (x0, y0), inside.reshape(-1).astype(np.float32)
 
 
+def build_stain_shift(scfg: dict[str, Any]) -> A.Compose:
+    """Strong photometric shift of the stain-shifted probe; every transform is always applied."""
+    cj = scfg["color_jitter"]
+    return A.Compose([
+        HEDJitter(sigma=scfg["hed_sigma"], p=1.0),
+        A.ColorJitter(brightness=cj["brightness"], contrast=cj["contrast"], saturation=cj["saturation"],
+                      hue=cj["hue"], p=1.0),
+        A.GaussianBlur(sigma_limit=tuple(scfg["blur_sigma"]), p=1.0),
+        A.ImageCompression(quality_range=tuple(scfg["jpeg_quality"]), p=1.0),
+    ])
+
+
+def apply_stain_shift(img: np.ndarray, transform: A.Compose, seed: int, image_id: int) -> np.ndarray:
+    """Shift of one image, fixed by (seed, image id)."""
+    transform.set_random_seed(int(np.random.default_rng([seed, int(image_id)]).integers(0, 2**31 - 1)))
+    return transform(image=img)["image"]
+
+
 @torch.no_grad()
 def extract_features(encoder: torch.nn.Module, cache: np.ndarray, crops: dict[str, np.ndarray],
-                     pcfg: dict[str, Any], device: torch.device, amp: torch.dtype | None) -> torch.Tensor:
-    """(N, dim) float32 features for the crop set, in crop order."""
+                     pcfg: dict[str, Any], device: torch.device, amp: torch.dtype | None,
+                     shift: tuple[A.Compose, int] | None = None) -> torch.Tensor:
+    """(N, dim) float32 features for the crop set, in crop order. `shift` = (transform, seed) applies
+    the stain shift to each image before cropping."""
     encoder.eval()
     window, patch = pcfg["window"], encoder.patch_embed.patch_size[0]
     prefix = encoder.num_prefix_tokens
@@ -116,6 +147,8 @@ def extract_features(encoder: torch.nn.Module, cache: np.ndarray, crops: dict[st
         if crops["row"][i] != current_row:
             current_row = crops["row"][i]
             img = cv2.resize(np.asarray(cache[current_row]), (w, h), interpolation=cv2.INTER_AREA)
+            if shift is not None:
+                img = apply_stain_shift(img, *shift, crops["image_id"][i])
         (x0, y0), m = window_and_patch_mask(crops["box"][i], w, h, window, patch)
         batch_x.append(normalize(img[y0:y0 + window, x0:x0 + window]))
         batch_m.append(m)
@@ -289,34 +322,53 @@ class Prober:
     def counts(self) -> dict[str, dict[str, int]]:
         return {s: {n: int((c["label"] == i).sum()) for i, n in enumerate(self.names)} for s, c in self.crops.items()}
 
-    def features(self, encoder: torch.nn.Module) -> dict[str, torch.Tensor]:
-        return {s: extract_features(encoder, self.caches[s], self.crops[s], self.pcfg, self.device, self.amp)
-                for s in ("train", "val")}
+    def features(self, encoder: torch.nn.Module, stain_shift: bool = False) -> dict[str, torch.Tensor]:
+        """Clean train / val features, plus `val_stain` (stain-shifted val crops) if requested."""
+        feats = {s: extract_features(encoder, self.caches[s], self.crops[s], self.pcfg, self.device, self.amp)
+                 for s in ("train", "val")}
+        if stain_shift:
+            sc = self.pcfg["stain_shift"]
+            feats["val_stain"] = extract_features(encoder, self.caches["val"], self.crops["val"], self.pcfg,
+                                                  self.device, self.amp, shift=(build_stain_shift(sc), sc["seed"]))
+        return feats
 
-    def _fit(self, feats: dict[str, torch.Tensor], train_idx: np.ndarray) -> dict[str, np.ndarray]:
+    def _fit(self, feats: dict[str, torch.Tensor], train_idx: np.ndarray,
+             eval_sets: tuple[str, ...] = ("val",)) -> dict[str, dict[str, np.ndarray]]:
+        """{eval set: {method: val probabilities}}; one fit per method, applied to every eval set."""
         k = len(self.names)
         xtr = feats["train"][train_idx].to(self.device)
         ytr = torch.as_tensor(self.crops["train"]["label"][train_idx], device=self.device)
-        xte = feats["val"].to(self.device)
+        xte = torch.cat([feats[s] for s in eval_sets]).to(self.device)
         kc, lc = self.pcfg["knn"], self.pcfg["linear"]
-        return {"knn": knn_predict(xtr, ytr, xte, k, kc["k"], kc["temperature"]).cpu().numpy(),
-                "linear": linear_predict(xtr, ytr, xte, k, lc["l2"], lc["max_iter"]).cpu().numpy()}
+        probs = {"knn": knn_predict(xtr, ytr, xte, k, kc["k"], kc["temperature"]).cpu().numpy(),
+                 "linear": linear_predict(xtr, ytr, xte, k, lc["l2"], lc["max_iter"]).cpu().numpy()}
+        bounds = np.cumsum([0] + [len(feats[s]) for s in eval_sets])
+        return {s: {m: p[bounds[j]:bounds[j + 1]] for m, p in probs.items()} for j, s in enumerate(eval_sets)}
+
+    def _entry(self, probs: np.ndarray, full: bool) -> dict[str, Any]:
+        y, img = self.crops["val"]["label"], self.crops["val"]["image_id"]
+        entry = {"metrics": compute_metrics(y, probs, self.infected, self.names)}
+        if full:
+            entry["ci95"] = bootstrap_metrics(y, probs, img, self.infected, self.names,
+                                              self.pcfg["bootstrap"], self.pcfg["seed"])
+        return entry
 
     def evaluate(self, encoder: torch.nn.Module, full: bool = True,
                  feats: dict[str, torch.Tensor] | None = None) -> dict[str, Any]:
-        """Light (full=False): 100% labels, point estimates. Full: + bootstrap CIs and low-label."""
-        feats = feats or self.features(encoder)
-        y, img = self.crops["val"]["label"], self.crops["val"]["image_id"]
+        """Light (full=False): 100% labels, point estimates. Full: + bootstrap CIs, low-label and, if
+        `feats` has `val_stain` (computed by default when the config has `stain_shift`), the
+        stain-shifted probe."""
+        feats = feats or self.features(encoder, stain_shift=full and "stain_shift" in self.pcfg)
+        y = self.crops["val"]["label"]
         ytr = self.crops["train"]["label"]
         all_idx = np.arange(len(ytr))
         res: dict[str, Any] = {"classes": self.names, "infected": [n for n, f in zip(self.names, self.infected) if f],
-                               "n_crops": self.counts(), "methods": {}}
-        for method, probs in self._fit(feats, all_idx).items():
-            entry = {"metrics": compute_metrics(y, probs, self.infected, self.names)}
-            if full:
-                entry["ci95"] = bootstrap_metrics(y, probs, img, self.infected, self.names,
-                                                  self.pcfg["bootstrap"], self.pcfg["seed"])
-            res["methods"][method] = entry
+                               "n_crops": self.counts()}
+        fitted = self._fit(feats, all_idx, ("val", "val_stain") if "val_stain" in feats else ("val",))
+        res["methods"] = {m: self._entry(p, full) for m, p in fitted["val"].items()}
+        if "val_stain" in fitted:
+            res["stain_shift"] = {"config": self.pcfg["stain_shift"],
+                                  "methods": {m: self._entry(p, full) for m, p in fitted["val_stain"].items()}}
         if full:
             ll = self.pcfg["low_label"]
             res["low_label"] = {}
@@ -326,7 +378,7 @@ class Prober:
                 runs = defaultdict(list)
                 for s in range(ll["seeds"]):
                     idx = stratified_subset(ytr, frac, len(self.names), seed=self.pcfg["seed"] + s)
-                    for method, probs in self._fit(feats, idx).items():
+                    for method, probs in self._fit(feats, idx)["val"].items():
                         runs[method].append({"n_train": int(len(idx)),
                                              **compute_metrics(y, probs, self.infected, self.names)})
                 res["low_label"][str(frac)] = {m: summarize_seeds(r) for m, r in runs.items()}
@@ -341,16 +393,43 @@ def summarize_seeds(runs: list[dict[str, float]]) -> dict[str, Any]:
 
 
 def results_table(res: dict[str, Any]) -> list[dict[str, Any]]:
-    """Flat rows (method, label_fraction, metric, value, ci_low, ci_high, std) for the CSV."""
+    """Flat rows (eval_set, method, label_fraction, metric, value, ci_low, ci_high, std) for the CSV."""
     rows = []
-    for method, e in res["methods"].items():
-        for k, v in e["metrics"].items():
-            ci = e.get("ci95", {}).get(k, {})
-            rows.append({"method": method, "label_fraction": 1.0, "metric": k, "value": v,
-                         "ci_low": ci.get("low"), "ci_high": ci.get("high"), "std": None})
+    for eval_set, methods in (("val", res["methods"]), ("val_stain", res.get("stain_shift", {}).get("methods", {}))):
+        for method, e in methods.items():
+            for k, v in e["metrics"].items():
+                ci = e.get("ci95", {}).get(k, {})
+                rows.append({"eval_set": eval_set, "method": method, "label_fraction": 1.0, "metric": k,
+                             "value": v, "ci_low": ci.get("low"), "ci_high": ci.get("high"), "std": None})
     for frac, by_method in res.get("low_label", {}).items():
         for method, s in by_method.items():
             for k, v in s["mean"].items():
-                rows.append({"method": method, "label_fraction": float(frac), "metric": k, "value": v,
-                             "ci_low": None, "ci_high": None, "std": s["std"][k]})
+                rows.append({"eval_set": "val", "method": method, "label_fraction": float(frac), "metric": k,
+                             "value": v, "ci_low": None, "ci_high": None, "std": s["std"][k]})
     return rows
+
+
+# --------------------------------------------------------------------------- lambda selection
+
+def selection_criteria(res: dict[str, Any]) -> dict[str, tuple[float, float]]:
+    """(value, lower end of the tie interval) of each lambda-selection criterion, in priority order."""
+    lin, stain = res["methods"]["linear"], res["stain_shift"]["methods"]["linear"]
+    ll = res["low_label"]["0.1"]["linear"]
+    return {"auprc_clean": (lin["metrics"]["auprc_infected"], lin["ci95"]["auprc_infected"]["low"]),
+            "auprc_stain": (stain["metrics"]["auprc_infected"], stain["ci95"]["auprc_infected"]["low"]),
+            "auprc_10pct": (ll["mean"]["auprc_infected"], ll["mean"]["auprc_infected"] - ll["std"]["auprc_infected"]),
+            "macro_f1": (lin["metrics"]["macro_f1"], lin["metrics"]["macro_f1"])}
+
+
+def select_run(results: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Lexicographic lambda selection with interval ties (see module docstring). `results`: {tag: probe json}."""
+    crit = {t: selection_criteria(r) for t, r in results.items()}
+    cands, steps = sorted(results), []
+    for name in next(iter(crit.values())):
+        leader = max(cands, key=lambda t: crit[t][name][0])
+        low = crit[leader][name][1]
+        cands = [t for t in cands if crit[t][name][0] >= low]
+        steps.append({"criterion": name, "leader": leader, "tied": cands})
+        if len(cands) == 1:
+            break
+    return {"winner": leader, "steps": steps, "criteria": {t: {k: v[0] for k, v in c.items()} for t, c in crit.items()}}

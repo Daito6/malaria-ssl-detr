@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -13,7 +14,8 @@ import yaml
 from PIL import Image
 
 from malaria_ssl.data.viz import CLASS_COLORS, SERIES, _recessive_axes
-from malaria_ssl.utils.config import resolve_path
+from malaria_ssl.ssl.probe import apply_stain_shift, build_stain_shift, select_run
+from malaria_ssl.utils.config import load_experiment, resolve_path
 
 HEADLINE = ("auroc_infected", "auprc_infected", "balanced_acc", "macro_f1")
 
@@ -58,6 +60,33 @@ def probe_table(probes: list[dict[str, Any]], methods: tuple[str, ...] = ("knn",
                 row[f"{k}_CI95"] = _fmt_ci(e.get("ci95", {}).get(k))
             rows.append(row)
     return pd.DataFrame(rows)
+
+
+def stain_table(probes: list[dict[str, Any]], methods: tuple[str, ...] = ("knn", "linear")) -> pd.DataFrame:
+    """Clean vs stain-shifted val crops (same classifiers, fitted on clean train crops), with 95% CIs."""
+    rows = []
+    for p in probes:
+        if "stain_shift" not in p:
+            continue
+        for m in methods:
+            row = {"encoder": p["tag"], "method": m}
+            for k in ("auprc_infected", "macro_f1"):
+                clean, shifted = p["methods"][m], p["stain_shift"]["methods"][m]
+                row[f"{k}_clean"] = clean["metrics"][k]
+                row[f"{k}_clean_CI95"] = _fmt_ci(clean.get("ci95", {}).get(k))
+                row[f"{k}_stain"] = shifted["metrics"][k]
+                row[f"{k}_stain_CI95"] = _fmt_ci(shifted.get("ci95", {}).get(k))
+                row[f"{k}_drop"] = clean["metrics"][k] - shifted["metrics"][k]
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def selection_table(probes: list[dict[str, Any]]) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Lambda-selection criteria per sweep run (priority order = column order) and `select_run` result."""
+    sel = select_run({p["tag"]: p for p in probes})
+    df = pd.DataFrame(sel["criteria"]).T
+    df["winner"] = df.index == sel["winner"]
+    return df, sel
 
 
 def per_class_recall_table(probes: list[dict[str, Any]], method: str = "linear") -> pd.DataFrame:
@@ -171,6 +200,32 @@ def plot_low_label(probes: list[dict[str, Any]], metric: str = "auprc_infected")
         ax.set_title(f"{m}: val {metric} (mean ± std over seeds)", fontsize=10)
         _recessive_axes(ax)
     axes[0].legend(fontsize=7)
+    fig.tight_layout()
+    return fig
+
+
+def show_stain_shift(n: int = 6, config: str = "configs/ssl/probe.yaml", window: int = 224, seed: int = 0):
+    """Clean (top) vs stain-shifted (bottom) 224 windows of random val images at the probe scale."""
+    cfg = load_experiment(config)
+    pcfg, sc = cfg["probe"], cfg["probe"]["stain_shift"]
+    cache_dir = resolve_path(cfg["cache"]["dir"])
+    arr = np.load(cache_dir / f"val_{cfg['cache']['long_side']}.npy", mmap_mode="r")
+    index = json.loads((cache_dir / "val_index.json").read_text(encoding="utf-8"))
+    rng = np.random.default_rng(seed)
+    rows = rng.choice(len(arr), size=n, replace=False)
+    t = build_stain_shift(sc)
+    fig, axes = plt.subplots(2, n, figsize=(2.2 * n, 4.6))
+    for j, r in enumerate(rows):
+        hc, wc = arr.shape[1:3]
+        s_ = pcfg["long_side"] / max(hc, wc)
+        img = cv2.resize(np.asarray(arr[r]), (round(wc * s_), round(hc * s_)), interpolation=cv2.INTER_AREA)
+        shifted = apply_stain_shift(img, t, sc["seed"], index["images"][r]["id"])
+        y0, x0 = rng.integers(0, img.shape[0] - window), rng.integers(0, img.shape[1] - window)
+        for i, im in enumerate((img, shifted)):
+            axes[i, j].imshow(im[y0:y0 + window, x0:x0 + window])
+            axes[i, j].set_xticks([]), axes[i, j].set_yticks([])
+        axes[0, j].set_title(f"val image {index['images'][r]['id']}", fontsize=8)
+    axes[0, 0].set_ylabel("clean"), axes[1, 0].set_ylabel("stain-shifted")
     fig.tight_layout()
     return fig
 

@@ -13,6 +13,12 @@ probe:
   linear: {l2: 1.0e-3, max_iter: 500}       # fixed for every encoder (no tuning)
   bootstrap: 1000                # resamples of val images
   low_label: {fractions: [0.01, 0.1, 1.0], seeds: 5}
+  stain_shift:                   # stain-shifted probe: fit on CLEAN train crops, eval on shifted VAL crops
+    seed: 2024                   # one fixed shift per val image (seed, image id); stronger than SSL augs
+    hed_sigma: 0.08              # SSL views: 0.03
+    color_jitter: {brightness: 0.3, contrast: 0.3, saturation: 0.3, hue: 0.05}   # SSL views: 0.2/0.2/0.2/0.02
+    blur_sigma: [0.5, 1.0]       # mild
+    jpeg_quality: [30, 60]       # SSL views: 60-100
   references:
     random_init_seed: 42
     imagenet: vit_small_patch16_224.augreg_in21k_ft_in1k
