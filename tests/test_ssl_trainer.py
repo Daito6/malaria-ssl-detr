@@ -69,6 +69,22 @@ def test_resume_restores_state_and_continues(tmp_path, caches):
         assert col in m.columns and np.isfinite(m[col]).all(), col
 
 
+def test_resume_falls_back_to_prev_checkpoint(tmp_path, caches):
+    cpu = torch.device("cpu")
+    t1 = SSLTrainer(_cfg(), tmp_path, cpu, caches)
+    t1.setup(resume=False)
+    t1.fit()                               # 2 epochs: last.pt = after epoch 2, last.prev.pt = after epoch 1
+    ck = tmp_path / "checkpoints"
+    assert (ck / "last.prev.pt").exists() and not list(ck.glob("*.tmp"))
+    data = (ck / "last.pt").read_bytes()
+    (ck / "last.pt").write_bytes(data[: len(data) // 3])     # simulate a checkpoint truncated by a crash
+    t2 = SSLTrainer(_cfg(), tmp_path, cpu, caches)
+    t2.setup(resume=True)
+    assert t2.epoch == 1 and t2.global_step == 2
+    t2.fit()                               # redoes the second epoch
+    assert t2.epoch == 2 and t2.global_step == 4
+
+
 def test_collapse_stats_detects_collapse():
     torch.manual_seed(0)
     spread = torch.randn(256, 64)

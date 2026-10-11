@@ -32,7 +32,7 @@ from malaria_ssl.detr.loss import DetrCriterion
 from malaria_ssl.eval.coco_metrics import evaluate_coco
 from malaria_ssl.eval.inference import predict
 from malaria_ssl.utils.config import load_config, resolve_path
-from malaria_ssl.utils.run import append_csv, lr_lambda, run_info, save_checkpoint
+from malaria_ssl.utils.run import append_csv, load_checkpoint, lr_lambda, run_info, save_checkpoint
 from malaria_ssl.utils.seed import set_seed
 
 log = logging.getLogger(__name__)
@@ -205,7 +205,7 @@ class Trainer:
                         "numpy": np.random.get_state()}}
 
     def load(self, path: Path) -> None:
-        ck = torch.load(path, map_location="cpu", weights_only=False)
+        ck = load_checkpoint(path)
         self.model.load_state_dict(ck["model"])
         self.optimizer.load_state_dict(ck["optimizer"])
         self.scheduler.load_state_dict(ck["scheduler"])
@@ -296,7 +296,7 @@ class Trainer:
             append_csv(metrics_path, row)
             log.info("epoch %d: %s", self.epoch, {k: round(v, 4) if isinstance(v, float) else v for k, v in row.items()})
             self.epoch += 1
-            save_checkpoint(self.run_dir / "checkpoints" / "last.pt", **self.state())
+            save_checkpoint(self.run_dir / "checkpoints" / "last.pt", keep_prev=True, **self.state())
             if last_epoch:
                 break
         self.tb.close()
