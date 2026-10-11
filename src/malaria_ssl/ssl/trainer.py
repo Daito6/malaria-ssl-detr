@@ -33,7 +33,7 @@ from malaria_ssl.ssl.data import RandomImageSampler, TwoViewDataset, ensure_cach
 from malaria_ssl.ssl.models import SSLModel, build_encoder, info_nce, param_groups
 from malaria_ssl.ssl.probe import Prober
 from malaria_ssl.utils.config import load_config, resolve_path
-from malaria_ssl.utils.run import append_csv, lr_lambda, run_info, save_checkpoint
+from malaria_ssl.utils.run import append_csv, atomic_save, load_checkpoint, lr_lambda, run_info, save_checkpoint
 from malaria_ssl.utils.seed import set_seed
 
 log = logging.getLogger(__name__)
@@ -222,7 +222,7 @@ class SSLTrainer:
                 "rng": rng}
 
     def load(self, path: Path) -> None:
-        ck = torch.load(path, map_location="cpu", weights_only=False)
+        ck = load_checkpoint(path)
         self.model.load_state_dict(ck["model"])
         self.optimizer.load_state_dict(ck["optimizer"])
         self.scheduler.load_state_dict(ck["scheduler"])
@@ -350,7 +350,7 @@ class SSLTrainer:
             self.epoch += 1
             if mon["save_every"] and e1 % mon["save_every"] == 0:
                 self.save_encoder(f"encoder_ep{e1:03d}.pt")
-            save_checkpoint(self.run_dir / "checkpoints" / "last.pt", **self.state())
+            save_checkpoint(self.run_dir / "checkpoints" / "last.pt", keep_prev=True, **self.state())
             if last:
                 break
         if self.epoch >= tr["epochs"] or (max_steps and self.global_step >= max_steps):
@@ -360,7 +360,4 @@ class SSLTrainer:
 
 def save_checkpoint_plain(path: Path, state_dict: dict[str, torch.Tensor]) -> None:
     """Atomic save of a bare state dict (loads with torch.load(weights_only=True))."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    torch.save(state_dict, tmp)
-    tmp.replace(path)
+    atomic_save(state_dict, path)
