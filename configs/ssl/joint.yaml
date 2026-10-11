@@ -1,4 +1,4 @@
-# Main joint run (100 epochs, ~2.8 h). lambda_con = PLACEHOLDER: set to the sweep winner before launching.
+# Main joint run (100 epochs, ~2.6 h). lambda_con 0.2 from the sweep; lr (blr 5e-4) comes from base.yaml.
 base: configs/ssl/base.yaml
 
 loss:
