@@ -92,7 +92,12 @@ Non-obvious decisions (details in `reports/phase2_summary.md`):
 python scripts/pretrain.py --config configs/ssl/<exp>.yaml [--resume] [--set key=value] [--name ...]
 python scripts/probe.py --run runs/ssl_<exp>        # or --encoder <pt> | --ref random | --ref imagenet
 python scripts/diagnose_shift.py runs/<binary DETR run>
+powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/<queue>.txt [-DryRun]
 ```
+Queue lines are `<run name> | <command>`; output goes to `runs/<run name>/queue.log`; failures do not
+stop the queue; commands logged `QUEUE DONE` are skipped on rerun; pretrain/train_detr get `--resume`
+when `runs/<run name>/checkpoints/last.pt` exists (so the run name must be the run directory).
+Run it from a PowerShell with `conda activate medthesis` (commands call plain `python`).
 Config chain: `configs/ssl/data.yaml` <- `probe.yaml` <- `base.yaml` <- experiment files.
 Non-obvious decisions (details in `reports/phase3_summary.md`):
 - SSL trains on train images only (labels unused); val only for monitoring; test never read.
@@ -108,16 +113,24 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   subsampled 4000/2000, difficult excluded; kNN + L-BFGS logreg with fixed hyperparameters;
   bootstrap over val images. Random-init linear AUPRC infected is already 0.924 (ImageNet 0.981):
   the 100%-label binary metric has little headroom.
+- Stain-shifted probe (`probe.stain_shift`): the same classifiers, fitted on CLEAN train crops, are
+  evaluated on val crops with a fixed per-image shift (seed = (2024, image id); HED 0.08, jitter
+  0.3/0.3/0.3/0.05, blur 0.5-1.0, JPEG 30-60, all p=1) applied before cropping. Never touches test.
+  Linear AUPRC infected clean -> shifted: random 0.924 -> 0.525, ImageNet 0.981 -> 0.943.
+- Lambda selection (`select_run`, val only): linear AUPRC infected clean -> stain-shifted linear
+  AUPRC -> 10%-label linear AUPRC -> linear macro-F1; a run is tied if its value is inside the
+  leader's interval (95% CI lower bound; mean - std for the 10%-label step).
 - `runs/dry_a_*` prefix also matches phase-2 DETR dry runs; SSL overfit run is `dry_a_overfit_mae64`.
 
 ## Status
 - Phase 1 (scaffold + data pipeline + EDA): done.
 - Phase 2 (detection pipeline, eval module, baseline A tooling): done. `a_coco_detr_binary` trained
   and evaluated on val/test. `a_coco_detr_multiclass` and `a_scratch_r50_binary` not run yet.
-- Phase 3 (SSL code, probe, dry runs, references, shift diagnostic): done, 51 tests pass,
-  awaiting user review. Long runs NOT started (user runs them; commands in
-  `reports/phase3_summary.md`): 4 sweep runs (~55 min each), then joint (~2.8 h), mae_only,
-  con_only, probes; plus `a_coco_detr_binary_stain`. `configs/ssl/joint.yaml` lambda_con is a
-  placeholder until the sweep picks it.
-- Open questions for the user: lr at batch 128 (7.5e-5 by linear scaling; optional blr 5e-4 run),
-  second tie-break by 10%-label AUPRC.
+- Phase 3 (SSL code, probe incl. stain-shifted probe, dry runs, references, shift diagnostic, run
+  queue): done, 53 tests pass, awaiting user review. Long runs NOT started (user runs them).
+  First queue `configs/queues/phase3_sweep.txt` (~5.5 h): sweep lc005 / lc02 / lc10 / uncertainty /
+  lr5e4 (blr 5e-4) + probes, then `a_coco_detr_binary_stain` + val/test eval + diagnose_shift.
+  After it: set lambda_con (and blr if lr5e4 wins) in `configs/ssl/joint.yaml` (placeholder now),
+  then joint (~2.8 h), mae_only, con_only + probes.
+- User decisions: extra lr run (blr 5e-4) added; tie-breaks as in the selection rule; mae_only
+  embedding anisotropy (std x sqrt(d) ~ 0.09) is acceptable, keep monitoring.
