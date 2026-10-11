@@ -4,9 +4,10 @@ import pytest
 import torch
 
 from malaria_ssl.ssl.probe import (
-    auroc, average_precision, bootstrap_metrics, compute_metrics, knn_predict, linear_predict,
-    macro_f1, stratified_subset, window_and_patch_mask,
+    apply_stain_shift, auroc, average_precision, bootstrap_metrics, build_stain_shift, compute_metrics,
+    knn_predict, linear_predict, macro_f1, select_run, stratified_subset, window_and_patch_mask,
 )
+from malaria_ssl.utils.config import load_experiment
 
 
 def test_auroc_hand_computed_with_ties():
@@ -72,3 +73,38 @@ def test_patch_mask_inside_box_and_fallback():
     # tiny box between patch centres -> nearest patch
     origin, m = window_and_patch_mask(np.array([401.0, 301.0, 403.0, 303.0]), 800, 600, 224, 16)
     assert m.sum() == 1
+
+
+def test_stain_shift_is_fixed_per_image_and_changes_colours():
+    scfg = load_experiment("configs/ssl/probe.yaml")["probe"]["stain_shift"]
+    rng = np.random.default_rng(0)
+    img = rng.integers(60, 230, size=(120, 160, 3), dtype=np.uint8)
+    t = build_stain_shift(scfg)
+    a = apply_stain_shift(img, t, scfg["seed"], image_id=7)
+    _ = apply_stain_shift(img, t, scfg["seed"], image_id=8)        # other images do not disturb the stream
+    assert np.array_equal(a, apply_stain_shift(img, build_stain_shift(scfg), scfg["seed"], image_id=7))
+    assert not np.array_equal(a, apply_stain_shift(img, t, scfg["seed"], image_id=8))
+    assert a.shape == img.shape and a.dtype == np.uint8
+    assert np.abs(a.astype(float) - img).mean() > 5
+
+
+def _fake_probe(clean, clean_low, stain, stain_low, ll_mean, ll_std, f1):
+    lin = {"metrics": {"auprc_infected": clean, "macro_f1": f1},
+           "ci95": {"auprc_infected": {"low": clean_low, "high": 1.0}}}
+    st = {"metrics": {"auprc_infected": stain}, "ci95": {"auprc_infected": {"low": stain_low, "high": 1.0}}}
+    return {"methods": {"linear": lin}, "stain_shift": {"methods": {"linear": st}},
+            "low_label": {"0.1": {"linear": {"mean": {"auprc_infected": ll_mean}, "std": {"auprc_infected": ll_std}}}}}
+
+
+def test_select_run_lexicographic_with_ci_ties():
+    res = {"a": _fake_probe(0.95, 0.92, 0.78, 0.75, 0.90, 0.01, 0.5),
+           "b": _fake_probe(0.94, 0.91, 0.85, 0.80, 0.85, 0.01, 0.6),   # tied with a on clean, wins stain
+           "c": _fake_probe(0.90, 0.85, 0.99, 0.98, 0.99, 0.01, 0.9)}   # outside a's clean CI -> dropped
+    sel = select_run(res)
+    assert sel["steps"][0]["tied"] == ["a", "b"]
+    assert sel["winner"] == "b" and len(sel["steps"]) == 2
+    # stain tie too (a inside b's stain CI) -> 10%-label decides
+    res["a"] = _fake_probe(0.95, 0.92, 0.84, 0.75, 0.90, 0.01, 0.5)
+    sel = select_run(res)
+    assert [s["criterion"] for s in sel["steps"]] == ["auprc_clean", "auprc_stain", "auprc_10pct"]
+    assert sel["winner"] == "a"

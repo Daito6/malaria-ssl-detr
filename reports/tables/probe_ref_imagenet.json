@@ -34,8 +34,8 @@
   "methods": {
     "knn": {
       "metrics": {
-        "auroc_infected": 0.9925862919296469,
-        "auprc_infected": 0.9709740471140802,
+        "auroc_infected": 0.9925854588351339,
+        "auprc_infected": 0.9709448670732281,
         "balanced_acc_binary": 0.9619142512479756,
         "balanced_acc": 0.6160583900226757,
         "macro_f1": 0.6828289300448364,
@@ -48,7 +48,7 @@
       },
       "ci95": {
         "auroc_infected": {
-          "low": 0.9855671361158542,
+          "low": 0.9855671147080423,
           "high": 0.9972722137216966
         },
         "auprc_infected": {
@@ -96,7 +96,7 @@
     "linear": {
       "metrics": {
         "auroc_infected": 0.9970158554547697,
-        "auprc_infected": 0.9810941915356378,
+        "auprc_infected": 0.9810941915356379,
         "balanced_acc_binary": 0.973735862386116,
         "balanced_acc": 0.736142256902761,
         "macro_f1": 0.6462268679633844,
@@ -113,8 +113,8 @@
           "high": 0.998290376843178
         },
         "auprc_infected": {
-          "low": 0.9717562103539839,
-          "high": 0.9891934799097304
+          "low": 0.9717562103539837,
+          "high": 0.9891934799097303
         },
         "balanced_acc_binary": {
           "low": 0.9644252160026585,
@@ -151,6 +151,150 @@
         "recall/schizont": {
           "low": 0.32,
           "high": 0.7097926267281105
+        }
+      }
+    }
+  },
+  "stain_shift": {
+    "config": {
+      "seed": 2024,
+      "hed_sigma": 0.08,
+      "color_jitter": {
+        "brightness": 0.3,
+        "contrast": 0.3,
+        "saturation": 0.3,
+        "hue": 0.05
+      },
+      "blur_sigma": [
+        0.5,
+        1.0
+      ],
+      "jpeg_quality": [
+        30,
+        60
+      ]
+    },
+    "methods": {
+      "knn": {
+        "metrics": {
+          "auroc_infected": 0.9737325300080644,
+          "auprc_infected": 0.9050251655034437,
+          "balanced_acc_binary": 0.8714985037622549,
+          "balanced_acc": 0.47327551020408154,
+          "macro_f1": 0.5349048083413867,
+          "recall/red blood cell": 0.987,
+          "recall/leukocyte": 0.42857142857142855,
+          "recall/gametocyte": 0.15,
+          "recall/ring": 0.20408163265306123,
+          "recall/trophozoite": 0.75,
+          "recall/schizont": 0.32
+        },
+        "ci95": {
+          "auroc_infected": {
+            "low": 0.9629603938964734,
+            "high": 0.9829902740820964
+          },
+          "auprc_infected": {
+            "low": 0.8744548766988025,
+            "high": 0.9321349354410124
+          },
+          "balanced_acc_binary": {
+            "low": 0.8422525009858797,
+            "high": 0.8979697381456367
+          },
+          "balanced_acc": {
+            "low": 0.40960275488832953,
+            "high": 0.541229075046471
+          },
+          "macro_f1": {
+            "low": 0.4550198865487001,
+            "high": 0.6015104830267818
+          },
+          "recall/red blood cell": {
+            "low": 0.981620236057903,
+            "high": 0.9922729164189752
+          },
+          "recall/leukocyte": {
+            "low": 0.18181818181818182,
+            "high": 0.7001470588235292
+          },
+          "recall/gametocyte": {
+            "low": 0.0,
+            "high": 0.3181818181818182
+          },
+          "recall/ring": {
+            "low": 0.09085858585858586,
+            "high": 0.31253063725490193
+          },
+          "recall/trophozoite": {
+            "low": 0.6806039074363682,
+            "high": 0.8139633009518202
+          },
+          "recall/schizont": {
+            "low": 0.14285714285714285,
+            "high": 0.5200434782608695
+          }
+        }
+      },
+      "linear": {
+        "metrics": {
+          "auroc_infected": 0.9859007084635738,
+          "auprc_infected": 0.9425139465736541,
+          "balanced_acc_binary": 0.9354535033290456,
+          "balanced_acc": 0.6267564359076964,
+          "macro_f1": 0.5297397460681242,
+          "recall/red blood cell": 0.964,
+          "recall/leukocyte": 0.7857142857142857,
+          "recall/gametocyte": 0.35,
+          "recall/ring": 0.5510204081632653,
+          "recall/trophozoite": 0.5098039215686274,
+          "recall/schizont": 0.6
+        },
+        "ci95": {
+          "auroc_infected": {
+            "low": 0.9791296208296575,
+            "high": 0.9917400819476463
+          },
+          "auprc_infected": {
+            "low": 0.9207360664807853,
+            "high": 0.961352120940649
+          },
+          "balanced_acc_binary": {
+            "low": 0.9176923627264139,
+            "high": 0.9533038786243268
+          },
+          "balanced_acc": {
+            "low": 0.5528011998672374,
+            "high": 0.6954052566551844
+          },
+          "macro_f1": {
+            "low": 0.47138937689612637,
+            "high": 0.5856212171490669
+          },
+          "recall/red blood cell": {
+            "low": 0.9542240162097051,
+            "high": 0.9737111480135355
+          },
+          "recall/leukocyte": {
+            "low": 0.5454545454545454,
+            "high": 1.0
+          },
+          "recall/gametocyte": {
+            "low": 0.1332608695652174,
+            "high": 0.5555555555555556
+          },
+          "recall/ring": {
+            "low": 0.39580592105263157,
+            "high": 0.6888888888888889
+          },
+          "recall/trophozoite": {
+            "low": 0.42528017241379307,
+            "high": 0.5868597155069722
+          },
+          "recall/schizont": {
+            "low": 0.4,
+            "high": 0.8
+          }
         }
       }
     }
@@ -382,7 +526,7 @@
           {
             "n_train": 593,
             "auroc_infected": 0.9816919149843711,
-            "auprc_infected": 0.9310773163230898,
+            "auprc_infected": 0.9311615096309246,
             "balanced_acc_binary": 0.9212175842925028,
             "balanced_acc": 0.4145483193277311,
             "macro_f1": 0.4354068357966441,
@@ -396,7 +540,7 @@
           {
             "n_train": 593,
             "auroc_infected": 0.9847527042247889,
-            "auprc_infected": 0.947738946414363,
+            "auprc_infected": 0.9477389464143632,
             "balanced_acc_binary": 0.9269276140839626,
             "balanced_acc": 0.44307176203814863,
             "macro_f1": 0.492892390402055,
@@ -439,7 +583,7 @@
         "mean": {
           "n_train": 593.0,
           "auroc_infected": 0.9823870490459402,
-          "auprc_infected": 0.941106908703019,
+          "auprc_infected": 0.9411237473645861,
           "balanced_acc_binary": 0.9204797957918729,
           "balanced_acc": 0.4240185074029612,
           "macro_f1": 0.4578197490996714,
@@ -453,7 +597,7 @@
         "std": {
           "n_train": 0.0,
           "auroc_infected": 0.001771608074528755,
-          "auprc_infected": 0.005674575746723584,
+          "auprc_infected": 0.005644836068825834,
           "balanced_acc_binary": 0.008782815327345322,
           "balanced_acc": 0.013505246788933315,
           "macro_f1": 0.025945803017081003,
@@ -603,13 +747,31 @@
       ],
       "seeds": 5
     },
+    "stain_shift": {
+      "seed": 2024,
+      "hed_sigma": 0.08,
+      "color_jitter": {
+        "brightness": 0.3,
+        "contrast": 0.3,
+        "saturation": 0.3,
+        "hue": 0.05
+      },
+      "blur_sigma": [
+        0.5,
+        1.0
+      ],
+      "jpeg_quality": [
+        30,
+        60
+      ]
+    },
     "references": {
       "random_init_seed": 42,
       "imagenet": "vit_small_patch16_224.augreg_in21k_ft_in1k"
     }
   },
   "time_s": {
-    "features": 11.5,
-    "total": 23.1
+    "features": 20.2,
+    "total": 37.8
   }
 }
