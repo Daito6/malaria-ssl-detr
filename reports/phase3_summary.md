@@ -1,7 +1,8 @@
 # Фаза 3 — SSL-претренування ViT-S/16 (MAE + InfoNCE) та probe без DETR
 
 Усі числа нижче — з реальних запусків у `runs/` і тестів. Довгі SSL-запуски (sweep, основний joint,
-mae_only, con_only) **ще не виконувались** — нижче лише dry runs, референси та пропозиція бюджету.
+mae_only, con_only) **ще не виконувались** — нижче лише dry runs, референси (включно зі
+stain-shifted probe) та бюджет.
 Test-спліт у фазі 3 не використовувався ні для чого, крім діагностики вже натренованого baseline A
 (розділ «Зсув домену»), яка нічого не налаштовує.
 
@@ -12,12 +13,13 @@ Test-спліт у фазі 3 не використовувався ні для 
 | Кеш декодованих зображень + дві views | `src/malaria_ssl/ssl/data.py`, `configs/ssl/data.yaml` |
 | Модель MAE + InfoNCE навколо timm ViT-S/16 | `src/malaria_ssl/ssl/models.py` |
 | Тренер + CLI | `src/malaria_ssl/ssl/trainer.py`, `scripts/pretrain.py`, `configs/ssl/base.yaml` |
-| Probe на рівні клітин (kNN / linear) | `src/malaria_ssl/ssl/probe.py`, `scripts/probe.py`, `configs/ssl/probe.yaml` |
-| Конфіги експериментів | `configs/ssl/{joint,mae_only,con_only}.yaml`, `configs/ssl/sweep_{lc005,lc02,lc10,uncertainty}.yaml` |
+| Probe на рівні клітин (kNN / linear, + stain-shifted, + правило вибору λ) | `src/malaria_ssl/ssl/probe.py`, `scripts/probe.py`, `configs/ssl/probe.yaml` |
+| Конфіги експериментів | `configs/ssl/{joint,mae_only,con_only}.yaml`, `configs/ssl/sweep_{lc005,lc02,lc10,uncertainty,lr5e4}.yaml` |
+| Черга запусків | `scripts/run_queue.ps1`, `configs/queues/phase3_sweep.txt` |
 | Діагностика зсуву val → test | `src/malaria_ssl/eval/shift.py`, `scripts/diagnose_shift.py` |
 | DETR зі stain jitter (не запускався) | `configs/experiments/a_coco_detr_binary_stain.yaml` |
 | Аналіз | `notebooks/03_ssl_analysis.ipynb`, `src/malaria_ssl/ssl/viz.py` |
-| Тести | `tests/test_ssl_data.py`, `test_ssl_models.py`, `test_ssl_trainer.py`, `test_probe.py`, `test_shift.py` — разом з фазами 1–2 **51 passed** |
+| Тести | `tests/test_ssl_data.py`, `test_ssl_models.py`, `test_ssl_trainer.py`, `test_probe.py`, `test_shift.py` — разом з фазами 1–2 **53 passed** |
 
 Спільні хелпери тренування (`lr_lambda`, `run_info`, чекпоінти, `metrics.csv`, `--set`) перенесено з
 `detr/trainer.py` у `utils/run.py` і `utils/config.py`, щоб SSL-код не імпортував DETR/transformers.
@@ -106,6 +108,45 @@ SSL-варіантів, імовірно, перекриватимуться. Lo
 (0.845 проти 0.978). Мультиклас (macro-F1) складний для всіх; у val лише 14 leukocyte,
 20 gametocyte, 25 schizont — CI широкі.
 
+### Stain-shifted probe
+Ті самі класифікатори (fit на **чистих** train-кропах, 100% міток) додатково оцінюються на val-кропах
+після фіксованого фотометричного зсуву (`probe.stain_shift` у `configs/ssl/probe.yaml`): HED jitter
+σ = 0.08, ColorJitter яскравість / контраст / насиченість ±0.3 та hue ±0.05, Gaussian blur σ 0.5–1.0,
+JPEG якості 30–60; кожне перетворення застосовується завжди. Зсув генерується один раз на val-зображення
+(seed = (2024, image id)) і накладається на все зображення (довша сторона 800) до вирізання вікон —
+як зміна забарвлення цілого мазка. Test не використовується. Приклади:
+`reports/figures/stain_shift_examples.png`.
+
+Зсув сильніший за SSL-аугментації (HED 0.03, jitter 0.2/0.2/0.2/0.02, JPEG 60–100), але того ж типу,
+тож SSL-енкодер частково бачив такі зміни під час претренування. Це тест інваріантності до
+забарвлення, а не відтворення test-домену: масштаб клітин (×1.27 на test) не зсувається.
+
+| Енкодер | Метод | AUPRC infected: чисті | AUPRC: stain-shifted | macro-F1: чисті | macro-F1: stain-shifted |
+|---|---|---|---|---|---|
+| random init | kNN | 0.730 [0.660, 0.787] | 0.364 [0.302, 0.437] | 0.465 [0.384, 0.536] | 0.294 [0.244, 0.344] |
+| random init | linear | 0.924 [0.883, 0.954] | **0.525 [0.421, 0.638]** | 0.515 [0.460, 0.567] | 0.294 [0.256, 0.336] |
+| ImageNet | kNN | 0.971 [0.952, 0.985] | 0.905 [0.874, 0.932] | 0.683 [0.602, 0.746] | 0.535 [0.455, 0.602] |
+| ImageNet | linear | 0.981 [0.972, 0.989] | **0.943 [0.921, 0.961]** | 0.646 [0.589, 0.696] | 0.530 [0.471, 0.586] |
+
+На зсунутих кропах random init падає з 0.924 до 0.525 (linear), ImageNet — лише з 0.981 до 0.943.
+Розрив між референсами зростає з 0.06 до 0.42. Отже, на відміну від чистої метрики, ця має запас
+для розрізнення SSL-варіантів. Чисті метрики після додавання блоку збігаються з попередніми (linear —
+до останнього знака, kNN ImageNet — у межах 1e-4 через GPU-арифметику). Час повного probe тепер
+38–64 с на енкодер.
+
+### Правило вибору λ
+`select_run` у `src/malaria_ssl/ssl/probe.py`, лише val-кропи. Критерії по черзі:
+
+1. linear AUPRC infected на чистих val-кропах;
+2. linear AUPRC infected на stain-shifted val-кропах;
+3. linear AUPRC infected при 10% міток;
+4. linear macro-F1.
+
+На кожному кроці запуски, чиє значення лежить в інтервалі лідера, вважаються нічиєю і переходять до
+наступного критерію. Інтервал — нижня межа 95% CI лідера; для критерію 3 — mean − std по 5 seeds.
+Останній критерій вирішується точковою оцінкою. Ноутбук показує таблицю критеріїв і кроки вибору,
+щойно з'являться `reports/tables/probe_ssl_sweep_*.json`.
+
 ## Зсув домену val → test (baseline A, `a_coco_detr_binary`, best = епоха 39)
 
 | | AP50 infected (95% CI) | P / R / F1 infected при val-порозі 0.867 |
@@ -139,25 +180,44 @@ SSL-претренування, і stain-аугментацію (`a_coco_detr_bi
 | sweep λ_con = 0.2 | `sweep_lc02.yaml` | 0.82 M | ≈55 хв |
 | sweep λ_con = 1.0 | `sweep_lc10.yaml` | 0.82 M | ≈55 хв |
 | sweep uncertainty | `sweep_uncertainty.yaml` | 0.82 M | ≈55 хв |
+| sweep lr: λ_con = 0.2, blr 5e-4 | `sweep_lr5e4.yaml` | 0.82 M | ≈55 хв |
 | основний joint | `joint.yaml` (λ_con = переможець) | 100 еп. = 2.56 M | ≈2.8 год |
 | mae_only | `mae_only.yaml` | 2.56 M | ≈1.3 год (542 пар/с) |
 | con_only | `con_only.yaml` | 2.56 M | ≈2.3 год (311 пар/с) |
 
 λ_mae = 1. За масштабами smoke λ_con·L_con ≈ 0.16 / 0.62 / 3.1 при L_mae ≈ 0.65, тобто сітка
-покриває «MAE домінує / баланс / InfoNCE домінує». Вибір — за linear-probe AUPRC infected на
-val-кропах (tie-break macro-F1), як узгоджено. Кожен sweep-запуск має власний cosine-розклад на
-32 епохи; припущення — ранжування λ переноситься на 100 епох.
+покриває «MAE домінує / баланс / InfoNCE домінує». Вибір — за правилом вище. Кожен sweep-запуск має
+власний cosine-розклад на 32 епохи; припущення — ранжування λ переноситься на 100 епох.
 
-### Відкриті питання (рішення за вами)
-1. **Learning rate.** Лінійне масштабування дає lr = 7.5e-5 при батчі 128. Overfit (a) потребував
-   lr 3.75e-4, а на рівних 50 кроках smoke-loss MAE вищий, ніж в overfit. Можна залишити
-   як є (правило з ТЗ) або додати до sweep один запуск `--set optim.blr=5.0e-4` (lr 2.5e-4) з
-   λ_con = 0.2 (+≈55 хв). Без такого запуску я не маю даних, що краще.
-2. **Чутливість головної метрики.** Через вузький діапазон (0.924 → 0.981) λ можуть не розрізнитися
-   в межах CI. Пропоную, якщо CI переможця перекривається з іншими, як другий tie-break
-   (перед macro-F1) взяти linear AUPRC при 10% міток — він розділяє референси значно сильніше.
+### Рішення щодо відкритих питань (прийняті користувачем)
+1. **Learning rate.** Лінійне масштабування дає lr = 7.5e-5 при батчі 128, а overfit (a) потребував
+   lr 3.75e-4. Тому в sweep додано `sweep_lr5e4.yaml`: λ_con = 0.2 і blr 5e-4, тобто lr 2.5e-4. Від
+   `sweep_lc02` він відрізняється лише `optim.blr` (перевірено diff розв'язаних конфігів). Якщо він
+   виграє, основні запуски отримають blr 5e-4.
+2. **Tie-break.** Linear AUPRC при 10% міток прийнято, а перед ним додано stain-shifted AUPRC
+   (див. «Правило вибору λ»).
 3. **mae_only: малий розкид ембедингів** (std×√d ≈ 0.09 проти 0.40–0.45 у joint/con_only при erank ≈17).
-   Для MAE-ознак це відома анізотропія, не колапс; стежитимемо в повному запуску.
+   Для MAE-ознак це відома анізотропія, не колапс. Залишено як є, стежимо в повному запуску.
+
+## Черга запусків
+`scripts/run_queue.ps1` виконує файл черги з рядками `<run name> | <команда>`. Команди виконуються
+послідовно з кореня репозиторію, в поточному середовищі.
+
+- Вивід кожної команди показується в консолі й дописується в `runs/<run name>/queue.log`.
+- Команда з ненульовим кодом виходу позначається `QUEUE FAILED`, і черга переходить до наступної.
+- Команди, вже позначені `QUEUE DONE` у своєму `queue.log`, пропускаються. Тому перервану чергу
+  достатньо запустити ще раз тією самою командою.
+- `pretrain.py` / `train_detr.py` отримують `--resume`, якщо існує `runs/<run name>/checkpoints/last.pt`.
+  Тренування продовжується з останньої завершеної епохи; незавершена епоха перераховується.
+- `-DryRun` лише показує, що буде виконано, з урахуванням `--resume`.
+
+Перевірено на тестовій черзі (успіх, помилка з кодом 2 від Python зі stderr, пропуск виконаних,
+`--resume` при наявному `last.pt`, без хибного збігу за префіксом команди) і `-DryRun` на справжній
+черзі. Самі запуски не виконувались.
+
+Перша черга — `configs/queues/phase3_sweep.txt`, 14 команд, ≈5.5 год:
+- 5 sweep-запусків, кожен з повним probe (чистий, stain-shifted, low-label);
+- `a_coco_detr_binary_stain` з оцінкою val/test і `diagnose_shift`.
 
 ## Команди (запускаєте ви; нічого з цього не запущено)
 
@@ -165,17 +225,11 @@ val-кропах (tie-break macro-F1), як узгоджено. Кожен sweep
 conda activate medthesis
 cd C:\Users\Alex\PycharmProjects\MedImage_Detection\malaria-ssl-detr
 
-# 1) sweep (~55 хв кожен) + повний probe на val-кропах
-python scripts/pretrain.py --config configs/ssl/sweep_lc005.yaml
-python scripts/pretrain.py --config configs/ssl/sweep_lc02.yaml
-python scripts/pretrain.py --config configs/ssl/sweep_lc10.yaml
-python scripts/pretrain.py --config configs/ssl/sweep_uncertainty.yaml
-python scripts/probe.py --run runs/ssl_sweep_lc005
-python scripts/probe.py --run runs/ssl_sweep_lc02
-python scripts/probe.py --run runs/ssl_sweep_lc10
-python scripts/probe.py --run runs/ssl_sweep_uncertainty
+# 1) перша черга: 5 sweep-запусків + probes, потім DETR зі stain jitter + оцінка (~5.5 год)
+powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase3_sweep.txt
+#    перервалась -> та сама команда (виконане пропускається, тренування отримує --resume)
 
-# 2) після вибору: виставити lambda_con (або uncertainty) у configs/ssl/joint.yaml, потім
+# 2) після вибору: виставити lambda_con (або uncertainty) і за потреби blr у configs/ssl/joint.yaml, потім
 python scripts/pretrain.py --config configs/ssl/joint.yaml       # ~2.8 год
 python scripts/pretrain.py --config configs/ssl/mae_only.yaml    # ~1.3 год
 python scripts/pretrain.py --config configs/ssl/con_only.yaml    # ~2.3 год
@@ -183,13 +237,7 @@ python scripts/probe.py --run runs/ssl_joint
 python scripts/probe.py --run runs/ssl_mae_only
 python scripts/probe.py --run runs/ssl_con_only
 
-# 3) DETR baseline A зі stain jitter (~43 хв) і його оцінка
-python scripts/train_detr.py --config configs/experiments/a_coco_detr_binary_stain.yaml
-python scripts/evaluate.py runs/a_coco_detr_binary_stain --split val --bootstrap
-python scripts/evaluate.py runs/a_coco_detr_binary_stain --split test --bootstrap
-python scripts/diagnose_shift.py runs/a_coco_detr_binary_stain
-
-# перервані запуски: та сама команда з --resume; моніторинг: tensorboard --logdir runs
+# моніторинг: tensorboard --logdir runs
 ```
 Після цього — перевиконати `notebooks/03_ssl_analysis.ipynb` (він автоматично перемкнеться з dry runs
 на `runs/ssl_*`).
