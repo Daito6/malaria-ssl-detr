@@ -29,6 +29,8 @@ its code or structure.
 ## Environment
 Windows 11, RTX 5060 Ti 16 GB (Blackwell, sm_120), 32 GB RAM, conda env `medthesis`
 (Python 3.11). Run things with `conda run -n medthesis python ...`.
+CPU-only runs from PowerShell: `$env:CUDA_VISIBLE_DEVICES='-1'` (an empty string deletes the variable
+and the GPU stays visible).
 
 ## Layout
 ```
@@ -93,7 +95,7 @@ python scripts/pretrain.py --config configs/ssl/<exp>.yaml [--resume] [--set key
 python scripts/probe.py --run runs/ssl_<exp>        # or --encoder <pt> | --ref random | --ref imagenet
 python scripts/diagnose_shift.py runs/<binary DETR run>
 python scripts/compare_probes.py --tags <probe tags...> --out reports/tables/<name>.csv   # reads probe json only
-python scripts/paired_probe_diff.py --a <tag> --b <tag...> --out reports/tables/<name>   # CPU, saved features
+python scripts/paired_probe_diff.py --pairs A:B [A:B ...] --out reports/tables/<name>   # CPU, saved features
 powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/<queue>.txt [-DryRun]
 ```
 Queue lines are `<run name> | <command>`; output goes to `runs/<run name>/queue.log`; failures do not
@@ -113,12 +115,16 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   Measured: joint 258 pairs/s, mae_only 542 (loader-bound), con_only 311; epoch = 25600 pairs.
 - Probe: box-centred 224 windows at long side 800, mean of patch tokens inside the box; RBC
   subsampled 4000/2000, difficult excluded; kNN + L-BFGS logreg with fixed hyperparameters;
-  bootstrap over val images. Random-init linear AUPRC infected is already 0.924 (ImageNet 0.981):
+  bootstrap over val images. Random-init linear AUPRC infected is already 0.924 (ImageNet 0.989):
   the 100%-label binary metric has little headroom.
 - Stain-shifted probe (`probe.stain_shift`): the same classifiers, fitted on CLEAN train crops, are
   evaluated on val crops with a fixed per-image shift (seed = (2024, image id); HED 0.08, jitter
   0.3/0.3/0.3/0.05, blur 0.5-1.0, JPEG 30-60, all p=1) applied before cropping. Never touches test.
-  Linear AUPRC infected clean -> shifted: random 0.924 -> 0.525, ImageNet 0.981 -> 0.943.
+  Linear AUPRC infected clean -> shifted: random 0.924 -> 0.525, ImageNet 0.989 -> 0.985.
+- The ImageNet ViT (`augreg_in21k_ft_in1k`) expects input mean = std = 0.5, not ImageNet stats. The probe
+  (`input_norm`, recorded in the json `source`) and `vit_detr` (`ViTBackbone`) re-map the input exactly;
+  random init and our SSL encoders use ImageNet stats (identity). The old wrong probe is kept as
+  `ref_imagenet_wrongnorm` (0.981 / 0.943) and marked in all tables.
 - Lambda selection (`select_run`, val only): linear AUPRC infected clean -> stain-shifted linear
   AUPRC -> 10%-label linear AUPRC -> linear macro-F1; a run is tied if its value is inside the
   leader's interval (95% CI lower bound; mean - std for the 10%-label step).
@@ -129,7 +135,10 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
 ## Status
 - Phase 1 (scaffold + data pipeline + EDA): done.
 - Phase 2 (detection pipeline, eval module, baseline A tooling): done. `a_coco_detr_binary` trained
-  and evaluated on val/test. `a_coco_detr_multiclass` and `a_scratch_r50_binary` not run yet.
+  and evaluated on val/test. `baselines_rest` queue done: `a_coco_detr_multiclass` (best ep 33) test macro
+  AP50 0.275 [0.259, 0.308]; `a_scratch_r50_binary` (random transformer, 40 ep) does not learn: val AP50
+  0.005, test 0.000 -> kept as a documented negative result (user decision), no recipe fix. Its first try
+  crashed on CUDA OOM in the last validation (eval outputs of that try in `runs/a_scratch_r50_binary/stale_eval/`).
 - Phase 3 (SSL code, probe incl. stain-shifted probe, dry runs, references, shift diagnostic, run
   queue): done. `phase3_sweep` queue finished (5 sweeps + probes, `a_coco_detr_binary_stain` + eval).
   `select_run` picks lc005 (decided at the 10%-label step), but the user's final rule (stain-shifted
@@ -140,9 +149,18 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   `scripts/paired_probe_diff.py`) in `reports/tables/phase3_paired_diff.csv`. Paired CIs excluding 0:
   joint - con_only only 10%-label AUPRC +0.018 [0.010, 0.028] (5/5 seeds); joint - mae_only stain AUPRC
   +0.038 [0.021, 0.057], kNN bal. acc +0.088 [0.033, 0.149], clean AUPRC +0.0085 [0.0007, 0.0199]
-  (borderline). Everything else includes 0; no multiple-comparison correction. No collapse in any run.
+  (borderline). vs ImageNet (correct norm): joint equals ImageNet on all AUPRC metrics (CIs include 0);
+  con_only worse at 10% labels (-0.021 [-0.044, -0.004]); mae_only worse on stain AUPRC (-0.039
+  [-0.061, -0.020]); joint/con kNN bal. acc higher (+0.105 / +0.082, not Bonferroni-robust). The earlier
+  claim "SSL more stain-robust than ImageNet" was an artifact of the wrong ImageNet normalization and is
+  withdrawn. 25 paired differences, no multiple-comparison correction. No collapse in any run.
   The CPU refit reproduces probe json AUPRC within 3.4e-4, but linear macro-F1 only within 3.6e-3.
   `a_coco_detr_binary_stain`: test infected AP50 0.583 [0.500, 0.649] vs baseline 0.551 (CIs overlap).
-  Next: phase 4 (SSL backbone in DETR) — not started.
+- Phase 4 (SSL ViT-S/16 backbone in DETR), plan approved: (1) `vit_detr` + CPU tests — done; (2) LoRA +
+  own warmup for input_projection; (3) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
+  layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
+  seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report
+  val and diagnose_shift fractions next to test AP50 (test = 120 images, wide CIs).
 - User decisions: extra lr run (blr 5e-4) added; tie-breaks as in the selection rule; mae_only
   embedding anisotropy (std x sqrt(d) ~ 0.09) is acceptable, keep monitoring.

@@ -39,7 +39,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from malaria_ssl.data.detection import HEDJitter, load_split_coco
+from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD, HEDJitter, load_split_coco
 from malaria_ssl.ssl.data import normalize
 
 log = logging.getLogger(__name__)
@@ -122,10 +122,17 @@ def apply_stain_shift(img: np.ndarray, transform: A.Compose, seed: int, image_id
 @torch.no_grad()
 def extract_features(encoder: torch.nn.Module, cache: np.ndarray, crops: dict[str, np.ndarray],
                      pcfg: dict[str, Any], device: torch.device, amp: torch.dtype | None,
-                     shift: tuple[A.Compose, int] | None = None) -> torch.Tensor:
+                     shift: tuple[A.Compose, int] | None = None,
+                     input_norm: tuple[Any, Any] | None = None) -> torch.Tensor:
     """(N, dim) float32 features for the crop set, in crop order. `shift` = (transform, seed) applies
-    the stain shift to each image before cropping."""
+    the stain shift to each image before cropping. `input_norm` = (mean, std) the encoder was trained
+    with; crops are ImageNet-normalized and re-mapped exactly to it (None = ImageNet mean/std)."""
     encoder.eval()
+    scale, offset = 1.0, 0.0
+    if input_norm is not None:
+        mean, std = (torch.as_tensor(v, dtype=torch.float32).view(1, 3, 1, 1) for v in input_norm)
+        im_mean, im_std = torch.as_tensor(IMAGENET_MEAN).view(1, 3, 1, 1), torch.as_tensor(IMAGENET_STD).view(1, 3, 1, 1)
+        scale, offset = (im_std / std).to(device), ((im_mean - mean) / std).to(device)
     window, patch = pcfg["window"], encoder.patch_embed.patch_size[0]
     prefix = encoder.num_prefix_tokens
     hc, wc = cache.shape[1:3]
@@ -135,7 +142,7 @@ def extract_features(encoder: torch.nn.Module, cache: np.ndarray, crops: dict[st
     batch_x, batch_m, batch_i = [], [], []
 
     def flush():
-        x = torch.stack(batch_x).to(device, non_blocking=True)
+        x = torch.stack(batch_x).to(device, non_blocking=True) * scale + offset
         m = torch.from_numpy(np.stack(batch_m)).to(device)
         with torch.autocast(device.type, dtype=amp, enabled=amp is not None):
             tok = encoder.forward_features(x)[:, prefix:].float()
@@ -346,14 +353,18 @@ class Prober:
     def counts(self) -> dict[str, dict[str, int]]:
         return {s: {n: int((c["label"] == i).sum()) for i, n in enumerate(self.names)} for s, c in self.crops.items()}
 
-    def features(self, encoder: torch.nn.Module, stain_shift: bool = False) -> dict[str, torch.Tensor]:
-        """Clean train / val features, plus `val_stain` (stain-shifted val crops) if requested."""
-        feats = {s: extract_features(encoder, self.caches[s], self.crops[s], self.pcfg, self.device, self.amp)
+    def features(self, encoder: torch.nn.Module, stain_shift: bool = False,
+                 input_norm: tuple[Any, Any] | None = None) -> dict[str, torch.Tensor]:
+        """Clean train / val features, plus `val_stain` (stain-shifted val crops) if requested.
+        `input_norm`: the encoder's own input (mean, std), see `extract_features`."""
+        feats = {s: extract_features(encoder, self.caches[s], self.crops[s], self.pcfg, self.device, self.amp,
+                                     input_norm=input_norm)
                  for s in ("train", "val")}
         if stain_shift:
             sc = self.pcfg["stain_shift"]
             feats["val_stain"] = extract_features(encoder, self.caches["val"], self.crops["val"], self.pcfg,
-                                                  self.device, self.amp, shift=(build_stain_shift(sc), sc["seed"]))
+                                                  self.device, self.amp, shift=(build_stain_shift(sc), sc["seed"]),
+                                                  input_norm=input_norm)
         return feats
 
     def _fit(self, feats: dict[str, torch.Tensor], train_idx: np.ndarray,

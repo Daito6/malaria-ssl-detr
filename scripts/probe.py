@@ -10,6 +10,9 @@ Also runs the stain-shifted probe (same classifiers, fitted on clean train crops
 crops with the fixed seeded shift of `probe.stain_shift`): `stain_shift` in the JSON, rows with
 eval_set=val_stain in the CSV.
 
+Input normalization: crops are ImageNet-normalized (as in SSL pretraining and DETR); the ImageNet
+reference is re-mapped to its own timm statistics (augreg ViT: mean = std = 0.5), recorded in `source`.
+
 Writes reports/tables/probe_<tag>.{json,csv} and runs/probe/<tag>/features_{train,val,val_stain}.pt.
 """
 from __future__ import annotations
@@ -21,6 +24,7 @@ import time
 from pathlib import Path
 
 import pandas as pd
+import timm
 import torch
 import yaml
 
@@ -37,8 +41,10 @@ def load_encoder(args, cfg) -> tuple[torch.nn.Module, str, dict]:
     if args.ref == "random":
         torch.manual_seed(refs["random_init_seed"])
         return build_encoder(cfg["model"]["encoder"]), "ref_random_init", {"ref": "random", "seed": refs["random_init_seed"]}
-    if args.ref == "imagenet":
-        return build_encoder(refs["imagenet"], pretrained=True), "ref_imagenet", {"ref": "imagenet", "timm": refs["imagenet"]}
+    if args.ref == "imagenet":   # fed with its own input normalization (augreg: mean = std = 0.5)
+        pc = timm.models.get_pretrained_cfg(refs["imagenet"])
+        return (build_encoder(refs["imagenet"], pretrained=True), "ref_imagenet",
+                {"ref": "imagenet", "timm": refs["imagenet"], "input_mean": list(pc.mean), "input_std": list(pc.std)})
     if args.run:
         run_dir = Path(args.run)
         run_cfg = yaml.safe_load((run_dir / "config.yaml").read_text(encoding="utf-8"))
@@ -71,7 +77,8 @@ def main() -> None:
     log.info("crops per class: %s", prober.counts())
 
     t0 = time.time()
-    feats = prober.features(encoder, stain_shift=True)
+    norm = (source["input_mean"], source["input_std"]) if "input_mean" in source else None  # None = ImageNet stats
+    feats = prober.features(encoder, stain_shift=True, input_norm=norm)
     t_feat = time.time() - t0
     res = prober.evaluate(encoder, full=True, feats=feats)
     res.update(tag=tag, source=source, probe_config=cfg["probe"],
