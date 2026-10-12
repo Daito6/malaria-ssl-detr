@@ -1,10 +1,11 @@
 # Фаза 3 — SSL-претренування ViT-S/16 (MAE + InfoNCE) та probe без DETR
 
-Усі числа нижче — з реальних запусків у `runs/` і тестів. Довгі SSL-запуски (sweep, основний joint,
-mae_only, con_only) **ще не виконувались** — нижче лише dry runs, референси (включно зі
-stain-shifted probe) та бюджет.
-Test-спліт у фазі 3 не використовувався ні для чого, крім діагностики вже натренованого baseline A
-(розділ «Зсув домену»), яка нічого не налаштовує.
+Усі числа нижче — з реальних запусків у `runs/` і тестів. Виконано: dry runs, референси, sweep λ
+(5 запусків по 32 епохи), DETR зі stain jitter і фінальні 100-епохові запуски joint / mae_only / con_only
+з probe. Результати — у розділах «Результати sweep» і «Фінальні запуски».
+Test-спліт у фазі 3 використовувався лише для оцінки та діагностики вже натренованих DETR baseline
+(розділи «Зсув домену» і «DETR зі stain jitter»), нічого не налаштовуючи. SSL-енкодери й вибір λ
+оцінювалися тільки на val-кропах.
 
 ## Що побудовано
 
@@ -15,11 +16,12 @@ Test-спліт у фазі 3 не використовувався ні для 
 | Тренер + CLI | `src/malaria_ssl/ssl/trainer.py`, `scripts/pretrain.py`, `configs/ssl/base.yaml` |
 | Probe на рівні клітин (kNN / linear, + stain-shifted, + правило вибору λ) | `src/malaria_ssl/ssl/probe.py`, `scripts/probe.py`, `configs/ssl/probe.yaml` |
 | Конфіги експериментів | `configs/ssl/{joint,mae_only,con_only}.yaml`, `configs/ssl/sweep_{lc005,lc02,lc10,uncertainty,lr5e4}.yaml` |
-| Черга запусків | `scripts/run_queue.ps1`, `configs/queues/phase3_sweep.txt` |
+| Черга запусків | `scripts/run_queue.ps1`, `configs/queues/phase3_sweep.txt`, `configs/queues/phase3_final.txt` |
 | Діагностика зсуву val → test | `src/malaria_ssl/eval/shift.py`, `scripts/diagnose_shift.py` |
-| DETR зі stain jitter (не запускався) | `configs/experiments/a_coco_detr_binary_stain.yaml` |
+| DETR зі stain jitter | `configs/experiments/a_coco_detr_binary_stain.yaml` |
+| Таблиця порівняння енкодерів | `scripts/compare_probes.py` → `reports/tables/phase3_final_comparison.csv` |
 | Аналіз | `notebooks/03_ssl_analysis.ipynb`, `src/malaria_ssl/ssl/viz.py` |
-| Тести | `tests/test_ssl_data.py`, `test_ssl_models.py`, `test_ssl_trainer.py`, `test_probe.py`, `test_shift.py` — разом з фазами 1–2 **53 passed** |
+| Тести | `tests/test_ssl_data.py`, `test_ssl_models.py`, `test_ssl_trainer.py`, `test_probe.py`, `test_shift.py` — разом з фазами 1–2 **60 passed** (останній прогін — з прихованим GPU, `CUDA_VISIBLE_DEVICES=''`) |
 
 Спільні хелпери тренування (`lr_lambda`, `run_info`, чекпоінти, `metrics.csv`, `--set`) перенесено з
 `detr/trainer.py` у `utils/run.py` і `utils/config.py`, щоб SSL-код не імпортував DETR/transformers.
@@ -47,7 +49,8 @@ seed, обидва в warmup). Різниця 0.01% — недетермініз
    рахується. Експортується лише енкодер (`encoder_final.pt`, `encoder_epXXX.pt`) — звичайний timm
    state dict, вантажиться `strict=True`, інтерполяція позицій працює для DETR-розмірів (тест).
 4. **Оптимізація.** AdamW (0.9, 0.95), wd 0.05 (без wd на norm/bias/pos/cls/log-variances),
-   lr = blr·B/256 з blr = 1.5e-4, warmup 5% + cosine до 1%, bf16, grad clip 3.0.
+   lr = blr·B/256 з blr = 1.5e-4 у sweep і 5e-4 у фінальних запусках (lr 2.5e-4, див. «Результати
+   sweep»), warmup 5% + cosine до 1%, bf16, grad clip 3.0.
    **Без градієнтної акумуляції** — вона зменшила б кількість негативів InfoNCE.
 5. **Probe.** Для кожного GT-боксу (difficult виключено, як у binary-мапінгу) — вікно 224 на
    зображенні з довшою стороною 800, центроване на боксі; ознака — середнє патч-токенів, центри яких
@@ -199,6 +202,124 @@ SSL-претренування, і stain-аугментацію (`a_coco_detr_bi
 3. **mae_only: малий розкид ембедингів** (std×√d ≈ 0.09 проти 0.40–0.45 у joint/con_only при erank ≈17).
    Для MAE-ознак це відома анізотропія, не колапс. Залишено як є, стежимо в повному запуску.
 
+## Результати sweep (32 епохи, val-кропи, 95% CI)
+
+Черга `phase3_sweep.txt`. Формат той самий, що в таблиці фінальних запусків нижче (`viz.comparison_table`).
+Linear AUPRC infected; 10% міток — mean ± std по 5 seeds; kNN — balanced accuracy (мультиклас).
+
+| Запуск | AUPRC чисті | AUPRC stain-shifted | AUPRC 10% міток | linear macro-F1 | kNN balanced acc |
+|---|---|---|---|---|---|
+| λ_con 0.05 | 0.983 [0.967, 0.995] | 0.968 [0.949, 0.982] | 0.966 ± 0.004 | 0.692 [0.638, 0.738] | 0.639 [0.571, 0.708] |
+| λ_con 0.2 | 0.984 [0.968, 0.995] | 0.974 [0.956, 0.987] | 0.961 ± 0.011 | 0.670 [0.612, 0.721] | 0.682 [0.614, 0.750] |
+| λ_con 1.0 | 0.981 [0.964, 0.993] | 0.963 [0.936, 0.983] | 0.952 ± 0.014 | 0.691 [0.638, 0.740] | 0.692 [0.622, 0.761] |
+| uncertainty | 0.981 [0.964, 0.993] | 0.963 [0.936, 0.984] | 0.952 ± 0.012 | 0.699 [0.647, 0.746] | 0.698 [0.630, 0.768] |
+| λ_con 0.2, blr 5e-4 | 0.985 [0.973, 0.993] | 0.973 [0.956, 0.986] | 0.958 ± 0.012 | 0.712 [0.659, 0.762] | 0.715 [0.642, 0.787] |
+
+`select_run` залишає всі 5 запусків нічиєю на кроках 1 і 2 і обирає λ_con 0.05 на кроці 3: лідер 0.966,
+поріг mean − std = 0.962, решта нижче. Остаточне рішення користувача — за stain-shifted AUPRC:
+lr5e4 (0.973) лежить в CI lc02 [0.956, 0.987]. Тому фінальні запуски отримали λ_con = 0.2 і
+blr 5e-4 (`configs/ssl/base.yaml`, спільний lr для joint / mae_only / con_only, 100 епох).
+
+## DETR зі stain jitter (`a_coco_detr_binary_stain`, best = епоха 39)
+
+| | AP50 infected (95% CI) | P / R / F1 infected при val-порозі 0.900 |
+|---|---|---|
+| val | 0.784 [0.736, 0.840] | 0.760 / 0.859 / 0.806 |
+| test | 0.583 [0.500, 0.649] | 0.848 / 0.314 / 0.458 |
+
+Порівняно з baseline A (test 0.551 [0.479, 0.621]) AP50 infected на test вищий на 0.032, але CI
+перекриваються. Recall при val-порозі впав (0.376 → 0.314), бо поріг вищий: 0.867 → 0.900. За
+`diagnose_shift` на test 28.7% infected-клітин не мають infected-детекції (у baseline A — 35.0%),
+а в 36.0% вищий uninfected-score (було 37.0%). Отже, stain jitter у DETR сам по собі зсуву не усуває.
+
+## Фінальні запуски: joint vs mae_only vs con_only (100 епох = 2.56 M пар, λ_con 0.2, blr 5e-4)
+
+Черга `phase3_final.txt`. `ssl_joint` один раз перервався після епохи 65 і продовжився з `last.pt`
+з епохи 66 (`queue.log`). `metrics.csv` усіх трьох має 100 унікальних епох.
+
+| Запуск | Сумарний час епох | пар/с (медіана) | пік GPU, GiB |
+|---|---|---|---|
+| joint | 2.49 год | 288 | 10.75 |
+| mae_only | 1.12 год | 639 | 2.91 |
+| con_only | 2.02 год | 354 | 8.62 |
+
+### Probe (val-кропи, 100% міток, 95% bootstrap CI по val-зображеннях)
+`reports/tables/phase3_final_comparison.csv` (`scripts/compare_probes.py`). Linear AUPRC infected;
+10% міток — mean ± std по 5 seeds. У kNN-колонці — **balanced accuracy** (мультиклас). Звичайна
+accuracy в probe не рахується: 2000 з 2312 val-кропів — підвибрані RBC, тож вона здебільшого
+відображала б RBC.
+
+| Енкодер | AUPRC чисті | AUPRC stain-shifted | AUPRC 10% міток | linear macro-F1 | kNN balanced acc |
+|---|---|---|---|---|---|
+| random init | 0.924 [0.883, 0.954] | 0.525 [0.421, 0.638] | 0.845 ± 0.015 | 0.515 [0.460, 0.567] | 0.437 [0.371, 0.508] |
+| ImageNet | 0.981 [0.972, 0.989] | 0.943 [0.921, 0.961] | 0.978 ± 0.004 | 0.646 [0.589, 0.696] | 0.616 [0.546, 0.686] |
+| mae_only | 0.979 [0.956, 0.993] | 0.946 [0.922, 0.966] | 0.976 ± 0.007 | 0.705 [0.655, 0.750] | 0.693 [0.626, 0.755] |
+| con_only | 0.986 [0.971, 0.996] | 0.982 [0.968, 0.993] | 0.954 ± 0.010 | 0.732 [0.676, 0.780] | 0.759 [0.685, 0.826] |
+| **joint** | 0.988 [0.974, 0.996] | 0.984 [0.971, 0.992] | 0.972 ± 0.005 | 0.728 [0.671, 0.776] | 0.781 [0.713, 0.843] |
+
+### Чи кращий joint за моделі з однією ціллю — поза межами CI
+Критерій нижче — **неперетин 95% CI**; для 10% міток — неперетин інтервалів mean ± std.
+CI маргінальні: для кожного енкодера bootstrap рахувався окремо. Парний bootstrap різниці не рахувався.
+
+**joint vs mae_only.**
+- Stain-shifted AUPRC — так: 0.984 [0.971, 0.992] проти 0.946 [0.922, 0.966]. Нижня межа joint
+  (0.971) вища за верхню межу mae_only (0.966).
+- Чисті AUPRC — ні: 0.988 проти 0.979, CI перекриваються.
+- AUPRC при 10% міток — ні, mae_only навіть трохи вищий: 0.972 ± 0.005 проти 0.976 ± 0.007.
+- Macro-F1 — ні: 0.728 проти 0.705, CI перекриваються.
+- kNN balanced acc — ні: 0.781 [0.713, 0.843] проти 0.693 [0.626, 0.755]. Кожна точкова оцінка
+  лежить поза CI іншої моделі, але самі інтервали перекриваються (0.713–0.755).
+
+**joint vs con_only.**
+- За жодною метрикою зі 95% CI joint не виграє:
+  - чисті AUPRC: 0.988 проти 0.986;
+  - stain-shifted: 0.984 проти 0.982;
+  - kNN balanced acc: 0.781 проти 0.759;
+  - macro-F1: 0.728 проти 0.732 — тут con_only трохи вищий.
+  Усі CI перекриваються.
+- Єдина розбіжність — AUPRC при 10% міток: 0.972 ± 0.005 проти 0.954 ± 0.010. Інтервали mean ± std
+  ([0.967, 0.978] і [0.944, 0.965]) не перетинаються. Але це розкид по 5 підвибірках міток, а не
+  bootstrap CI.
+
+**Висновок.** На цих probe-метриках joint не кращий за con_only поза межами CI. Відносно mae_only
+joint виграє лише за стійкістю до stain-зсуву. Схоже, цю стійкість дає контрастивна гілка: con_only
+має 0.982 [0.968, 0.993]. Joint поєднує stain-стійкість con_only з low-label якістю mae_only
+(0.972 проти 0.976). Проте різниця з con_only при 10% міток підтверджена лише через std по seeds.
+
+Відносно референсів:
+- Stain-shifted AUPRC у joint і con_only вищий за ImageNet поза межами CI (0.943 [0.921, 0.961]),
+  а у mae_only (0.946) — на рівні ImageNet.
+- На чистих кропах усі три SSL-енкодери в межах CI ImageNet.
+- При 10% міток ImageNet найвищий (0.978 ± 0.004).
+
+### Остання епоха (99): losses і діагностика колапсу (фіксовані 512 val-пар)
+
+| Запуск | train L_mae | val L_mae | train L_con | val L_con | rep std×√d | rep erank | proj std×√d | proj erank |
+|---|---|---|---|---|---|---|---|---|
+| joint | 0.1689 | 0.1746 | 1.2319 | 1.3833 | 0.574 | 119.1 | 0.996 | 160.0 |
+| mae_only | 0.1641 | 0.1697 | — | — | 0.123 | 90.8 | — | — |
+| con_only | — | — | 1.2449 | 1.3949 | 0.728 | 118.3 | 0.997 | 156.9 |
+
+`rep` — середнє патч-токенів енкодера (d = 384), `proj` — вихід projector (d = 256).
+Колапсу немає в жодному запуску:
+- erank rep росте й виходить на плато (епоха 0 → 99, у дужках максимум): joint 37.1 → 119.1 (119.7),
+  mae_only 15.3 → 90.8 (90.8), con_only 37.7 → 118.3 (119.0).
+- proj std×√d ≈ 0.996–0.997, тобто ембединги майже рівномірно розкидані по сфері.
+
+**mae_only.** Анізотропія збереглася: std×√d падає до мінімуму 0.110 на епосі 8 і далі тримається
+в межах 0.110–0.136 (0.123 на епосі 99). Водночас erank росте з 12.0 (епоха 2) до 90.8, тобто розмірнісного колапсу немає. Це
+узгоджується з прийнятим рішенням 3.
+
+**Losses.** MAE-loss у joint майже такий самий, як у mae_only (val 0.1746 проти 0.1697), а InfoNCE —
+як у con_only (val 1.3833 проти 1.3949). Отже, при λ_con = 0.2 жодна з цілей помітно не
+пригнічується.
+
+### Реконструкції останньої епохи
+`runs/ssl_joint/recon/epoch_100.png`, `runs/ssl_mae_only/recon/epoch_100.png` (у ноутбуці 03,
+розділ «Фінальне порівняння»). Обидві моделі однаково відновлюють форму, розташування й колір клітин
+під маскою 75%. Деталі всередині патчів 16×16 розмиті. На майже білому фоні трапляються поодинокі
+блакитні патчі-артефакти. Візуальної різниці між joint і mae_only не видно.
+
 ## Черга запусків
 `scripts/run_queue.ps1` виконує файл черги з рядками `<run name> | <команда>`. Команди виконуються
 послідовно з кореня репозиторію, в поточному середовищі.
@@ -213,31 +334,24 @@ SSL-претренування, і stain-аугментацію (`a_coco_detr_bi
 
 Перевірено на тестовій черзі (успіх, помилка з кодом 2 від Python зі stderr, пропуск виконаних,
 `--resume` при наявному `last.pt`, без хибного збігу за префіксом команди) і `-DryRun` на справжній
-черзі. Самі запуски не виконувались.
+черзі.
 
-Перша черга — `configs/queues/phase3_sweep.txt`, 14 команд, ≈5.5 год:
-- 5 sweep-запусків, кожен з повним probe (чистий, stain-shifted, low-label);
-- `a_coco_detr_binary_stain` з оцінкою val/test і `diagnose_shift`.
+Виконані черги:
+- `configs/queues/phase3_sweep.txt` (14 команд): 5 sweep-запусків, кожен з повним probe (чистий,
+  stain-shifted, low-label), і `a_coco_detr_binary_stain` з оцінкою val/test та `diagnose_shift`.
+- `configs/queues/phase3_final.txt` (6 команд): joint / mae_only / con_only по 100 епох і їхні probes.
 
-## Команди (запускаєте ви; нічого з цього не запущено)
+## Команди (усе нижче виконано)
 
 ```powershell
 conda activate medthesis
 cd C:\Users\Alex\PycharmProjects\MedImage_Detection\malaria-ssl-detr
 
-# 1) перша черга: 5 sweep-запусків + probes, потім DETR зі stain jitter + оцінка (~5.5 год)
 powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase3_sweep.txt
-#    перервалась -> та сама команда (виконане пропускається, тренування отримує --resume)
+powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase3_final.txt
 
-# 2) після вибору: виставити lambda_con (або uncertainty) і за потреби blr у configs/ssl/joint.yaml, потім
-python scripts/pretrain.py --config configs/ssl/joint.yaml       # ~2.8 год
-python scripts/pretrain.py --config configs/ssl/mae_only.yaml    # ~1.3 год
-python scripts/pretrain.py --config configs/ssl/con_only.yaml    # ~2.3 год
-python scripts/probe.py --run runs/ssl_joint
-python scripts/probe.py --run runs/ssl_mae_only
-python scripts/probe.py --run runs/ssl_con_only
-
-# моніторинг: tensorboard --logdir runs
+# таблиця порівняння (лише читає reports/tables/probe_*.json, без GPU)
+python scripts/compare_probes.py --tags ref_random_init ref_imagenet ssl_mae_only ssl_con_only ssl_joint `
+    --out reports/tables/phase3_final_comparison.csv
 ```
-Після цього — перевиконати `notebooks/03_ssl_analysis.ipynb` (він автоматично перемкнеться з dry runs
-на `runs/ssl_*`).
+`notebooks/03_ssl_analysis.ipynb` виконано на CPU (`CUDA_VISIBLE_DEVICES=''`) з усіма артефактами.

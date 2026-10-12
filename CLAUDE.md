@@ -92,6 +92,7 @@ Non-obvious decisions (details in `reports/phase2_summary.md`):
 python scripts/pretrain.py --config configs/ssl/<exp>.yaml [--resume] [--set key=value] [--name ...]
 python scripts/probe.py --run runs/ssl_<exp>        # or --encoder <pt> | --ref random | --ref imagenet
 python scripts/diagnose_shift.py runs/<binary DETR run>
+python scripts/compare_probes.py --tags <probe tags...> --out reports/tables/<name>.csv   # reads probe json only
 powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/<queue>.txt [-DryRun]
 ```
 Queue lines are `<run name> | <command>`; output goes to `runs/<run name>/queue.log`; failures do not
@@ -133,6 +134,11 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   `select_run` picks lc005 (decided at the 10%-label step), but the user's final rule (stain-shifted
   AUPRC: lr5e4 0.973 within lc02's CI [0.956, 0.987]) chose lambda_con 0.2 + blr 5e-4, now in
   `configs/ssl/base.yaml` (shared lr for joint / mae_only / con_only, 100 epochs). Sweep configs pin
-  their own blr 1.5e-4. Next: `configs/queues/phase3_final.txt` (~6.4 h), not launched yet.
+  their own blr 1.5e-4. `phase3_final` queue finished (ssl_joint resumed once at epoch 66); comparison in
+  `reports/tables/phase3_final_comparison.csv`. Val probe: joint beats mae_only beyond CIs only on
+  stain-shifted AUPRC (0.984 [0.971, 0.992] vs 0.946 [0.922, 0.966]); joint does NOT beat con_only beyond
+  any 95% CI (10%-label 0.972±0.005 vs 0.954±0.010 separates only by mean±std). No collapse in any run.
+  `a_coco_detr_binary_stain`: test infected AP50 0.583 [0.500, 0.649] vs baseline 0.551 (CIs overlap).
+  Next: phase 4 (SSL backbone in DETR) — not started.
 - User decisions: extra lr run (blr 5e-4) added; tie-breaks as in the selection rule; mae_only
   embedding anisotropy (std x sqrt(d) ~ 0.09) is acceptable, keep monitoring.
