@@ -21,12 +21,18 @@ augment:
   jpeg: {quality: [60, 100], p: 0.3}   # the test split is JPEG-compressed
 
 model:
-  name: coco_detr_r50                 # coco_detr_r50 | scratch_r50
+  name: coco_detr_r50                 # coco_detr_r50 | scratch_r50 | vit_detr
   pretrained: facebook/detr-resnet-50
   scratch_backbone: resnet50.tv_in1k    # torchvision ImageNet weights, as in the original DETR
   num_queries: 300
   extra_query_noise: 0.1              # x std of the pretrained query embeddings
   auxiliary_loss: true
+  vit:                                # vit_detr only: timm ViT backbone + COCO-pretrained DETR transformer
+    arch: vit_small_patch16_224
+    init: random                      # random | imagenet | path to a timm state dict (runs/ssl_*/checkpoints/encoder_final.pt)
+    imagenet: vit_small_patch16_224.augreg_in21k_ft_in1k   # its own input mean/std (0.5) are applied
+    stride: 16                        # 16 | 32 (2x2 space-to-depth before the 1x1 input projection)
+    drop_path_rate: 0.0
 
 loss:
   eos_coefficient: 0.1                # HF / original DETR default
@@ -40,6 +46,7 @@ loss:
 optim:
   lr: 1.0e-4
   lr_backbone: 1.0e-5
+  lr_projection: null                 # input projection group; null = lr
   weight_decay: 1.0e-4
   grad_clip: 0.1
   warmup_steps: 200                   # optimizer steps
