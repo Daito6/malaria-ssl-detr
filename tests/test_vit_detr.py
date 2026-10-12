@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 
 from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD
-from malaria_ssl.detr.build import ViTBackbone, build_model, build_vit_backbone, param_groups
+from malaria_ssl.detr.build import ViTBackbone, build_model, build_vit_backbone, param_groups, vit_layer_id
 from malaria_ssl.ssl.models import build_encoder
 from malaria_ssl.utils.config import load_experiment
 
@@ -210,3 +210,49 @@ def test_projection_has_its_own_warmup():
     assert proj(1000) == pytest.approx(0.01) and shared(1000) == pytest.approx(0.01)
     same = group_lr_lambdas(opt, {**o, "warmup_steps_projection": None}, total=1000)
     assert same[0] is same[1] is same[2]
+
+
+# --------------------------------------------------------------------------- step 4: layer-wise lr decay
+
+def test_vit_layer_id():
+    enc = _encoder()
+    ids = {n: vit_layer_id(n, len(enc.blocks)) for n, _ in enc.named_parameters()}
+    assert ids["cls_token"] == ids["pos_embed"] == ids["patch_embed.proj.weight"] == 0
+    assert ids["blocks.0.attn.qkv.weight"] == 1 and ids["blocks.11.mlp.fc2.bias"] == 12
+    assert ids["norm.weight"] == ids["norm.bias"] == 13
+    assert set(ids.values()) == set(range(14))
+
+
+def test_layer_decay_param_groups(vit_model):
+    o = {**CFG["optim"], "layer_decay": 0.75, "lr_backbone": 1e-5}
+    groups = param_groups(vit_model, o)
+    names = [g["name"] for g in groups]
+    # indices 0/1/2 keep their meaning for the trainer's logging and the projection warmup
+    assert names[:3] == ["transformer", "backbone", "projection"]
+    assert names[3:] == [f"backbone_layer{i}" for i in range(13)]
+    lr = {g["name"]: g["lr"] for g in groups}
+    assert lr["backbone"] == 1e-5                                         # final norm, depth 13
+    assert lr["backbone_layer12"] == pytest.approx(1e-5 * 0.75)          # last block
+    assert lr["backbone_layer0"] == pytest.approx(1e-5 * 0.75 ** 13)     # embeddings
+    enc = vit_model.hf.model.backbone.encoder
+    by_id = {id(p): g["name"] for g in groups for p in g["params"]}
+    assert by_id[id(enc.blocks[11].attn.qkv.weight)] == "backbone_layer12"
+    assert by_id[id(enc.patch_embed.proj.weight)] == "backbone_layer0"
+    assert by_id[id(enc.norm.weight)] == "backbone"
+    ids = [id(p) for g in groups for p in g["params"]]
+    assert len(ids) == len(set(ids)) == sum(1 for p in vit_model.parameters() if p.requires_grad)
+    assert {id(p) for p in enc.parameters()} == {i for i, n in by_id.items() if n.startswith("backbone")}
+    # off by default: the three groups of step 1
+    assert [g["name"] for g in param_groups(vit_model, CFG["optim"])] == ["transformer", "backbone", "projection"]
+
+
+def test_layer_decay_groups_share_the_schedule(vit_model):
+    from malaria_ssl.detr.trainer import group_lr_lambdas
+
+    o = {**CFG["optim"], "layer_decay": 0.75, "warmup_steps_projection": 50}
+    opt = torch.optim.AdamW(param_groups(vit_model, o))
+    lams = group_lr_lambdas(opt, o, total=1000)
+    names = [g["name"] for g in opt.param_groups]
+    shared = lams[0]
+    assert all(lam is shared for lam, n in zip(lams, names) if n != "projection")
+    assert lams[names.index("projection")] is not shared

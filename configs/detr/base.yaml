@@ -54,6 +54,7 @@ optim:
   lr_backbone: 1.0e-5
   lr_projection: null                 # vit_detr input projection group; null = lr
   warmup_steps_projection: null       # its own linear warmup (optimizer steps); null = warmup_steps
+  layer_decay: null                   # vit_detr: layer-wise lr decay of the ViT (e.g. 0.75); null = off
   weight_decay: 1.0e-4
   grad_clip: 0.1
   warmup_steps: 200                   # optimizer steps

@@ -264,10 +264,23 @@ def build_model(model_cfg: dict[str, Any], class_names: list[str], seed: int) ->
     return Detr(hf, aux_loss=model_cfg["auxiliary_loss"])
 
 
+def vit_layer_id(name: str, num_layers: int) -> int:
+    """Depth of a timm ViT parameter (name relative to the ViT) for layer-wise lr decay: embeddings and
+    prefix tokens 0, `blocks.i` -> i + 1, everything after the blocks (final norm) num_layers + 1."""
+    if name.startswith(("cls_token", "reg_token", "pos_embed", "patch_embed")):
+        return 0
+    if name.startswith("blocks."):
+        return int(name.split(".")[1]) + 1
+    return num_layers + 1
+
+
 def param_groups(model: Detr, optim_cfg: dict[str, Any]) -> list[dict[str, Any]]:
-    """Groups (order fixed, the trainer logs 0 and 1): transformer + heads + queries at lr, backbone at
-    lr_backbone. vit_detr only: the new input projection is a third group at lr_projection (null = lr).
-    The R50 models keep two groups, so their existing checkpoints still resume."""
+    """Groups (order fixed, the trainer logs 0, 1 and 2): transformer + heads + queries at lr, backbone
+    at lr_backbone. vit_detr only: the new input projection is a third group at lr_projection (null = lr),
+    and with `optim.layer_decay` d the ViT gets layer-wise lr decay: a parameter at depth i (see
+    `vit_layer_id`) trains at lr_backbone * d ** (L + 1 - i); depth L + 1 stays in "backbone", the other
+    depths follow as "backbone_layer<i>" groups. The R50 models keep two groups, so their existing
+    checkpoints still resume."""
     split_proj = isinstance(model.hf.model.backbone, ViTBackbone)
     groups = {"transformer": [], "backbone": [], "projection": []}
     for n, p in model.named_parameters():
@@ -278,5 +291,17 @@ def param_groups(model: Detr, optim_cfg: dict[str, Any]) -> list[dict[str, Any]]
     lr_proj = optim_cfg.get("lr_projection")
     lrs = {"transformer": optim_cfg["lr"], "backbone": optim_cfg["lr_backbone"],
            "projection": optim_cfg["lr"] if lr_proj is None else lr_proj}
-    names = ("transformer", "backbone", "projection") if split_proj else ("transformer", "backbone")
-    return [{"params": groups[k], "lr": lrs[k], "weight_decay": optim_cfg["weight_decay"], "name": k} for k in names]
+    names = ["transformer", "backbone", "projection"] if split_proj else ["transformer", "backbone"]
+    decay = optim_cfg.get("layer_decay")
+    if split_proj and decay is not None:
+        enc = model.hf.model.backbone.encoder
+        top = len(enc.blocks) + 1
+        depth = {id(p): vit_layer_id(n, len(enc.blocks)) for n, p in enc.named_parameters()}
+        layers = groups.pop("backbone")
+        groups["backbone"] = [p for p in layers if depth[id(p)] == top]
+        for i in range(top):
+            groups[f"backbone_layer{i}"] = [p for p in layers if depth[id(p)] == i]
+            lrs[f"backbone_layer{i}"] = optim_cfg["lr_backbone"] * decay ** (top - i)
+            names.append(f"backbone_layer{i}")
+    return [{"params": groups[k], "lr": lrs[k], "weight_decay": optim_cfg["weight_decay"], "name": k}
+            for k in names if groups[k] or k in ("transformer", "backbone")]
