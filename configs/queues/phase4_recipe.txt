@@ -1,19 +1,35 @@
 # Phase 4, step 4: recipe selection on b_vit_imagenet (ImageNet ViT-S/16, binary, 40 epochs each).
-# Each candidate changes ONE factor vs b_vit_imagenet (full, stride 16, no layer decay):
-#   b_vit_imagenet_lora (adapt lora) | b_vit_imagenet_llrd (layer_decay 0.75) | b_vit_imagenet_s32 (stride 32).
-# VAL ONLY: no test evaluation in step 4. Selection: val infected AP50 with the phase-3 CI tie rule.
-# Estimate from step 3 (epoch ~92 s at stride 16, eval ~1 min): ~1.15-1.35 h per run -> ~4.6-5.4 h.
-# Run:  powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase4_recipe.txt
+# Candidates (each one factor vs its parent; verified by diffing the resolved configs):
+#   b_vit_imagenet            full, stride 16, no layer decay (reference recipe)
+#   b_vit_imagenet_s32        stride 32
+#   b_vit_imagenet_llrd       optim.layer_decay 0.75
+#   b_vit_imagenet_lora       adapt lora (LoRA at the transformer-group lr 1e-4)
+#   b_vit_imagenet_lora_lr5e4 as _lora, transformer-group lr 5e-4 (LoRA + heads + queries); projection kept at 1e-4
+# VAL ONLY: no test evaluation in step 4.
+#
+# SELECTION RULE (fixed 2026-10-12, before any step-4 result exists):
+#   1. Metric: val infected AP50 (metrics_val.json, coco per_class infected AP50) with its 95% bootstrap CI
+#      (evaluate.py --bootstrap, 200 resamples over val images).
+#   2. Leader = highest point estimate. Tied = every candidate whose point estimate is >= the leader's
+#      CI lower bound (phase-3 tie rule).
+#   3. Tie-break among the tied candidates by simplicity, in this fixed order:
+#      full (b_vit_imagenet) -> s32 -> llrd -> lora -> lora_lr5e4.  Val F1 is NOT used.
+#
+# Estimate from step 3 (epoch ~92 s at stride 16, val eval ~1 min): ~1.15-1.35 h per run -> ~5.8-6.8 h.
+# Run:  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase4_recipe.txt
 # Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
 
-b_vit_imagenet      | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet.yaml
-b_vit_imagenet      | python scripts/evaluate.py runs/b_vit_imagenet --split val --bootstrap
+b_vit_imagenet            | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet.yaml
+b_vit_imagenet            | python scripts/evaluate.py runs/b_vit_imagenet --split val --bootstrap
 
-b_vit_imagenet_lora | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_lora.yaml
-b_vit_imagenet_lora | python scripts/evaluate.py runs/b_vit_imagenet_lora --split val --bootstrap
+b_vit_imagenet_s32        | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_s32.yaml
+b_vit_imagenet_s32        | python scripts/evaluate.py runs/b_vit_imagenet_s32 --split val --bootstrap
 
-b_vit_imagenet_llrd | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_llrd.yaml
-b_vit_imagenet_llrd | python scripts/evaluate.py runs/b_vit_imagenet_llrd --split val --bootstrap
+b_vit_imagenet_llrd       | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_llrd.yaml
+b_vit_imagenet_llrd       | python scripts/evaluate.py runs/b_vit_imagenet_llrd --split val --bootstrap
 
-b_vit_imagenet_s32  | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_s32.yaml
-b_vit_imagenet_s32  | python scripts/evaluate.py runs/b_vit_imagenet_s32 --split val --bootstrap
+b_vit_imagenet_lora       | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_lora.yaml
+b_vit_imagenet_lora       | python scripts/evaluate.py runs/b_vit_imagenet_lora --split val --bootstrap
+
+b_vit_imagenet_lora_lr5e4 | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_lora_lr5e4.yaml
+b_vit_imagenet_lora_lr5e4 | python scripts/evaluate.py runs/b_vit_imagenet_lora_lr5e4 --split val --bootstrap
