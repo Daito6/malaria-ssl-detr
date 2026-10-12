@@ -1,0 +1,11 @@
+# Phase 4: ViT-S/16 backbone in DETR, binary. Encoder: SSL con_only (100 epochs).
+# COCO-pretrained transformer / queries / box head; new input projection. The recipe (adapt, lrs,
+# warmup, layer-wise decay, stride) is the base default until step 4 selects it on val (b_vit_imagenet).
+base: configs/detr/base.yaml
+label_mode: binary
+model:
+  name: vit_detr
+  vit:
+    init: runs/ssl_con_only/checkpoints/encoder_final.pt
+train:
+  epochs: 40
