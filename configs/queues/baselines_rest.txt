@@ -1,0 +1,13 @@
+# Remaining DETR baselines (phase 2): COCO-DETR multiclass and DETR with a fresh transformer on an ImageNet R50.
+# Same commands as a_coco_detr_binary (train without --set, then evaluate val -> test with --bootstrap = 200).
+# Estimate from a_coco_detr_binary_stain (same arch, 40 epochs): train 43 min + eval 0.9 + 0.7 min -> ~1.5 h total.
+# Run:  powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/baselines_rest.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+a_coco_detr_multiclass | python scripts/train_detr.py --config configs/experiments/a_coco_detr_multiclass.yaml
+a_coco_detr_multiclass | python scripts/evaluate.py runs/a_coco_detr_multiclass --split val --bootstrap
+a_coco_detr_multiclass | python scripts/evaluate.py runs/a_coco_detr_multiclass --split test --bootstrap
+
+a_scratch_r50_binary   | python scripts/train_detr.py --config configs/experiments/a_scratch_r50_binary.yaml
+a_scratch_r50_binary   | python scripts/evaluate.py runs/a_scratch_r50_binary --split val --bootstrap
+a_scratch_r50_binary   | python scripts/evaluate.py runs/a_scratch_r50_binary --split test --bootstrap
