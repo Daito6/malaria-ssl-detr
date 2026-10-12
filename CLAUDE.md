@@ -68,6 +68,7 @@ Facts worth remembering (details in `reports/phase1_summary.md`):
 python scripts/train_detr.py --config configs/experiments/<exp>.yaml [--resume] [--set key=value]
 python scripts/evaluate.py runs/<name> --split val --bootstrap   # val first: picks F1 thresholds
 python scripts/evaluate.py runs/<name> --split test --bootstrap  # reuses val thresholds
+python scripts/compare_detr_runs.py --runs <names...> --split val [--select] --out reports/tables/<name>.csv
 ```
 Non-obvious decisions (details in `reports/phase2_summary.md`):
 - Model is called WITHOUT labels; loss is ours (`detr/loss.py`, HF matcher/ImageLoss reused)
@@ -160,9 +161,10 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   own warmup for input_projection — done (`model.adapt: full|lora`, peft on encoder/decoder q/k/v/o_proj,
   transformer base frozen; `optim.lr_projection`, `optim.warmup_steps_projection`); (3) dry runs — done (gate passed, epoch ~92 s at
   stride 16 vs 58 s R50, peak 8.2 GiB; `reports/phase4_summary.md`); `optim.layer_decay` added; step 4 queue
-  `configs/queues/phase4_recipe.txt` (5 runs: full, s32, llrd, lora, lora_lr5e4; VAL ONLY, ~5.8-6.8 h) not
-  launched. Selection fixed before results: val infected AP50, tie = inside leader's 95% CI, tie-break by
-  simplicity full -> s32 -> llrd -> lora -> lora_lr5e4 (no val F1). Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  `configs/queues/phase4_recipe.txt` (5 runs, VAL ONLY) done (`reports/phase4_recipe_summary.md`): leader llrd
+  val infected AP50 0.798 [0.751, 0.854]; full 0.769, s32 0.790, lora_lr5e4 0.797 tied, lora 0.670 not ->
+  winner full (base defaults); plateau 30->40 ep +0.013 -> keep 40 epochs. Step 5 queue
+  `configs/queues/phase4_main.txt` (~4.6 h, b_vit_imagenet reused: test + diagnose only) not launched. Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report

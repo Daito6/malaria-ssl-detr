@@ -1,0 +1,35 @@
+# Phase 4, step 5: main comparison of ViT-S/16 encoders in DETR (binary, 40 epochs, seed 42, 1 seed).
+# Recipe = step-4 winner b_vit_imagenet (full adaptation, stride 16, no layer decay = configs/detr/base.yaml
+# defaults); reports/phase4_recipe_summary.md. The b_vit_* configs differ from b_vit_imagenet ONLY in
+# model.vit.init (verified by diffing the resolved configs).
+# b_vit_imagenet reuses its step-4 run (same recipe; val already evaluated) -> only test + diagnose_shift here.
+# Each run: train -> evaluate val (picks thresholds) -> evaluate test (reuses val thresholds) -> diagnose_shift.
+# Test is the final evaluation only; nothing is tuned on it.
+#
+# Estimate (step-4 b_vit_imagenet: 66.8 min train wall-clock, val eval 1 min; test eval ~0.8 min, diagnose
+# ~0.1 min in earlier queues): ~69 min per new run x 4 + ~1 min -> ~4.6 h.
+# Run:  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase4_main.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+b_vit_imagenet | python scripts/evaluate.py runs/b_vit_imagenet --split test --bootstrap
+b_vit_imagenet | python scripts/diagnose_shift.py runs/b_vit_imagenet
+
+b_vit_joint    | python scripts/train_detr.py --config configs/experiments/b_vit_joint.yaml
+b_vit_joint    | python scripts/evaluate.py runs/b_vit_joint --split val --bootstrap
+b_vit_joint    | python scripts/evaluate.py runs/b_vit_joint --split test --bootstrap
+b_vit_joint    | python scripts/diagnose_shift.py runs/b_vit_joint
+
+b_vit_random   | python scripts/train_detr.py --config configs/experiments/b_vit_random.yaml
+b_vit_random   | python scripts/evaluate.py runs/b_vit_random --split val --bootstrap
+b_vit_random   | python scripts/evaluate.py runs/b_vit_random --split test --bootstrap
+b_vit_random   | python scripts/diagnose_shift.py runs/b_vit_random
+
+b_vit_mae      | python scripts/train_detr.py --config configs/experiments/b_vit_mae.yaml
+b_vit_mae      | python scripts/evaluate.py runs/b_vit_mae --split val --bootstrap
+b_vit_mae      | python scripts/evaluate.py runs/b_vit_mae --split test --bootstrap
+b_vit_mae      | python scripts/diagnose_shift.py runs/b_vit_mae
+
+b_vit_con      | python scripts/train_detr.py --config configs/experiments/b_vit_con.yaml
+b_vit_con      | python scripts/evaluate.py runs/b_vit_con --split val --bootstrap
+b_vit_con      | python scripts/evaluate.py runs/b_vit_con --split test --bootstrap
+b_vit_con      | python scripts/diagnose_shift.py runs/b_vit_con
