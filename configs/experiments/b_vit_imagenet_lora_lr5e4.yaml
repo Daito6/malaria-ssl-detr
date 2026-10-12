@@ -1,0 +1,8 @@
+# Phase 4 step 4 recipe candidate: b_vit_imagenet_lora with the transformer-group lr raised to 5e-4.
+# The transformer group holds the LoRA adapters plus the class/box heads and the queries (base transformer
+# weights are frozen). The input projection is pinned to its previous lr (1e-4; null would follow lr), so
+# everything else is identical to b_vit_imagenet_lora.
+base: configs/experiments/b_vit_imagenet_lora.yaml
+optim:
+  lr: 5.0e-4
+  lr_projection: 1.0e-4
