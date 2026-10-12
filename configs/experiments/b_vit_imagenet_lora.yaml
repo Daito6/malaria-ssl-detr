@@ -1,0 +1,5 @@
+# Phase 4 step 4 recipe candidate: b_vit_imagenet with LoRA on the DETR transformer (base weights frozen).
+# One factor changed vs b_vit_imagenet (adapt full -> lora); lrs unchanged (LoRA at the transformer lr 1e-4).
+base: configs/experiments/b_vit_imagenet.yaml
+model:
+  adapt: lora

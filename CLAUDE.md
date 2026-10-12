@@ -158,7 +158,9 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   `a_coco_detr_binary_stain`: test infected AP50 0.583 [0.500, 0.649] vs baseline 0.551 (CIs overlap).
 - Phase 4 (SSL ViT-S/16 backbone in DETR), plan approved: (1) `vit_detr` + CPU tests — done; (2) LoRA +
   own warmup for input_projection — done (`model.adapt: full|lora`, peft on encoder/decoder q/k/v/o_proj,
-  transformer base frozen; `optim.lr_projection`, `optim.warmup_steps_projection`); (3) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  transformer base frozen; `optim.lr_projection`, `optim.warmup_steps_projection`); (3) dry runs — done (gate passed, epoch ~92 s at
+  stride 16 vs 58 s R50, peak 8.2 GiB; `reports/phase4_summary.md`); `optim.layer_decay` added; step 4 queue
+  `configs/queues/phase4_recipe.txt` (VAL ONLY, ~4.6-5.4 h) not launched; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report

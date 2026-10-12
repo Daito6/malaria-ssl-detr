@@ -1,0 +1,5 @@
+# Phase 4 step 4 recipe candidate: b_vit_imagenet with layer-wise lr decay 0.75 on the ViT backbone.
+# One factor changed vs b_vit_imagenet (optim.layer_decay null -> 0.75).
+base: configs/experiments/b_vit_imagenet.yaml
+optim:
+  layer_decay: 0.75
