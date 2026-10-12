@@ -1,8 +1,11 @@
 """Paired bootstrap of probe-metric differences between encoders (val crops only, CPU, no encoder pass).
 
 Usage:
-    python scripts/paired_probe_diff.py --a ssl_joint --b ssl_con_only ssl_mae_only \
+    python scripts/paired_probe_diff.py --pairs ssl_joint:ssl_con_only ssl_joint:ssl_mae_only \
+        ssl_joint:ref_imagenet ssl_con_only:ref_imagenet ssl_mae_only:ref_imagenet \
         --out reports/tables/phase3_paired_diff
+
+Each pair A:B reports metric(A) - metric(B).
 
 Reads the saved probe features runs/probe/<tag>/features_{train,val,val_stain}.pt, refits the same kNN /
 linear classifiers as scripts/probe.py (hyperparameters from the probe config) and checks that the point
@@ -73,20 +76,22 @@ def reference_value(probe: dict, method: str, eval_set: str, frac: float, key: s
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--a", required=True)
-    ap.add_argument("--b", nargs="+", required=True)
+    ap.add_argument("--pairs", nargs="+", required=True, metavar="A:B")
     ap.add_argument("--config", default="configs/ssl/base.yaml")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
     pcfg = load_experiment(args.config)["probe"]
-    tags = [args.a, *args.b]
+    pairs = [tuple(x.split(":")) for x in args.pairs]
+    if any(len(pr) != 2 for pr in pairs):
+        raise SystemExit("pairs must be A:B")
+    tags = list(dict.fromkeys(t for pr in pairs for t in pr))
     probes = {t: json.loads((resolve_path("reports/tables") / f"probe_{t}.json").read_text(encoding="utf-8"))
               for t in tags}
-    names = probes[args.a]["classes"]
-    infected = np.array([n in probes[args.a]["infected"] for n in names])
+    names = probes[tags[0]]["classes"]
+    infected = np.array([n in probes[tags[0]]["infected"] for n in names])
     feats = {t: load_feats(t) for t in tags}
-    ref = feats[args.a]
+    ref = feats[tags[0]]
     for t in tags:   # identical crop sets (same order) are what makes the bootstrap paired
         assert probes[t]["classes"] == names
         for s in ("train", "val", "val_stain"):
@@ -109,15 +114,15 @@ def main() -> None:
     print(check.groupby("metric")["abs_dev"].max().to_string(float_format=lambda v: f"{v:.2e}"))
 
     rows, per_seed = [], {}
-    for b in args.b:
+    for a, b in pairs:
         for name, method, eval_set, frac, key in METRICS:
-            pa, pb = probs[args.a][(method, eval_set, frac)], probs[b][(method, eval_set, frac)]
+            pa, pb = probs[a][(method, eval_set, frac)], probs[b][(method, eval_set, frac)]
             r = paired_bootstrap_diff(y, pa, pb, image_ids, infected, names, key, pcfg["bootstrap"], pcfg["seed"])
-            rows.append({"a": args.a, "b": b, "metric": name, "value_a": r["a"], "value_b": r["b"],
+            rows.append({"a": a, "b": b, "metric": name, "value_a": r["a"], "value_b": r["b"],
                          "diff": r["diff"], "ci_low": r["ci95"]["low"], "ci_high": r["ci95"]["high"],
                          "frac_le_0": r["frac_le_0"], "excludes_0": bool(r["ci95"]["low"] > 0 or r["ci95"]["high"] < 0)})
             if len(pa) > 1:
-                per_seed[f"{args.a} - {b}: {name}"] = [
+                per_seed[f"{a} - {b}: {name}"] = [
                     compute_metrics(y, p, infected, names)[key] - compute_metrics(y, q, infected, names)[key]
                     for p, q in zip(pa, pb)]
     df = pd.DataFrame(rows)

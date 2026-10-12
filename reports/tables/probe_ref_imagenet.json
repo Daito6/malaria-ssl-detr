@@ -34,123 +34,123 @@
   "methods": {
     "knn": {
       "metrics": {
-        "auroc_infected": 0.9925854588351339,
-        "auprc_infected": 0.9709448670732281,
-        "balanced_acc_binary": 0.9619142512479756,
-        "balanced_acc": 0.6160583900226757,
-        "macro_f1": 0.6828289300448364,
-        "recall/red blood cell": 0.9905,
-        "recall/leukocyte": 0.42857142857142855,
-        "recall/gametocyte": 0.35,
+        "auroc_infected": 0.9946057130289317,
+        "auprc_infected": 0.9764078277315695,
+        "balanced_acc_binary": 0.9743440213805376,
+        "balanced_acc": 0.6765434507136187,
+        "macro_f1": 0.7207858945712333,
+        "recall/red blood cell": 0.9875,
+        "recall/leukocyte": 0.7142857142857143,
+        "recall/gametocyte": 0.4,
         "recall/ring": 0.5306122448979592,
-        "recall/trophozoite": 0.9166666666666666,
-        "recall/schizont": 0.48
+        "recall/trophozoite": 0.9068627450980392,
+        "recall/schizont": 0.52
       },
       "ci95": {
         "auroc_infected": {
-          "low": 0.9855671147080423,
-          "high": 0.9972722137216966
+          "low": 0.9888762011053744,
+          "high": 0.9980357895658089
         },
         "auprc_infected": {
-          "low": 0.9517079103290969,
-          "high": 0.9851714296923361
+          "low": 0.960631413525939,
+          "high": 0.9877441382238574
         },
         "balanced_acc_binary": {
-          "low": 0.9456154933603349,
-          "high": 0.9744273154576643
+          "low": 0.9609269126761252,
+          "high": 0.9845455360286434
         },
         "balanced_acc": {
-          "low": 0.5461447278002911,
-          "high": 0.6860337495181433
+          "low": 0.5987895664658461,
+          "high": 0.7473790601593701
         },
         "macro_f1": {
-          "low": 0.6024380728666323,
-          "high": 0.7459700804372207
+          "low": 0.6424318606930324,
+          "high": 0.7803407241196307
         },
         "recall/red blood cell": {
-          "low": 0.9857382923360836,
-          "high": 0.9944314987062033
+          "low": 0.9827048996634785,
+          "high": 0.9920319716653545
         },
         "recall/leukocyte": {
-          "low": 0.18181818181818182,
-          "high": 0.7272727272727273
+          "low": 0.46153846153846156,
+          "high": 0.9411764705882353
         },
         "recall/gametocyte": {
-          "low": 0.13636363636363635,
-          "high": 0.5625
+          "low": 0.17647058823529413,
+          "high": 0.6002173913043476
         },
         "recall/ring": {
-          "low": 0.3447595281306715,
-          "high": 0.6800212765957447
+          "low": 0.3402482269503546,
+          "high": 0.690944055944056
         },
         "recall/trophozoite": {
-          "low": 0.8630695812807883,
-          "high": 0.9536097400788123
+          "low": 0.8448249089740845,
+          "high": 0.9489627659574468
         },
         "recall/schizont": {
-          "low": 0.27772988505747126,
-          "high": 0.6818181818181818
+          "low": 0.32142857142857145,
+          "high": 0.7242163009404388
         }
       }
     },
     "linear": {
       "metrics": {
-        "auroc_infected": 0.9970158554547697,
-        "auprc_infected": 0.9810941915356379,
-        "balanced_acc_binary": 0.973735862386116,
-        "balanced_acc": 0.736142256902761,
-        "macro_f1": 0.6462268679633844,
-        "recall/red blood cell": 0.963,
-        "recall/leukocyte": 0.9285714285714286,
-        "recall/gametocyte": 0.55,
-        "recall/ring": 0.7346938775510204,
-        "recall/trophozoite": 0.7205882352941176,
-        "recall/schizont": 0.52
+        "auroc_infected": 0.997439067467326,
+        "auprc_infected": 0.9888511317087765,
+        "balanced_acc_binary": 0.9816202688562612,
+        "balanced_acc": 0.8179868280645591,
+        "macro_f1": 0.7175347116438369,
+        "recall/red blood cell": 0.9755,
+        "recall/leukocyte": 1.0,
+        "recall/gametocyte": 0.7,
+        "recall/ring": 0.8367346938775511,
+        "recall/trophozoite": 0.7156862745098039,
+        "recall/schizont": 0.68
       },
       "ci95": {
         "auroc_infected": {
-          "low": 0.9954601950244093,
-          "high": 0.998290376843178
+          "low": 0.9942049027675922,
+          "high": 0.9991322995670285
         },
         "auprc_infected": {
-          "low": 0.9717562103539837,
-          "high": 0.9891934799097303
+          "low": 0.9809104321748388,
+          "high": 0.9944990752541312
         },
         "balanced_acc_binary": {
-          "low": 0.9644252160026585,
-          "high": 0.9819165095466059
+          "low": 0.9736886478325117,
+          "high": 0.9875571229542891
         },
         "balanced_acc": {
-          "low": 0.6758939594485721,
-          "high": 0.7970342175340608
+          "low": 0.762739473353808,
+          "high": 0.8691339249632853
         },
         "macro_f1": {
-          "low": 0.5892492710339707,
-          "high": 0.6964217573839667
+          "low": 0.6647583327009188,
+          "high": 0.7640642614575262
         },
         "recall/red blood cell": {
-          "low": 0.9533342626776417,
-          "high": 0.9715829786828901
+          "low": 0.9679497527882237,
+          "high": 0.9818474725093402
         },
         "recall/leukocyte": {
-          "low": 0.7777777777777778,
+          "low": 1.0,
           "high": 1.0
         },
         "recall/gametocyte": {
-          "low": 0.33289473684210524,
-          "high": 0.7692307692307693
+          "low": 0.5,
+          "high": 0.8890350877192981
         },
         "recall/ring": {
-          "low": 0.5813604651162791,
-          "high": 0.8621081504702194
+          "low": 0.7057352941176471,
+          "high": 0.937531887755102
         },
         "recall/trophozoite": {
-          "low": 0.6502223752714029,
-          "high": 0.7880269670592251
+          "low": 0.6383854166666666,
+          "high": 0.7811358551730435
         },
         "recall/schizont": {
-          "low": 0.32,
-          "high": 0.7097926267281105
+          "low": 0.4782608695652174,
+          "high": 0.8572660098522166
         }
       }
     }
@@ -177,123 +177,123 @@
     "methods": {
       "knn": {
         "metrics": {
-          "auroc_infected": 0.9737325300080644,
-          "auprc_infected": 0.9050251655034437,
-          "balanced_acc_binary": 0.8714985037622549,
-          "balanced_acc": 0.47327551020408154,
-          "macro_f1": 0.5349048083413867,
-          "recall/red blood cell": 0.987,
-          "recall/leukocyte": 0.42857142857142855,
+          "auroc_infected": 0.9869803989523004,
+          "auprc_infected": 0.9575293895213638,
+          "balanced_acc_binary": 0.923571909385976,
+          "balanced_acc": 0.5540496531946112,
+          "macro_f1": 0.6056055860089756,
+          "recall/red blood cell": 0.9895,
+          "recall/leukocyte": 0.6428571428571429,
           "recall/gametocyte": 0.15,
-          "recall/ring": 0.20408163265306123,
-          "recall/trophozoite": 0.75,
-          "recall/schizont": 0.32
+          "recall/ring": 0.22448979591836735,
+          "recall/trophozoite": 0.8774509803921569,
+          "recall/schizont": 0.44
         },
         "ci95": {
           "auroc_infected": {
-            "low": 0.9629603938964734,
-            "high": 0.9829902740820964
+            "low": 0.9780215210515047,
+            "high": 0.9932302951202518
           },
           "auprc_infected": {
-            "low": 0.8744548766988025,
-            "high": 0.9321349354410124
+            "low": 0.9393605387633878,
+            "high": 0.9714606624965145
           },
           "balanced_acc_binary": {
-            "low": 0.8422525009858797,
-            "high": 0.8979697381456367
+            "low": 0.8980934294445186,
+            "high": 0.944892988755086
           },
           "balanced_acc": {
-            "low": 0.40960275488832953,
-            "high": 0.541229075046471
+            "low": 0.48910317997555497,
+            "high": 0.6218810020926405
           },
           "macro_f1": {
-            "low": 0.4550198865487001,
-            "high": 0.6015104830267818
+            "low": 0.5338384652356246,
+            "high": 0.6678627443960328
           },
           "recall/red blood cell": {
-            "low": 0.981620236057903,
-            "high": 0.9922729164189752
+            "low": 0.9852020188650412,
+            "high": 0.9936900066633194
           },
           "recall/leukocyte": {
-            "low": 0.18181818181818182,
-            "high": 0.7001470588235292
+            "low": 0.375,
+            "high": 0.9
           },
           "recall/gametocyte": {
             "low": 0.0,
-            "high": 0.3181818181818182
+            "high": 0.32
           },
           "recall/ring": {
-            "low": 0.09085858585858586,
-            "high": 0.31253063725490193
+            "low": 0.10204081632653061,
+            "high": 0.3584905660377358
           },
           "recall/trophozoite": {
-            "low": 0.6806039074363682,
-            "high": 0.8139633009518202
+            "low": 0.8200973606496862,
+            "high": 0.9217403449113433
           },
           "recall/schizont": {
-            "low": 0.14285714285714285,
-            "high": 0.5200434782608695
+            "low": 0.25,
+            "high": 0.6521739130434783
           }
         }
       },
       "linear": {
         "metrics": {
-          "auroc_infected": 0.9859007084635738,
-          "auprc_infected": 0.9425139465736541,
-          "balanced_acc_binary": 0.9354535033290456,
-          "balanced_acc": 0.6267564359076964,
-          "macro_f1": 0.5297397460681242,
-          "recall/red blood cell": 0.964,
-          "recall/leukocyte": 0.7857142857142857,
-          "recall/gametocyte": 0.35,
-          "recall/ring": 0.5510204081632653,
-          "recall/trophozoite": 0.5098039215686274,
-          "recall/schizont": 0.6
+          "auroc_infected": 0.9966576248142199,
+          "auprc_infected": 0.9849393944494238,
+          "balanced_acc_binary": 0.9750888078750758,
+          "balanced_acc": 0.7480575563558758,
+          "macro_f1": 0.6634771314666791,
+          "recall/red blood cell": 0.985,
+          "recall/leukocyte": 0.9285714285714286,
+          "recall/gametocyte": 0.5,
+          "recall/ring": 0.8367346938775511,
+          "recall/trophozoite": 0.5980392156862745,
+          "recall/schizont": 0.64
         },
         "ci95": {
           "auroc_infected": {
-            "low": 0.9791296208296575,
-            "high": 0.9917400819476463
+            "low": 0.9937415266257597,
+            "high": 0.9986106002572271
           },
           "auprc_infected": {
-            "low": 0.9207360664807853,
-            "high": 0.961352120940649
+            "low": 0.9752230339532864,
+            "high": 0.9917898499049658
           },
           "balanced_acc_binary": {
-            "low": 0.9176923627264139,
-            "high": 0.9533038786243268
+            "low": 0.9636714450891074,
+            "high": 0.9851414963451659
           },
           "balanced_acc": {
-            "low": 0.5528011998672374,
-            "high": 0.6954052566551844
+            "low": 0.6878589318655132,
+            "high": 0.8105956258097703
           },
           "macro_f1": {
-            "low": 0.47138937689612637,
-            "high": 0.5856212171490669
+            "low": 0.6059505441094973,
+            "high": 0.7172371171003211
           },
           "recall/red blood cell": {
-            "low": 0.9542240162097051,
-            "high": 0.9737111480135355
+            "low": 0.9800194805194805,
+            "high": 0.9896805898586519
           },
           "recall/leukocyte": {
-            "low": 0.5454545454545454,
+            "low": 0.75,
             "high": 1.0
           },
           "recall/gametocyte": {
-            "low": 0.1332608695652174,
-            "high": 0.5555555555555556
+            "low": 0.29411764705882354,
+            "high": 0.7334210526315789
           },
           "recall/ring": {
-            "low": 0.39580592105263157,
-            "high": 0.6888888888888889
+            "low": 0.724978448275862,
+            "high": 0.9298347613219095
           },
           "recall/trophozoite": {
-            "low": 0.42528017241379307,
-            "high": 0.5868597155069722
+            "low": 0.5193588681032442,
+            "high": 0.673469387755102
           },
           "recall/schizont": {
-            "low": 0.4,
-            "high": 0.8
+            "low": 0.43727678571428574,
+            "high": 0.8333333333333334
           }
         }
       }
@@ -305,68 +305,68 @@
         "per_seed": [
           {
             "n_train": 60,
-            "auroc_infected": 0.9819651699846044,
-            "auprc_infected": 0.914357437834553,
-            "balanced_acc_binary": 0.7836853435348534,
-            "balanced_acc": 0.27105882352941174,
-            "macro_f1": 0.2719286794928439,
+            "auroc_infected": 0.9829265610524983,
+            "auprc_infected": 0.9277027030959502,
+            "balanced_acc_binary": 0.8486250608158994,
+            "balanced_acc": 0.2947516339869281,
+            "macro_f1": 0.285770792003195,
             "recall/red blood cell": 0.994,
             "recall/leukocyte": 0.0,
             "recall/gametocyte": 0.0,
             "recall/ring": 0.0,
-            "recall/trophozoite": 0.6323529411764706,
+            "recall/trophozoite": 0.7745098039215687,
             "recall/schizont": 0.0
           },
           {
             "n_train": 60,
-            "auroc_infected": 0.9665295948494765,
-            "auprc_infected": 0.8853322439065664,
-            "balanced_acc_binary": 0.8871023639889899,
-            "balanced_acc": 0.31613175270108046,
-            "macro_f1": 0.2639644896188053,
-            "recall/red blood cell": 0.8805,
-            "recall/leukocyte": 0.0,
-            "recall/gametocyte": 0.0,
-            "recall/ring": 0.02040816326530612,
-            "recall/trophozoite": 0.9558823529411765,
-            "recall/schizont": 0.04
-          },
-          {
-            "n_train": 60,
-            "auroc_infected": 0.950520850689469,
-            "auprc_infected": 0.8502324976078318,
-            "balanced_acc_binary": 0.818611997893937,
-            "balanced_acc": 0.2869820261437908,
-            "macro_f1": 0.28011797095560675,
-            "recall/red blood cell": 0.9915,
+            "auroc_infected": 0.974109088727898,
+            "auprc_infected": 0.9062881607671427,
+            "balanced_acc_binary": 0.9053204747972248,
+            "balanced_acc": 0.31556209150326797,
+            "macro_f1": 0.2782334869146377,
+            "recall/red blood cell": 0.962,
             "recall/leukocyte": 0.0,
             "recall/gametocyte": 0.0,
             "recall/ring": 0.0,
-            "recall/trophozoite": 0.7303921568627451,
+            "recall/trophozoite": 0.9313725490196079,
             "recall/schizont": 0.0
           },
           {
             "n_train": 60,
-            "auroc_infected": 0.9619292469492079,
-            "auprc_infected": 0.8951081217561593,
-            "balanced_acc_binary": 0.8636657491519097,
-            "balanced_acc": 0.30478921568627454,
-            "macro_f1": 0.29004675282702186,
-            "recall/red blood cell": 0.9905,
+            "auroc_infected": 0.9646284731710243,
+            "auprc_infected": 0.895043771616153,
+            "balanced_acc_binary": 0.803879554527702,
+            "balanced_acc": 0.27981209150326797,
+            "macro_f1": 0.2794484913266955,
+            "recall/red blood cell": 0.9975,
             "recall/leukocyte": 0.0,
             "recall/gametocyte": 0.0,
             "recall/ring": 0.0,
-            "recall/trophozoite": 0.8382352941176471,
+            "recall/trophozoite": 0.6813725490196079,
             "recall/schizont": 0.0
           },
           {
             "n_train": 60,
-            "auroc_infected": 0.9656431822877442,
-            "auprc_infected": 0.8929179103894116,
-            "balanced_acc_binary": 0.8807008657518178,
-            "balanced_acc": 0.30859150326797385,
-            "macro_f1": 0.28428879622760567,
-            "recall/red blood cell": 0.979,
+            "auroc_infected": 0.9667395346667289,
+            "auprc_infected": 0.8984729485510706,
+            "balanced_acc_binary": 0.8074235385856054,
+            "balanced_acc": 0.2968970588235294,
+            "macro_f1": 0.3051751771475547,
+            "recall/red blood cell": 0.9955,
+            "recall/leukocyte": 0.0,
+            "recall/gametocyte": 0.0,
+            "recall/ring": 0.0,
+            "recall/trophozoite": 0.7058823529411765,
+            "recall/schizont": 0.08
+          },
+          {
+            "n_train": 60,
+            "auroc_infected": 0.974322360923202,
+            "auprc_infected": 0.9144453615293663,
+            "balanced_acc_binary": 0.886042667768573,
+            "balanced_acc": 0.3091748366013072,
+            "macro_f1": 0.28641770785386195,
+            "recall/red blood cell": 0.9825,
             "recall/leukocyte": 0.0,
             "recall/gametocyte": 0.0,
             "recall/ring": 0.0,
@@ -376,133 +376,133 @@
         ],
         "mean": {
           "n_train": 60.0,
-          "auroc_infected": 0.9653176089521004,
-          "auprc_infected": 0.8875896422989044,
-          "balanced_acc_binary": 0.8467532640643016,
-          "balanced_acc": 0.29751066426570627,
-          "macro_f1": 0.2780693378243767,
-          "recall/red blood cell": 0.9671,
+          "auroc_infected": 0.9725452037082704,
+          "auprc_infected": 0.9083905891119365,
+          "balanced_acc_binary": 0.8502582592990009,
+          "balanced_acc": 0.29923954248366014,
+          "macro_f1": 0.28700913104918896,
+          "recall/red blood cell": 0.9863,
           "recall/leukocyte": 0.0,
           "recall/gametocyte": 0.0,
-          "recall/ring": 0.004081632653061224,
-          "recall/trophozoite": 0.8058823529411765,
-          "recall/schizont": 0.008
+          "recall/ring": 0.0,
+          "recall/trophozoite": 0.7931372549019609,
+          "recall/schizont": 0.016
         },
         "std": {
           "n_train": 0.0,
-          "auroc_infected": 0.010090998447018626,
-          "auprc_infected": 0.020986114261593233,
-          "balanced_acc_binary": 0.03958791517239927,
-          "balanced_acc": 0.01632825365637489,
-          "macro_f1": 0.009197732963380618,
-          "recall/red blood cell": 0.043606650868875524,
+          "auroc_infected": 0.00647699034813288,
+          "auprc_infected": 0.011751896460262753,
+          "balanced_acc_binary": 0.040745150281311086,
+          "balanced_acc": 0.012395080311722165,
+          "macro_f1": 0.009654674503331363,
+          "recall/red blood cell": 0.013223463993976793,
           "recall/leukocyte": 0.0,
           "recall/gametocyte": 0.0,
-          "recall/ring": 0.008163265306122448,
-          "recall/trophozoite": 0.11296228016340455,
-          "recall/schizont": 0.016
+          "recall/ring": 0.0,
+          "recall/trophozoite": 0.09577784111231225,
+          "recall/schizont": 0.032
         }
       },
       "linear": {
         "per_seed": [
           {
             "n_train": 60,
-            "auroc_infected": 0.9844644535233233,
-            "auprc_infected": 0.9270581485724362,
-            "balanced_acc_binary": 0.8885252894170338,
-            "balanced_acc": 0.42776337201547293,
-            "macro_f1": 0.463451734112446,
-            "recall/red blood cell": 0.986,
+            "auroc_infected": 0.9896562985277554,
+            "auprc_infected": 0.9443894731436615,
+            "balanced_acc_binary": 0.8959215025026159,
+            "balanced_acc": 0.4094134320394825,
+            "macro_f1": 0.46021529009069734,
+            "recall/red blood cell": 0.985,
             "recall/leukocyte": 0.14285714285714285,
-            "recall/gametocyte": 0.1,
-            "recall/ring": 0.3469387755102041,
-            "recall/trophozoite": 0.7107843137254902,
-            "recall/schizont": 0.28
+            "recall/gametocyte": 0.15,
+            "recall/ring": 0.24489795918367346,
+            "recall/trophozoite": 0.8137254901960784,
+            "recall/schizont": 0.12
           },
           {
             "n_train": 60,
-            "auroc_infected": 0.978296221749765,
-            "auprc_infected": 0.8935932210507367,
-            "balanced_acc_binary": 0.9169704684657065,
-            "balanced_acc": 0.3942580365479525,
-            "macro_f1": 0.3773711377117501,
-            "recall/red blood cell": 0.915,
-            "recall/leukocyte": 0.14285714285714285,
-            "recall/gametocyte": 0.0,
-            "recall/ring": 0.30612244897959184,
-            "recall/trophozoite": 0.9215686274509803,
-            "recall/schizont": 0.08
-          },
-          {
-            "n_train": 60,
-            "auroc_infected": 0.9703801576881294,
-            "auprc_infected": 0.9032830255305194,
-            "balanced_acc_binary": 0.9044390608025699,
-            "balanced_acc": 0.3759024943310658,
-            "macro_f1": 0.37161471246846683,
-            "recall/red blood cell": 0.978,
+            "auroc_infected": 0.9815736155635385,
+            "auprc_infected": 0.9110381717042098,
+            "balanced_acc_binary": 0.9323110708263631,
+            "balanced_acc": 0.3524755902360945,
+            "macro_f1": 0.3223030323988072,
+            "recall/red blood cell": 0.931,
             "recall/leukocyte": 0.0,
-            "recall/gametocyte": 0.0,
-            "recall/ring": 0.20408163265306123,
-            "recall/trophozoite": 0.8333333333333334,
-            "recall/schizont": 0.24
+            "recall/gametocyte": 0.05,
+            "recall/ring": 0.16326530612244897,
+            "recall/trophozoite": 0.9705882352941176,
+            "recall/schizont": 0.0
           },
           {
             "n_train": 60,
-            "auroc_infected": 0.9840095839192765,
-            "auprc_infected": 0.9274688034083847,
-            "balanced_acc_binary": 0.8999620108902116,
-            "balanced_acc": 0.37350113378684807,
-            "macro_f1": 0.39445846745934504,
-            "recall/red blood cell": 0.984,
+            "auroc_infected": 0.9734309497943923,
+            "auprc_infected": 0.9230406430857154,
+            "balanced_acc_binary": 0.9248898649053938,
+            "balanced_acc": 0.3623188942243565,
+            "macro_f1": 0.3566682784962014,
+            "recall/red blood cell": 0.9705,
+            "recall/leukocyte": 0.0,
+            "recall/gametocyte": 0.05,
+            "recall/ring": 0.10204081632653061,
+            "recall/trophozoite": 0.9313725490196079,
+            "recall/schizont": 0.12
+          },
+          {
+            "n_train": 60,
+            "auroc_infected": 0.9838679578520824,
+            "auprc_infected": 0.9323890827229624,
+            "balanced_acc_binary": 0.9104656665089341,
+            "balanced_acc": 0.42648712818460716,
+            "macro_f1": 0.4174444327951352,
+            "recall/red blood cell": 0.982,
             "recall/leukocyte": 0.14285714285714285,
             "recall/gametocyte": 0.0,
-            "recall/ring": 0.04081632653061224,
-            "recall/trophozoite": 0.8333333333333334,
-            "recall/schizont": 0.24
+            "recall/ring": 0.1836734693877551,
+            "recall/trophozoite": 0.7303921568627451,
+            "recall/schizont": 0.52
           },
           {
             "n_train": 60,
-            "auroc_infected": 0.9820734722712823,
-            "auprc_infected": 0.9173362660906355,
-            "balanced_acc_binary": 0.8944319295135394,
-            "balanced_acc": 0.36930692276910765,
-            "macro_f1": 0.3953267831508906,
-            "recall/red blood cell": 0.982,
+            "auroc_infected": 0.9837329965409916,
+            "auprc_infected": 0.9278552900348519,
+            "balanced_acc_binary": 0.9147544370613757,
+            "balanced_acc": 0.4501261504601841,
+            "macro_f1": 0.4610847528173254,
+            "recall/red blood cell": 0.9785,
             "recall/leukocyte": 0.21428571428571427,
-            "recall/gametocyte": 0.05,
-            "recall/ring": 0.1836734693877551,
-            "recall/trophozoite": 0.7058823529411765,
-            "recall/schizont": 0.08
+            "recall/gametocyte": 0.1,
+            "recall/ring": 0.16326530612244897,
+            "recall/trophozoite": 0.7647058823529411,
+            "recall/schizont": 0.48
           }
         ],
         "mean": {
           "n_train": 60.0,
-          "auroc_infected": 0.9798447778303553,
-          "auprc_infected": 0.9137478929305425,
-          "balanced_acc_binary": 0.9008657518178123,
-          "balanced_acc": 0.3881463918900894,
-          "macro_f1": 0.40044456698057973,
-          "recall/red blood cell": 0.969,
-          "recall/leukocyte": 0.12857142857142856,
-          "recall/gametocyte": 0.030000000000000006,
-          "recall/ring": 0.2163265306122449,
-          "recall/trophozoite": 0.8009803921568628,
-          "recall/schizont": 0.184
+          "auroc_infected": 0.9824523636557521,
+          "auprc_infected": 0.9277425321382802,
+          "balanced_acc_binary": 0.9156685083609364,
+          "balanced_acc": 0.40016423902894493,
+          "macro_f1": 0.4035431573196333,
+          "recall/red blood cell": 0.9694,
+          "recall/leukocyte": 0.1,
+          "recall/gametocyte": 0.06999999999999999,
+          "recall/ring": 0.17142857142857143,
+          "recall/trophozoite": 0.842156862745098,
+          "recall/schizont": 0.248
         },
         "std": {
           "n_train": 0.0,
-          "auroc_infected": 0.005208284795379299,
-          "auprc_infected": 0.013371813338603692,
-          "balanced_acc_binary": 0.009660520325341877,
-          "balanced_acc": 0.02156932786985197,
-          "macro_f1": 0.032849571863882064,
-          "recall/red blood cell": 0.027129319932501055,
-          "recall/leukocyte": 0.06998542122237651,
-          "recall/gametocyte": 0.04,
-          "recall/ring": 0.10690449676496976,
-          "recall/trophozoite": 0.08223614500200299,
-          "recall/schizont": 0.08616263691415206
+          "auroc_infected": 0.005247832150955479,
+          "auprc_infected": 0.010953238878887486,
+          "balanced_acc_binary": 0.012488856088383817,
+          "balanced_acc": 0.03736605948123637,
+          "macro_f1": 0.05570138861276221,
+          "recall/red blood cell": 0.01980252509151293,
+          "recall/leukocyte": 0.08571428571428572,
+          "recall/gametocyte": 0.05099019513592785,
+          "recall/ring": 0.045816212899272755,
+          "recall/trophozoite": 0.09354400346569854,
+          "recall/schizont": 0.21075103795711184
         }
       }
     },
@@ -511,204 +511,204 @@
         "per_seed": [
           {
             "n_train": 593,
-            "auroc_infected": 0.9797358090680671,
-            "auprc_infected": 0.9407344896133535,
-            "balanced_acc_binary": 0.9328342541804683,
-            "balanced_acc": 0.40392100173402695,
-            "macro_f1": 0.42127143515213566,
-            "recall/red blood cell": 0.9885,
+            "auroc_infected": 0.9814578154262444,
+            "auprc_infected": 0.9341246605991846,
+            "balanced_acc_binary": 0.9327142885706097,
+            "balanced_acc": 0.38403287981859413,
+            "macro_f1": 0.39249711417753425,
+            "recall/red blood cell": 0.981,
             "recall/leukocyte": 0.0,
             "recall/gametocyte": 0.0,
-            "recall/ring": 0.40816326530612246,
-            "recall/trophozoite": 0.9068627450980392,
-            "recall/schizont": 0.12
+            "recall/ring": 0.32653061224489793,
+            "recall/trophozoite": 0.9166666666666666,
+            "recall/schizont": 0.08
           },
           {
             "n_train": 593,
-            "auroc_infected": 0.9816919149843711,
-            "auprc_infected": 0.9311615096309246,
-            "balanced_acc_binary": 0.9212175842925028,
-            "balanced_acc": 0.4145483193277311,
-            "macro_f1": 0.4354068357966441,
-            "recall/red blood cell": 0.9825,
-            "recall/leukocyte": 0.07142857142857142,
-            "recall/gametocyte": 0.0,
-            "recall/ring": 0.2857142857142857,
-            "recall/trophozoite": 0.8676470588235294,
-            "recall/schizont": 0.28
-          },
-          {
-            "n_train": 593,
-            "auroc_infected": 0.9847527042247889,
-            "auprc_infected": 0.9477389464143632,
-            "balanced_acc_binary": 0.9269276140839626,
-            "balanced_acc": 0.44307176203814863,
-            "macro_f1": 0.492892390402055,
-            "recall/red blood cell": 0.992,
+            "auroc_infected": 0.9874202728551149,
+            "auprc_infected": 0.9510581426344409,
+            "balanced_acc_binary": 0.9305399118919244,
+            "balanced_acc": 0.4240496531946112,
+            "macro_f1": 0.45023075124254164,
+            "recall/red blood cell": 0.9795,
             "recall/leukocyte": 0.14285714285714285,
-            "recall/gametocyte": 0.1,
-            "recall/ring": 0.30612244897959184,
+            "recall/gametocyte": 0.0,
+            "recall/ring": 0.22448979591836735,
             "recall/trophozoite": 0.8774509803921569,
+            "recall/schizont": 0.32
+          },
+          {
+            "n_train": 593,
+            "auroc_infected": 0.9867937857814093,
+            "auprc_infected": 0.9525354008326311,
+            "balanced_acc_binary": 0.931156401831475,
+            "balanced_acc": 0.428923069227691,
+            "macro_f1": 0.46474230060009125,
+            "recall/red blood cell": 0.9875,
+            "recall/leukocyte": 0.14285714285714285,
+            "recall/gametocyte": 0.0,
+            "recall/ring": 0.30612244897959184,
+            "recall/trophozoite": 0.8970588235294118,
             "recall/schizont": 0.24
           },
           {
             "n_train": 593,
-            "auroc_infected": 0.9818518691308492,
-            "auprc_infected": 0.9408491922700885,
-            "balanced_acc_binary": 0.9108338942836387,
-            "balanced_acc": 0.42945041349873286,
-            "macro_f1": 0.47225232447752385,
-            "recall/red blood cell": 0.9905,
+            "auroc_infected": 0.9862939290736655,
+            "auprc_infected": 0.9438661830729325,
+            "balanced_acc_binary": 0.9165522550202276,
+            "balanced_acc": 0.40451060424169666,
+            "macro_f1": 0.42623337887639945,
+            "recall/red blood cell": 0.988,
             "recall/leukocyte": 0.14285714285714285,
-            "recall/gametocyte": 0.05,
-            "recall/ring": 0.2653061224489796,
-            "recall/trophozoite": 0.8480392156862745,
+            "recall/gametocyte": 0.0,
+            "recall/ring": 0.16326530612244897,
+            "recall/trophozoite": 0.8529411764705882,
             "recall/schizont": 0.28
           },
           {
             "n_train": 593,
-            "auroc_infected": 0.9839029478216245,
-            "auprc_infected": 0.9451345988942012,
-            "balanced_acc_binary": 0.9105856321187926,
-            "balanced_acc": 0.4291010404161664,
-            "macro_f1": 0.4672757596699984,
-            "recall/red blood cell": 0.989,
+            "auroc_infected": 0.9895305012563065,
+            "auprc_infected": 0.953987288729371,
+            "balanced_acc_binary": 0.9253780582899569,
+            "balanced_acc": 0.4205452180872349,
+            "macro_f1": 0.43941528529466667,
+            "recall/red blood cell": 0.985,
             "recall/leukocyte": 0.21428571428571427,
             "recall/gametocyte": 0.0,
-            "recall/ring": 0.1836734693877551,
-            "recall/trophozoite": 0.8676470588235294,
-            "recall/schizont": 0.32
+            "recall/ring": 0.08163265306122448,
+            "recall/trophozoite": 0.8823529411764706,
+            "recall/schizont": 0.36
           }
         ],
         "mean": {
           "n_train": 593.0,
-          "auroc_infected": 0.9823870490459402,
-          "auprc_infected": 0.9411237473645861,
-          "balanced_acc_binary": 0.9204797957918729,
-          "balanced_acc": 0.4240185074029612,
-          "macro_f1": 0.4578197490996714,
-          "recall/red blood cell": 0.9884999999999999,
-          "recall/leukocyte": 0.11428571428571428,
-          "recall/gametocyte": 0.030000000000000006,
-          "recall/ring": 0.28979591836734697,
-          "recall/trophozoite": 0.8735294117647058,
-          "recall/schizont": 0.248
+          "auroc_infected": 0.9862992608785481,
+          "auprc_infected": 0.9471143351737119,
+          "balanced_acc_binary": 0.9272681831208388,
+          "balanced_acc": 0.41241228491396564,
+          "macro_f1": 0.43462376603824665,
+          "recall/red blood cell": 0.9842000000000001,
+          "recall/leukocyte": 0.12857142857142856,
+          "recall/gametocyte": 0.0,
+          "recall/ring": 0.22040816326530616,
+          "recall/trophozoite": 0.8852941176470587,
+          "recall/schizont": 0.256
         },
         "std": {
           "n_train": 0.0,
-          "auroc_infected": 0.001771608074528755,
-          "auprc_infected": 0.005644836068825834,
-          "balanced_acc_binary": 0.008782815327345322,
-          "balanced_acc": 0.013505246788933315,
-          "macro_f1": 0.025945803017081003,
-          "recall/red blood cell": 0.003240370349203919,
-          "recall/leukocyte": 0.07284313590846835,
-          "recall/gametocyte": 0.04,
-          "recall/ring": 0.07232671488436469,
-          "recall/trophozoite": 0.019211684257122965,
-          "recall/schizont": 0.06881860213634101
+          "auroc_infected": 0.0026601413348086357,
+          "auprc_infected": 0.007368326789248419,
+          "balanced_acc_binary": 0.005897223166831979,
+          "balanced_acc": 0.016382955363232275,
+          "macro_f1": 0.024571187036136893,
+          "recall/red blood cell": 0.003414674215792773,
+          "recall/leukocyte": 0.06998542122237651,
+          "recall/gametocyte": 0.0,
+          "recall/ring": 0.09071881947303212,
+          "recall/trophozoite": 0.021163757985218537,
+          "recall/schizont": 0.09666436778875657
         }
       },
       "linear": {
         "per_seed": [
           {
             "n_train": 593,
-            "auroc_infected": 0.993865092006958,
-            "auprc_infected": 0.9774402190204996,
-            "balanced_acc_binary": 0.9588751224648934,
-            "balanced_acc": 0.7008498399359743,
-            "macro_f1": 0.6630751994526456,
-            "recall/red blood cell": 0.9775,
-            "recall/leukocyte": 0.7857142857142857,
-            "recall/gametocyte": 0.5,
-            "recall/ring": 0.6530612244897959,
-            "recall/trophozoite": 0.8088235294117647,
-            "recall/schizont": 0.48
-          },
-          {
-            "n_train": 593,
-            "auroc_infected": 0.996977533107176,
-            "auprc_infected": 0.982079140255143,
-            "balanced_acc_binary": 0.9708000373226342,
-            "balanced_acc": 0.6703476057089502,
-            "macro_f1": 0.6483932688065085,
-            "recall/red blood cell": 0.988,
-            "recall/leukocyte": 0.7857142857142857,
-            "recall/gametocyte": 0.5,
-            "recall/ring": 0.673469387755102,
-            "recall/trophozoite": 0.7549019607843137,
-            "recall/schizont": 0.32
-          },
-          {
-            "n_train": 593,
-            "auroc_infected": 0.9947048512759675,
-            "auprc_infected": 0.9798777560333504,
-            "balanced_acc_binary": 0.9752770872349927,
-            "balanced_acc": 0.6791147125516873,
-            "macro_f1": 0.6790392406102314,
-            "recall/red blood cell": 0.984,
-            "recall/leukocyte": 0.7857142857142857,
-            "recall/gametocyte": 0.55,
-            "recall/ring": 0.5918367346938775,
-            "recall/trophozoite": 0.8431372549019608,
-            "recall/schizont": 0.32
-          },
-          {
-            "n_train": 593,
-            "auroc_infected": 0.9961261105149857,
-            "auprc_infected": 0.9781353282654649,
-            "balanced_acc_binary": 0.9660830561905587,
-            "balanced_acc": 0.6577725090036014,
-            "macro_f1": 0.6453580778099308,
+            "auroc_infected": 0.9931119745672907,
+            "auprc_infected": 0.969968564709156,
+            "balanced_acc_binary": 0.9646534660064114,
+            "balanced_acc": 0.7566834066960118,
+            "macro_f1": 0.7350320812244288,
             "recall/red blood cell": 0.979,
-            "recall/leukocyte": 0.6428571428571429,
-            "recall/gametocyte": 0.4,
-            "recall/ring": 0.5918367346938775,
-            "recall/trophozoite": 0.8529411764705882,
+            "recall/leukocyte": 1.0,
+            "recall/gametocyte": 0.5,
+            "recall/ring": 0.6530612244897959,
+            "recall/trophozoite": 0.8480392156862745,
+            "recall/schizont": 0.56
+          },
+          {
+            "n_train": 593,
+            "auroc_infected": 0.9968442379851109,
+            "auprc_infected": 0.9786185228738112,
+            "balanced_acc_binary": 0.9713648754023847,
+            "balanced_acc": 0.7827185874349739,
+            "macro_f1": 0.7183956560866812,
+            "recall/red blood cell": 0.9775,
+            "recall/leukocyte": 1.0,
+            "recall/gametocyte": 0.55,
+            "recall/ring": 0.7346938775510204,
+            "recall/trophozoite": 0.7941176470588235,
+            "recall/schizont": 0.64
+          },
+          {
+            "n_train": 593,
+            "auroc_infected": 0.9970258525889245,
+            "auprc_infected": 0.9781266554558389,
+            "balanced_acc_binary": 0.9793175956225881,
+            "balanced_acc": 0.7382612711751367,
+            "macro_f1": 0.7216846047384619,
+            "recall/red blood cell": 0.9805,
+            "recall/leukocyte": 0.9285714285714286,
+            "recall/gametocyte": 0.55,
+            "recall/ring": 0.6326530612244898,
+            "recall/trophozoite": 0.8578431372549019,
             "recall/schizont": 0.48
           },
           {
             "n_train": 593,
-            "auroc_infected": 0.9942733083182821,
-            "auprc_infected": 0.9704920545378156,
-            "balanced_acc_binary": 0.9599964676792653,
-            "balanced_acc": 0.6910921368547419,
-            "macro_f1": 0.6554079846883919,
-            "recall/red blood cell": 0.9745,
-            "recall/leukocyte": 0.7142857142857143,
-            "recall/gametocyte": 0.6,
-            "recall/ring": 0.6530612244897959,
-            "recall/trophozoite": 0.7647058823529411,
-            "recall/schizont": 0.44
+            "auroc_infected": 0.996141106216218,
+            "auprc_infected": 0.9739465012224946,
+            "balanced_acc_binary": 0.9719896962870644,
+            "balanced_acc": 0.6790158396692011,
+            "macro_f1": 0.6639319321617092,
+            "recall/red blood cell": 0.9765,
+            "recall/leukocyte": 0.5714285714285714,
+            "recall/gametocyte": 0.55,
+            "recall/ring": 0.6122448979591837,
+            "recall/trophozoite": 0.803921568627451,
+            "recall/schizont": 0.56
+          },
+          {
+            "n_train": 593,
+            "auroc_infected": 0.9949447824956845,
+            "auprc_infected": 0.9750472353856423,
+            "balanced_acc_binary": 0.9579420566104384,
+            "balanced_acc": 0.7535141389889288,
+            "macro_f1": 0.7107558083719074,
+            "recall/red blood cell": 0.979,
+            "recall/leukocyte": 0.8571428571428571,
+            "recall/gametocyte": 0.65,
+            "recall/ring": 0.5510204081632653,
+            "recall/trophozoite": 0.803921568627451,
+            "recall/schizont": 0.68
           }
         ],
         "mean": {
           "n_train": 593.0,
-          "auroc_infected": 0.9951893790446737,
-          "auprc_infected": 0.9776048996224548,
-          "balanced_acc_binary": 0.9662063541784688,
-          "balanced_acc": 0.679835360810991,
-          "macro_f1": 0.6582547542735416,
-          "recall/red blood cell": 0.9806000000000001,
-          "recall/leukocyte": 0.7428571428571429,
-          "recall/gametocyte": 0.51,
-          "recall/ring": 0.6326530612244897,
-          "recall/trophozoite": 0.8049019607843138,
-          "recall/schizont": 0.40800000000000003
+          "auroc_infected": 0.9956135907706457,
+          "auprc_infected": 0.9751414959293887,
+          "balanced_acc_binary": 0.9690535379857774,
+          "balanced_acc": 0.7420386487928504,
+          "macro_f1": 0.7099600165166376,
+          "recall/red blood cell": 0.9785,
+          "recall/leukocyte": 0.8714285714285713,
+          "recall/gametocyte": 0.56,
+          "recall/ring": 0.636734693877551,
+          "recall/trophozoite": 0.8215686274509804,
+          "recall/schizont": 0.5840000000000001
         },
         "std": {
           "n_train": 0.0,
-          "auroc_infected": 0.001174959547505947,
-          "auprc_infected": 0.0039009164294511265,
-          "balanced_acc_binary": 0.0062562764353351966,
-          "balanced_acc": 0.015136905895580473,
-          "macro_f1": 0.012057436050000685,
-          "recall/red blood cell": 0.00481040538832226,
-          "recall/leukocyte": 0.05714285714285711,
-          "recall/gametocyte": 0.066332495807108,
-          "recall/ring": 0.034149388838125516,
-          "recall/trophozoite": 0.03975124496610451,
-          "recall/schizont": 0.07332121111929343
+          "auroc_infected": 0.0014486294690293432,
+          "auprc_infected": 0.0031367820638184786,
+          "balanced_acc_binary": 0.00724071594766022,
+          "balanced_acc": 0.03460391962975342,
+          "macro_f1": 0.024316464573206405,
+          "recall/red blood cell": 0.0013784048752090152,
+          "recall/leukocyte": 0.1590789817951435,
+          "recall/gametocyte": 0.048989794855663564,
+          "recall/ring": 0.059709138115623665,
+          "recall/trophozoite": 0.0260496671678165,
+          "recall/schizont": 0.06974238309665079
         }
       }
     }
@@ -716,7 +716,17 @@
   "tag": "ref_imagenet",
   "source": {
     "ref": "imagenet",
-    "timm": "vit_small_patch16_224.augreg_in21k_ft_in1k"
+    "timm": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+    "input_mean": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "input_std": [
+      0.5,
+      0.5,
+      0.5
+    ]
   },
   "probe_config": {
     "long_side": 800,
@@ -771,7 +781,7 @@
     }
   },
   "time_s": {
-    "features": 20.2,
-    "total": 37.8
+    "features": 21.7,
+    "total": 51.5
   }
 }

@@ -129,3 +129,28 @@ def test_paired_bootstrap_diff():
     a = [compute_metrics(y[i], good[i], infected, names)["auprc_infected"] for i in image_resamples(img, 100, 0)]
     ci = bootstrap_metrics(y, good, img, infected, names, 100, 0)["auprc_infected"]
     assert ci["low"] == pytest.approx(np.percentile(a, 2.5)) and ci["high"] == pytest.approx(np.percentile(a, 97.5))
+
+
+def test_extract_features_input_norm():
+    from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD
+    from malaria_ssl.ssl.models import build_encoder
+    from malaria_ssl.ssl.probe import extract_features
+
+    torch.manual_seed(0)
+    enc = build_encoder("vit_small_patch16_224")
+    rng = np.random.default_rng(0)
+    cache = rng.integers(0, 256, size=(1, 240, 320, 3), dtype=np.uint8)
+    crops = {"label": np.array([0, 1]), "row": np.array([0, 0]), "image_id": np.array([7, 7]),
+             "box": np.array([[20.0, 20.0, 60.0, 50.0], [150.0, 100.0, 190.0, 140.0]])}
+    pcfg = {"window": 224, "long_side": 320, "batch_size": 8}
+    dev = torch.device("cpu")
+    base = extract_features(enc, cache, crops, pcfg, dev, None)
+    same = extract_features(enc, cache, crops, pcfg, dev, None, input_norm=(IMAGENET_MEAN, IMAGENET_STD))
+    assert torch.allclose(base, same, atol=1e-5)
+    seen = []
+    h = enc.patch_embed.register_forward_pre_hook(lambda m, a: seen.append(a[0]))
+    other = extract_features(enc, cache, crops, pcfg, dev, None, input_norm=((0.5,) * 3, (0.5,) * 3))
+    h.remove()
+    assert not torch.allclose(base, other, atol=1e-3)
+    x = seen[0]                                   # what the encoder saw: (raw/255 - 0.5) / 0.5 in [-1, 1]
+    assert x.min() >= -1 - 1e-5 and x.max() <= 1 + 1e-5 and x.min() < -0.9 and x.max() > 0.9
