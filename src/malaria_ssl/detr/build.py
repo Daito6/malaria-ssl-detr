@@ -14,8 +14,12 @@ from dataclasses import dataclass
 from typing import Any
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 from transformers import DetrConfig, DetrForObjectDetection
+
+from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD
+from malaria_ssl.utils.config import resolve_path
 
 log = logging.getLogger(__name__)
 
@@ -110,6 +114,74 @@ def load_imagenet_backbone(hf_model: DetrForObjectDetection, timm_name: str) -> 
     log.info("loaded %d ImageNet backbone tensors from timm %s", len(shared), timm_name)
 
 
+class ViTBackbone(nn.Module):
+    """timm ViT as the DETR backbone, with the interface of HF `DetrConvEncoder`:
+    forward(pixel_values, pixel_mask) -> [(feature_map (B, C, h, w), mask (B, h, w) bool)].
+
+    - Input normalization: DETR images are normalized with ImageNet mean/std; they are re-mapped
+      exactly (per-channel affine) to the mean/std the encoder was trained with.
+    - The ViT needs H, W divisible by the patch size, so images are zero-padded at the bottom/right
+      (to a multiple of `stride`) and the padding is masked like DETR batch padding. The ViT itself
+      does not use the mask (global attention also sees padding); DETR's transformer does.
+    - Feature map: final-normed patch tokens (prefix tokens dropped), stride = patch size (16).
+      stride 32: 2x2 space-to-depth (C -> 4C), so a 1x1 input projection on top equals a learned
+      2x2 / stride-2 convolution, while the mask and DETR's position embedding stay consistent.
+    """
+
+    def __init__(self, encoder: nn.Module, enc_mean, enc_std, stride: int = 16):
+        super().__init__()
+        self.encoder = encoder
+        self.patch = encoder.patch_embed.patch_size[0]
+        if stride not in (self.patch, 2 * self.patch):
+            raise ValueError(f"stride must be {self.patch} or {2 * self.patch}, got {stride}")
+        self.stride = stride
+        in_mean, in_std = torch.as_tensor(IMAGENET_MEAN), torch.as_tensor(IMAGENET_STD)
+        enc_mean, enc_std = torch.as_tensor(enc_mean, dtype=torch.float32), torch.as_tensor(enc_std, dtype=torch.float32)
+        # x_enc = (x * in_std + in_mean - enc_mean) / enc_std
+        self.register_buffer("scale", (in_std / enc_std).view(1, 3, 1, 1), persistent=False)
+        self.register_buffer("shift", ((in_mean - enc_mean) / enc_std).view(1, 3, 1, 1), persistent=False)
+
+    @property
+    def num_channels(self) -> int:
+        return self.encoder.embed_dim * (self.stride // self.patch) ** 2
+
+    def forward(self, pixel_values: torch.Tensor, pixel_mask: torch.Tensor) -> list[tuple[torch.Tensor, torch.Tensor]]:
+        x = pixel_values * self.scale + self.shift
+        h, w = x.shape[-2:]
+        ph, pw = (-h) % self.stride, (-w) % self.stride
+        x = F.pad(x, (0, pw, 0, ph))
+        mask = F.pad(pixel_mask, (0, pw, 0, ph))
+        gh, gw = x.shape[-2] // self.patch, x.shape[-1] // self.patch
+        tokens = self.encoder.forward_features(x)[:, self.encoder.num_prefix_tokens:]
+        fmap = tokens.transpose(1, 2).reshape(x.shape[0], -1, gh, gw)
+        if self.stride != self.patch:
+            fmap = F.pixel_unshuffle(fmap, self.stride // self.patch)
+        mask = F.interpolate(mask[None].float(), size=fmap.shape[-2:]).to(torch.bool)[0]  # as DetrConvEncoder
+        return [(fmap, mask)]
+
+
+def build_vit_backbone(vit_cfg: dict[str, Any]) -> ViTBackbone:
+    """`vit_cfg.init`: random | imagenet | path to a timm state dict (e.g. an SSL encoder_final.pt)."""
+    import timm
+
+    from malaria_ssl.ssl.models import build_encoder
+
+    init, dpr = vit_cfg["init"], vit_cfg.get("drop_path_rate", 0.0)
+    mean, std = IMAGENET_MEAN, IMAGENET_STD  # random init and our SSL encoders use the DETR normalization
+    if init == "random":
+        enc = build_encoder(vit_cfg["arch"], drop_path_rate=dpr)
+    elif init == "imagenet":
+        enc = build_encoder(vit_cfg["imagenet"], drop_path_rate=dpr, pretrained=True)
+        pc = timm.models.get_pretrained_cfg(vit_cfg["imagenet"])
+        mean, std = pc.mean, pc.std
+    else:
+        enc = build_encoder(vit_cfg["arch"], drop_path_rate=dpr)
+        enc.load_state_dict(torch.load(resolve_path(init), map_location="cpu", weights_only=True), strict=True)
+    log.info("ViT backbone %s (init %s), input mean %s std %s, stride %d",
+             vit_cfg["arch"], init, tuple(float(v) for v in mean), tuple(float(v) for v in std), vit_cfg["stride"])
+    return ViTBackbone(enc, mean, std, vit_cfg["stride"])
+
+
 def _set_head(hf_model: DetrForObjectDetection, class_names: list[str]) -> None:
     k = len(class_names)
     hf_model.class_labels_classifier = nn.Linear(hf_model.config.d_model, k + 1)  # +1 = no-object
@@ -118,20 +190,37 @@ def _set_head(hf_model: DetrForObjectDetection, class_names: list[str]) -> None:
     hf_model.config.label2id = {n: i for i, n in enumerate(class_names)}
 
 
+def _coco_detr(model_cfg: dict[str, Any], class_names: list[str], gen: torch.Generator) -> DetrForObjectDetection:
+    """COCO-pretrained DETR with a new class head and the query table expanded to num_queries."""
+    hf = DetrForObjectDetection.from_pretrained(model_cfg["pretrained"])
+    hf.config.auxiliary_loss = False  # see module docstring
+    _set_head(hf, class_names)
+    old = hf.model.query_position_embeddings.weight.data
+    emb = nn.Embedding(model_cfg["num_queries"], old.shape[1])
+    emb.weight.data.copy_(expand_queries(old, model_cfg["num_queries"], model_cfg["extra_query_noise"], gen))
+    hf.model.query_position_embeddings = emb
+    hf.config.num_queries = model_cfg["num_queries"]
+    return hf
+
+
 def build_model(model_cfg: dict[str, Any], class_names: list[str], seed: int) -> Detr:
-    """Build `coco_detr_r50` or `scratch_r50` (see configs/detr/base.yaml)."""
+    """Build `coco_detr_r50`, `scratch_r50` or `vit_detr` (see configs/detr/base.yaml).
+
+    vit_detr: the COCO-pretrained DETR transformer, queries and box head (new class head as in
+    coco_detr_r50) on a timm ViT backbone (`model.vit`); the ResNet is replaced and the input
+    projection (2048 -> 256) is re-created for the ViT channels, randomly initialized.
+    """
     name = model_cfg["name"]
     gen = torch.Generator().manual_seed(seed)
     torch.manual_seed(seed)  # new head / random transformer init
     if name == "coco_detr_r50":
-        hf = DetrForObjectDetection.from_pretrained(model_cfg["pretrained"])
-        hf.config.auxiliary_loss = False  # see module docstring
-        _set_head(hf, class_names)
-        old = hf.model.query_position_embeddings.weight.data
-        emb = nn.Embedding(model_cfg["num_queries"], old.shape[1])
-        emb.weight.data.copy_(expand_queries(old, model_cfg["num_queries"], model_cfg["extra_query_noise"], gen))
-        hf.model.query_position_embeddings = emb
-        hf.config.num_queries = model_cfg["num_queries"]
+        hf = _coco_detr(model_cfg, class_names, gen)
+    elif name == "vit_detr":
+        hf = _coco_detr(model_cfg, class_names, gen)
+        backbone = build_vit_backbone(model_cfg["vit"])
+        hf.model.backbone = backbone
+        hf.model.input_projection = nn.Conv2d(backbone.num_channels, hf.config.d_model, kernel_size=1)
+        return Detr(hf, aux_loss=model_cfg["auxiliary_loss"])  # the whole ViT is trainable
     elif name == "scratch_r50":
         cfg = DetrConfig.from_pretrained(model_cfg["pretrained"])  # same architecture hyper-parameters
         cfg.backbone_config.use_pretrained_backbone = False
@@ -149,13 +238,18 @@ def build_model(model_cfg: dict[str, Any], class_names: list[str], seed: int) ->
 
 
 def param_groups(model: Detr, optim_cfg: dict[str, Any]) -> list[dict[str, Any]]:
-    """Backbone at lr_backbone; transformer, input projection, heads and queries at lr."""
-    backbone, rest = [], []
+    """Groups (order fixed, the trainer logs 0 and 1): transformer + heads + queries at lr, backbone at
+    lr_backbone. vit_detr only: the new input projection is a third group at lr_projection (null = lr).
+    The R50 models keep two groups, so their existing checkpoints still resume."""
+    split_proj = isinstance(model.hf.model.backbone, ViTBackbone)
+    groups = {"transformer": [], "backbone": [], "projection": []}
     for n, p in model.named_parameters():
         if p.requires_grad:
-            (backbone if ".backbone." in f".{n}" else rest).append(p)
-    return [
-        {"params": rest, "lr": optim_cfg["lr"], "weight_decay": optim_cfg["weight_decay"], "name": "transformer"},
-        {"params": backbone, "lr": optim_cfg["lr_backbone"], "weight_decay": optim_cfg["weight_decay"],
-         "name": "backbone"},
-    ]
+            key = ("backbone" if ".backbone." in f".{n}" else
+                   "projection" if split_proj and ".input_projection." in f".{n}" else "transformer")
+            groups[key].append(p)
+    lr_proj = optim_cfg.get("lr_projection")
+    lrs = {"transformer": optim_cfg["lr"], "backbone": optim_cfg["lr_backbone"],
+           "projection": optim_cfg["lr"] if lr_proj is None else lr_proj}
+    names = ("transformer", "backbone", "projection") if split_proj else ("transformer", "backbone")
+    return [{"params": groups[k], "lr": lrs[k], "weight_decay": optim_cfg["weight_decay"], "name": k} for k in names]
