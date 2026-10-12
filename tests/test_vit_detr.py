@@ -139,3 +139,74 @@ def test_vit_detr_is_deterministic_and_keeps_coco_transformer(vit_model):
     assert shared and all(torch.equal(a[k], c[k]) for k in shared)
     # R50 models keep two optimizer groups (input projection with the transformer) -> old checkpoints resume
     assert [g["name"] for g in param_groups(coco, CFG["optim"])] == ["transformer", "backbone"]
+
+
+# --------------------------------------------------------------------------- step 2: LoRA, projection warmup
+
+@pytest.fixture(scope="module")
+def lora_model():
+    return build_model(_model_cfg(init="random") | {"adapt": "lora"}, CLASSES, seed=42)
+
+
+def test_lora_is_identity_at_init(vit_model, lora_model):
+    x, m = torch.randn(1, 3, 128, 160), torch.ones(1, 128, 160, dtype=torch.long)
+    vit_model.eval(), lora_model.eval()
+    with torch.no_grad():
+        a, b = vit_model(x, m), lora_model(x, m)
+    assert torch.allclose(a.logits, b.logits, atol=1e-5) and torch.allclose(a.pred_boxes, b.pred_boxes, atol=1e-5)
+
+
+def test_lora_targets_and_trainable_policy(lora_model):
+    named = dict(lora_model.hf.named_parameters())
+    lora = [n for n in named if "lora_" in n]
+    adapted = {n.split(".lora_")[0] for n in lora}
+    # 6 encoder self-attn + 6 decoder (self + cross) attn, 4 projections each
+    assert len(adapted) == (6 + 6 * 2) * 4
+    assert all(n.startswith(("model.encoder.layers.", "model.decoder.layers.")) for n in adapted)
+    assert all(n.endswith(("q_proj", "k_proj", "v_proj", "o_proj")) for n in adapted)
+    r = CFG["model"]["lora"]["r"]
+    assert sum(named[n].numel() for n in lora) == len(adapted) * 2 * r * 256
+    for n, p in named.items():
+        in_transformer = n.startswith(("model.encoder.", "model.decoder."))
+        assert p.requires_grad == ("lora_" in n or not in_transformer), n
+    assert all(p.requires_grad for p in lora_model.hf.model.backbone.parameters())
+    assert all(p.requires_grad for p in lora_model.hf.model.input_projection.parameters())
+    assert lora_model.hf.model.query_position_embeddings.weight.requires_grad
+    assert lora_model.hf.class_labels_classifier.weight.requires_grad and \
+        all(p.requires_grad for p in lora_model.hf.bbox_predictor.parameters())
+    groups = {g["name"]: {id(p) for p in g["params"]} for g in param_groups(lora_model, CFG["optim"])}
+    assert {id(named[n]) for n in lora} <= groups["transformer"]
+    assert not any(id(p) in s for s in groups.values() for p in lora_model.parameters() if not p.requires_grad)
+
+
+def test_lora_state_dict_round_trip():
+    trained = build_model(_model_cfg(init="random") | {"adapt": "lora"}, CLASSES, seed=42)
+    with torch.no_grad():
+        for n, p in trained.named_parameters():
+            if "lora_B" in n:
+                p.normal_()                                   # make the adapters non-trivial
+    other = build_model(_model_cfg(init="random") | {"adapt": "lora"}, CLASSES, seed=0)
+    other.load_state_dict(trained.state_dict())              # what evaluate.py does with a checkpoint
+    a, b = trained.state_dict(), other.state_dict()
+    assert all(torch.equal(a[k], b[k]) for k in a)
+
+
+def test_unknown_adapt_raises():
+    with pytest.raises(ValueError):
+        build_model(_model_cfg(init="random") | {"adapt": "frozen"}, CLASSES, seed=0)
+
+
+def test_projection_has_its_own_warmup():
+    from malaria_ssl.detr.trainer import group_lr_lambdas
+
+    params = [torch.nn.Parameter(torch.zeros(1)) for _ in range(3)]
+    opt = torch.optim.AdamW([{"params": [p], "lr": 1e-4, "name": n}
+                             for p, n in zip(params, ("transformer", "backbone", "projection"))])
+    o = {**CFG["optim"], "warmup_steps": 200, "warmup_steps_projection": 50, "min_lr_ratio": 0.01}
+    shared, b, proj = group_lr_lambdas(opt, o, total=1000)
+    assert shared is b
+    assert proj(0) == pytest.approx(1 / 50) and shared(0) == pytest.approx(1 / 200)
+    assert proj(49) == pytest.approx(1.0) and shared(49) == pytest.approx(50 / 200)
+    assert proj(1000) == pytest.approx(0.01) and shared(1000) == pytest.approx(0.01)
+    same = group_lr_lambdas(opt, {**o, "warmup_steps_projection": None}, total=1000)
+    assert same[0] is same[1] is same[2]

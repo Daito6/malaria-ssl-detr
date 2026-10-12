@@ -190,6 +190,27 @@ def _set_head(hf_model: DetrForObjectDetection, class_names: list[str]) -> None:
     hf_model.config.label2id = {n: i for i, n in enumerate(class_names)}
 
 
+def apply_lora(hf_model: DetrForObjectDetection, lora_cfg: dict[str, Any]) -> None:
+    """LoRA (peft) on the linear layers `lora.targets` of the DETR transformer (encoder and decoder
+    layers, self- and cross-attention; the backbone is never matched). The transformer's base weights
+    (incl. FFN and norms) are frozen; LoRA weights, backbone, input projection, queries and heads train.
+    LoRA B starts at zero, so the model function is unchanged at initialization."""
+    from peft import LoraConfig, inject_adapter_in_model
+
+    targets = "|".join(lora_cfg["targets"])
+    cfg = LoraConfig(r=lora_cfg["r"], lora_alpha=lora_cfg["alpha"], lora_dropout=lora_cfg["dropout"],
+                     target_modules=rf"(encoder|decoder)\.layers\.\d+\..*\.({targets})")
+    inject_adapter_in_model(cfg, hf_model.model)
+    # peft marks only adapter weights trainable on hf_model.model; set the intended policy explicitly
+    for n, p in hf_model.named_parameters():
+        in_transformer = n.startswith(("model.encoder.", "model.decoder."))
+        p.requires_grad_("lora_" in n or not in_transformer)
+    n_lora = sum(p.numel() for n, p in hf_model.named_parameters() if "lora_" in n)
+    if n_lora == 0:
+        raise RuntimeError(f"LoRA matched no layers for targets {lora_cfg['targets']}")
+    log.info("LoRA r=%d alpha=%s on %s: %d adapter parameters", lora_cfg["r"], lora_cfg["alpha"], targets, n_lora)
+
+
 def _coco_detr(model_cfg: dict[str, Any], class_names: list[str], gen: torch.Generator) -> DetrForObjectDetection:
     """COCO-pretrained DETR with a new class head and the query table expanded to num_queries."""
     hf = DetrForObjectDetection.from_pretrained(model_cfg["pretrained"])
@@ -209,6 +230,7 @@ def build_model(model_cfg: dict[str, Any], class_names: list[str], seed: int) ->
     vit_detr: the COCO-pretrained DETR transformer, queries and box head (new class head as in
     coco_detr_r50) on a timm ViT backbone (`model.vit`); the ResNet is replaced and the input
     projection (2048 -> 256) is re-created for the ViT channels, randomly initialized.
+    `model.adapt`: full (the whole transformer trains) | lora (see `apply_lora`); vit_detr only.
     """
     name = model_cfg["name"]
     gen = torch.Generator().manual_seed(seed)
@@ -220,6 +242,11 @@ def build_model(model_cfg: dict[str, Any], class_names: list[str], seed: int) ->
         backbone = build_vit_backbone(model_cfg["vit"])
         hf.model.backbone = backbone
         hf.model.input_projection = nn.Conv2d(backbone.num_channels, hf.config.d_model, kernel_size=1)
+        adapt = model_cfg.get("adapt", "full")
+        if adapt == "lora":
+            apply_lora(hf, model_cfg["lora"])
+        elif adapt != "full":
+            raise ValueError(f"unknown adapt {adapt!r} (full | lora)")
         return Detr(hf, aux_loss=model_cfg["auxiliary_loss"])  # the whole ViT is trainable
     elif name == "scratch_r50":
         cfg = DetrConfig.from_pretrained(model_cfg["pretrained"])  # same architecture hyper-parameters
