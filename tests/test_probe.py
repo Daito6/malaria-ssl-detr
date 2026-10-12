@@ -5,7 +5,8 @@ import torch
 
 from malaria_ssl.ssl.probe import (
     apply_stain_shift, auroc, average_precision, bootstrap_metrics, build_stain_shift, compute_metrics,
-    knn_predict, linear_predict, macro_f1, select_run, stratified_subset, window_and_patch_mask,
+    image_resamples, knn_predict, linear_predict, macro_f1, paired_bootstrap_diff, select_run, stratified_subset,
+    window_and_patch_mask,
 )
 from malaria_ssl.utils.config import load_experiment
 
@@ -108,3 +109,23 @@ def test_select_run_lexicographic_with_ci_ties():
     sel = select_run(res)
     assert [s["criterion"] for s in sel["steps"]] == ["auprc_clean", "auprc_stain", "auprc_10pct"]
     assert sel["winner"] == "a"
+
+
+def test_paired_bootstrap_diff():
+    rng = np.random.default_rng(0)
+    n, names, infected = 300, ["a", "b", "c"], np.array([False, True, True])
+    y = rng.integers(0, 3, size=n)
+    img = np.arange(n) // 10
+    good = np.eye(3)[y] * 0.8 + 0.1 + 0.05 * rng.random((n, 3))
+    noisy = rng.random((n, 3))
+    same = paired_bootstrap_diff(y, [good], [good], img, infected, names, "auprc_infected", 100, 0)
+    assert same["diff"] == 0 and same["ci95"] == {"low": 0.0, "high": 0.0} and same["frac_le_0"] == 1.0
+    better = paired_bootstrap_diff(y, [good], [noisy], img, infected, names, "auprc_infected", 100, 0)
+    assert better["diff"] > 0.3 and better["ci95"]["low"] > 0 and better["frac_le_0"] == 0.0
+    # several fits (low-label seeds) -> their mean
+    two = paired_bootstrap_diff(y, [good, noisy], [noisy, noisy], img, infected, names, "auprc_infected", 10, 0)
+    assert two["a"] == pytest.approx(np.mean([better["a"], better["b"]]))
+    # the marginal bootstrap draws exactly these resamples (same seed) -> pairing is by construction
+    a = [compute_metrics(y[i], good[i], infected, names)["auprc_infected"] for i in image_resamples(img, 100, 0)]
+    ci = bootstrap_metrics(y, good, img, infected, names, 100, 0)["auprc_infected"]
+    assert ci["low"] == pytest.approx(np.percentile(a, 2.5)) and ci["high"] == pytest.approx(np.percentile(a, 97.5))

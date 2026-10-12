@@ -267,27 +267,51 @@ def compute_metrics(y: np.ndarray, probs: np.ndarray, infected: np.ndarray, name
     return out
 
 
-def bootstrap_metrics(y: np.ndarray, probs: np.ndarray, image_ids: np.ndarray, infected: np.ndarray,
-                      names: list[str], n_resamples: int, seed: int) -> dict[str, dict[str, float]]:
-    """95% percentile CIs, resampling val images with replacement."""
+def image_resamples(image_ids: np.ndarray, n_resamples: int, seed: int):
+    """Crop indices of `n_resamples` bootstrap resamples of the images (with replacement). The same
+    (image_ids, seed) always yields the same resamples, so metrics of different encoders are paired."""
     groups = defaultdict(list)
     for i, im in enumerate(image_ids):
         groups[im].append(i)
     imgs = sorted(groups)
     members = [np.asarray(groups[im]) for im in imgs]
     rng = np.random.default_rng(seed)
-    samples = defaultdict(list)
     for _ in range(n_resamples):
-        idx = np.concatenate([members[j] for j in rng.integers(0, len(imgs), size=len(imgs))])
+        yield np.concatenate([members[j] for j in rng.integers(0, len(imgs), size=len(imgs))])
+
+
+def _percentile_ci(v: list[float]) -> dict[str, float]:
+    v = np.asarray(v, float)
+    v = v[np.isfinite(v)]
+    return ({"low": float(np.percentile(v, 2.5)), "high": float(np.percentile(v, 97.5))} if v.size
+            else {"low": float("nan"), "high": float("nan")})
+
+
+def bootstrap_metrics(y: np.ndarray, probs: np.ndarray, image_ids: np.ndarray, infected: np.ndarray,
+                      names: list[str], n_resamples: int, seed: int) -> dict[str, dict[str, float]]:
+    """95% percentile CIs, resampling val images with replacement."""
+    samples = defaultdict(list)
+    for idx in image_resamples(image_ids, n_resamples, seed):
         for key, v in compute_metrics(y[idx], probs[idx], infected, names).items():
             samples[key].append(v)
-    out = {}
-    for key, v in samples.items():
-        v = np.asarray(v, float)
-        v = v[np.isfinite(v)]
-        out[key] = ({"low": float(np.percentile(v, 2.5)), "high": float(np.percentile(v, 97.5))} if v.size
-                    else {"low": float("nan"), "high": float("nan")})
-    return out
+    return {key: _percentile_ci(v) for key, v in samples.items()}
+
+
+def paired_bootstrap_diff(y: np.ndarray, probs_a: list[np.ndarray], probs_b: list[np.ndarray],
+                          image_ids: np.ndarray, infected: np.ndarray, names: list[str], key: str,
+                          n_resamples: int, seed: int) -> dict[str, float]:
+    """Paired bootstrap of metric(a) - metric(b) over val images: both encoders are scored on the same
+    resamples. probs_* = one array per fit (several low-label seeds -> the metric is their mean).
+    `frac_le_0` = share of resamples with a difference <= 0."""
+    def metric(probs: list[np.ndarray], idx: np.ndarray) -> float:
+        return float(np.mean([compute_metrics(y[idx], p[idx], infected, names)[key] for p in probs]))
+
+    full = np.arange(len(y))
+    diffs = [metric(probs_a, idx) - metric(probs_b, idx) for idx in image_resamples(image_ids, n_resamples, seed)]
+    d = np.asarray(diffs, float)
+    d = d[np.isfinite(d)]
+    return {"a": metric(probs_a, full), "b": metric(probs_b, full), "diff": metric(probs_a, full) - metric(probs_b, full),
+            "ci95": _percentile_ci(diffs), "frac_le_0": float(np.mean(d <= 0)), "n_resamples": int(d.size)}
 
 
 def stratified_subset(y: np.ndarray, fraction: float, n_classes: int, seed: int) -> np.ndarray:
