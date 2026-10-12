@@ -22,7 +22,7 @@ Test-спліт у фазі 3 використовувався лише для �
 | Таблиця порівняння енкодерів | `scripts/compare_probes.py` → `reports/tables/phase3_final_comparison.csv` |
 | Парний bootstrap різниць probe-метрик | `scripts/paired_probe_diff.py` → `reports/tables/phase3_paired_diff.{csv,json}` |
 | Аналіз | `notebooks/03_ssl_analysis.ipynb`, `src/malaria_ssl/ssl/viz.py` |
-| Тести | `tests/test_ssl_data.py`, `test_ssl_models.py`, `test_ssl_trainer.py`, `test_probe.py`, `test_shift.py` — разом з фазами 1–2 **61 passed** (останній прогін — з прихованим GPU, `CUDA_VISIBLE_DEVICES=''`) |
+| Тести | `tests/test_ssl_data.py`, `test_ssl_models.py`, `test_ssl_trainer.py`, `test_probe.py`, `test_shift.py` — разом з фазами 1–2 **61 passed** (увага: прогони цієї сесії GPU НЕ приховували — у PowerShell `$env:CUDA_VISIBLE_DEVICES=''` видаляє змінну, тож GPU-тест `test_trainer.py` виконувався на GPU) |
 
 Спільні хелпери тренування (`lr_lambda`, `run_info`, чекпоінти, `metrics.csv`, `--set`) перенесено з
 `detr/trainer.py` у `utils/run.py` і `utils/config.py`, щоб SSL-код не імпортував DETR/transformers.
@@ -393,4 +393,4 @@ python scripts/compare_probes.py --tags ref_random_init ref_imagenet ssl_mae_onl
 python scripts/paired_probe_diff.py --a ssl_joint --b ssl_con_only ssl_mae_only `
     --out reports/tables/phase3_paired_diff
 ```
-`notebooks/03_ssl_analysis.ipynb` виконано на CPU (`CUDA_VISIBLE_DEVICES=''`) з усіма артефактами.
+`notebooks/03_ssl_analysis.ipynb` виконано з усіма артефактами; його код (як і `compare_probes.py`, `paired_probe_diff.py`) працює лише з CPU-тензорами. Змінна `CUDA_VISIBLE_DEVICES=''` GPU не приховувала (див. «Тести»); щоб приховати GPU у PowerShell, потрібно `$env:CUDA_VISIBLE_DEVICES='-1'`.
