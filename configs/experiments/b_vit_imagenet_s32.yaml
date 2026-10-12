@@ -1,0 +1,6 @@
+# Phase 4 step 4 recipe candidate: b_vit_imagenet with a stride-32 feature map (2x2 space-to-depth).
+# One factor changed vs b_vit_imagenet (model.vit.stride 16 -> 32); full adaptation, no layer decay.
+base: configs/experiments/b_vit_imagenet.yaml
+model:
+  vit:
+    stride: 32
