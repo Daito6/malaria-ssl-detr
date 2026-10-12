@@ -27,7 +27,8 @@ def load_ssl_run(run_dir: str | Path) -> dict[str, Any]:
     return {"name": run_dir.name, "dir": run_dir,
             "config": yaml.safe_load((run_dir / "config.yaml").read_text(encoding="utf-8")),
             "history": pd.read_csv(run_dir / "metrics.csv"),
-            "recon": sorted((run_dir / "recon").glob("*.png"))}
+            # init.png first, then epoch_XXX.png in order (a plain sort puts init last)
+            "recon": sorted((run_dir / "recon").glob("*.png"), key=lambda f: (f.stem != "init", f.stem))}
 
 
 def find_ssl_runs(prefix: str = "ssl_") -> list[dict[str, Any]]:
@@ -87,6 +88,33 @@ def selection_table(probes: list[dict[str, Any]]) -> tuple[pd.DataFrame, dict[st
     df = pd.DataFrame(sel["criteria"]).T
     df["winner"] = df.index == sel["winner"]
     return df, sel
+
+
+def comparison_table(probes: list[dict[str, Any]]) -> pd.DataFrame:
+    """Encoder comparison on val crops: the lambda-selection criteria plus kNN balanced accuracy,
+    each with its 95% bootstrap CI (10%-label: mean ± std over seeds)."""
+    rows = []
+    for p in probes:
+        lin, knn, stain = p["methods"]["linear"], p["methods"]["knn"], p["stain_shift"]["methods"]["linear"]
+        ll = p["low_label"]["0.1"]["linear"]
+        row = {"encoder": p["tag"]}
+        for col, e, k in (("linear_auprc_clean", lin, "auprc_infected"),
+                          ("linear_auprc_stain", stain, "auprc_infected")):
+            row[col], row[f"{col}_CI95"] = e["metrics"][k], _fmt_ci(e["ci95"][k])
+        row["linear_auprc_10pct_mean"] = ll["mean"]["auprc_infected"]
+        row["linear_auprc_10pct_std"] = ll["std"]["auprc_infected"]
+        for col, e, k in (("linear_macro_f1", lin, "macro_f1"), ("knn_balanced_acc", knn, "balanced_acc")):
+            row[col], row[f"{col}_CI95"] = e["metrics"][k], _fmt_ci(e["ci95"][k])
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def final_epoch_table(runs: list[dict[str, Any]]) -> pd.DataFrame:
+    """Losses and collapse diagnostics (fixed val pairs) at the last logged epoch of each run."""
+    cols = ["epoch", "loss_mae", "val_loss_mae", "loss_con", "val_loss_con", "rep/std_x_sqrt_d", "rep/erank",
+            "proj/std_x_sqrt_d", "proj/erank"]
+    return pd.DataFrame([{"run": r["name"], **{c: r["history"].iloc[-1].get(c, np.nan) for c in cols}}
+                         for r in runs])
 
 
 def per_class_recall_table(probes: list[dict[str, Any]], method: str = "linear") -> pd.DataFrame:
