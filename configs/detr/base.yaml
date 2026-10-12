@@ -33,6 +33,12 @@ model:
     imagenet: vit_small_patch16_224.augreg_in21k_ft_in1k   # its own input mean/std (0.5) are applied
     stride: 16                        # 16 | 32 (2x2 space-to-depth before the 1x1 input projection)
     drop_path_rate: 0.0
+  adapt: full                         # vit_detr only: full (whole transformer trains) | lora
+  lora:                               # adapt: lora -> transformer base weights frozen, LoRA (peft) on these linears
+    r: 16
+    alpha: 32
+    dropout: 0.0
+    targets: [q_proj, k_proj, v_proj, o_proj]   # self- and cross-attention of encoder/decoder layers
 
 loss:
   eos_coefficient: 0.1                # HF / original DETR default
@@ -46,7 +52,8 @@ loss:
 optim:
   lr: 1.0e-4
   lr_backbone: 1.0e-5
-  lr_projection: null                 # input projection group; null = lr
+  lr_projection: null                 # vit_detr input projection group; null = lr
+  warmup_steps_projection: null       # its own linear warmup (optimizer steps); null = warmup_steps
   weight_decay: 1.0e-4
   grad_clip: 0.1
   warmup_steps: 200                   # optimizer steps

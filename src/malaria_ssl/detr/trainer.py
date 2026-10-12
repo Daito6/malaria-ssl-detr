@@ -40,6 +40,15 @@ log = logging.getLogger(__name__)
 AMP_DTYPES = {"bfloat16": torch.bfloat16, "float16": torch.float16, "none": None}
 
 
+def group_lr_lambdas(optimizer: torch.optim.Optimizer, optim_cfg: dict[str, Any], total: int) -> list:
+    """One LR multiplier per param group: warmup + cosine, shared by all groups except `projection`
+    (vit_detr input projection), which has its own warmup `warmup_steps_projection` (null = shared)."""
+    shared = lr_lambda(optim_cfg["warmup_steps"], total, optim_cfg["min_lr_ratio"])
+    w_proj = optim_cfg.get("warmup_steps_projection")
+    proj = shared if w_proj is None else lr_lambda(w_proj, total, optim_cfg["min_lr_ratio"])
+    return [proj if g.get("name") == "projection" else shared for g in optimizer.param_groups]
+
+
 # --------------------------------------------------------------------------- data
 
 def data_config(cfg: dict[str, Any]) -> dict[str, Any]:
@@ -162,6 +171,9 @@ class Trainer:
                                        self.model.hf.config.decoder_layers, cfg["model"]["auxiliary_loss"]).to(self.device)
         self.amp = AMP_DTYPES[cfg["train"]["amp_dtype"]]
         self.optimizer = torch.optim.AdamW(param_groups(self.model, cfg["optim"]))
+        n_train = sum(p.numel() for g in self.optimizer.param_groups for p in g["params"])
+        log.info("trainable parameters: %d of %d; groups %s", n_train, sum(p.numel() for p in self.model.parameters()),
+                 {g["name"]: sum(p.numel() for p in g["params"]) for g in self.optimizer.param_groups})
         self.epoch = 0           # next epoch to run
         self.global_step = 0     # optimizer steps done
         self.best_ap = -1.0
@@ -183,8 +195,7 @@ class Trainer:
         self.steps_per_epoch = math.ceil(len(self.loader) / self.accum)
         total = self.steps_per_epoch * tr["epochs"]
         o = self.cfg["optim"]
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(
-            self.optimizer, lr_lambda(o["warmup_steps"], total, o["min_lr_ratio"]))
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, group_lr_lambdas(self.optimizer, o, total))
         if resume:
             self.load(self.run_dir / "checkpoints" / "last.pt")
         else:
@@ -260,6 +271,7 @@ class Trainer:
             "grad_norm": float(np.mean(grad_norms)) if grad_norms else float("nan"),
             "lr": self.optimizer.param_groups[0]["lr"],
             "lr_backbone": self.optimizer.param_groups[1]["lr"],
+            **({"lr_projection": self.optimizer.param_groups[2]["lr"]} if len(self.optimizer.param_groups) > 2 else {}),
             "epoch_time_s": dt,
             "images_per_s": n_micro * self.cfg["train"]["micro_batch"] / dt,
             "gpu_peak_gib": torch.cuda.max_memory_allocated(self.device) / 2**30,
