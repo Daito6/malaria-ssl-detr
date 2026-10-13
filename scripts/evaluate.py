@@ -12,6 +12,11 @@ Usage:
 --long-side N overrides the eval input long side (default augment.eval_long_side = 800), i.e. rescales the
 image content by N/800 at the model input. It is a diagnostic: the val thresholds in thresholds.json are
 reused unchanged (also for val), nothing is written to thresholds.json, and outputs get a `_ls<N>` suffix.
+
+--stain-shift evaluates the synthetic stain-shifted val: every val image gets the fixed shift of the stain-shifted
+probe (probe.stain_shift of eval.stain_shift_config, seed + image id) after the eval resize. VAL ONLY (never test);
+reuses the clean-val thresholds; outputs get a `_stain` suffix (metrics_val_stain.json).
+    python scripts/evaluate.py runs/b_vit_joint --split val --stain-shift --bootstrap
 """
 from __future__ import annotations
 
@@ -26,7 +31,7 @@ import yaml
 
 from malaria_ssl.data.detection import DetectionDataset, build_transforms, load_split_coco
 from malaria_ssl.detr.build import build_model
-from malaria_ssl.detr.trainer import AMP_DTYPES, data_config, eval_loader
+from malaria_ssl.detr.trainer import AMP_DTYPES, data_config, eval_loader, val_stain_shift
 from malaria_ssl.eval.inference import predict
 from malaria_ssl.eval.report import evaluate_split
 from malaria_ssl.utils.config import resolve_path
@@ -43,7 +48,11 @@ def main() -> None:
                         help="bootstrap resamples for 95%% CIs (flag alone = 200)")
     parser.add_argument("--long-side", type=int, default=None,
                         help="diagnostic eval input long side; reuses the val thresholds; outputs *_ls<N>")
+    parser.add_argument("--stain-shift", action="store_true",
+                        help="synthetic stain-shifted val (val only); reuses the val thresholds; outputs *_stain")
     args = parser.parse_args()
+    if args.stain_shift and args.split != "val":
+        parser.error("--stain-shift is defined for val only (the test split is never shifted or tuned on)")
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
     run_dir = Path(args.run_dir)
@@ -51,10 +60,11 @@ def main() -> None:
         cfg = yaml.safe_load(f)
     dcfg = data_config(cfg)
     thr_path = run_dir / "thresholds.json"
-    fixed_thr = args.split != "val" or args.long_side is not None
+    fixed_thr = args.split != "val" or args.long_side is not None or args.stain_shift
     if fixed_thr and not thr_path.exists():
         parser.error("thresholds.json not found: evaluate --split val first (thresholds are chosen on val only)")
     suffix = f"{args.split}_ls{args.long_side}" if args.long_side else args.split
+    suffix += "_stain" if args.stain_shift else ""
     if args.long_side:
         cfg["augment"]["eval_long_side"] = args.long_side
 
@@ -62,7 +72,8 @@ def main() -> None:
     cells = Counter(a["image_id"] for a in load_split_coco(args.split, "multiclass", dcfg, resolve_path)["annotations"])
     cells = {im["id"]: cells[im["id"]] for im in gt["images"]}
     ds = DetectionDataset(gt, resolve_path(dcfg["paths"]["raw_root"]) / "images",
-                          build_transforms(cfg["augment"], train=False))
+                          build_transforms(cfg["augment"], train=False),
+                          shift=val_stain_shift(cfg) if args.stain_shift else None)
 
     ck = torch.load(run_dir / "checkpoints" / f"{args.checkpoint}.pt", map_location="cpu", weights_only=False)
     if ck["class_names"] != ds.class_names:
@@ -86,7 +97,8 @@ def main() -> None:
     if not fixed_thr:
         thr_path.write_text(json.dumps(metrics["thresholds"], indent=2), encoding="utf-8")
     metrics.update({"split": args.split, "eval_long_side": cfg["augment"]["eval_long_side"],
-                    "checkpoint": args.checkpoint, "checkpoint_epoch": ck["epoch"],
+                    "stain_shift": args.stain_shift, "checkpoint": args.checkpoint, "checkpoint_epoch": ck["epoch"],
+                    "checkpoint_selected_on": ck.get("selected_on", "val"),
                     "label_mode": cfg["label_mode"], "n_images": len(gt["images"]),
                     "n_gt_boxes": len(gt["annotations"])})
     (run_dir / f"metrics_{suffix}.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")

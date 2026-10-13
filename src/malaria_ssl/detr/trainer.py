@@ -24,7 +24,7 @@ import yaml
 from torch.utils.data import DataLoader
 
 from malaria_ssl.data.detection import (
-    DetectionDataset, SeededSampler, build_transforms, collate_detr, load_split_coco,
+    DetectionDataset, SeededSampler, build_stain_shift, build_transforms, collate_detr, load_split_coco,
     median_resized_box_side, seed_worker,
 )
 from malaria_ssl.detr.build import Detr, build_model, param_groups
@@ -73,6 +73,13 @@ def build_datasets(cfg: dict[str, Any]) -> tuple[DetectionDataset, DetectionData
     val_coco = load_split_coco("val", mode, dcfg, resolve_path)
     return (DetectionDataset(train_coco, images, build_transforms(cfg["augment"], train=True)),
             DetectionDataset(val_coco, images, build_transforms(cfg["augment"], train=False)), val_coco)
+
+
+def val_stain_shift(cfg: dict[str, Any]) -> tuple[Any, int]:
+    """(transform, seed) of the synthetic stain-shifted val: the stain-shifted probe's fixed shift per image."""
+    path = cfg["eval"].get("stain_shift_config", "configs/ssl/probe.yaml")  # older run configs lack the key
+    sc = load_config(resolve_path(path))["probe"]["stain_shift"]
+    return build_stain_shift(sc), sc["seed"]
 
 
 def eval_loader(ds: DetectionDataset, cfg: dict[str, Any]) -> DataLoader:
@@ -177,6 +184,15 @@ class Trainer:
         self.epoch = 0           # next epoch to run
         self.global_step = 0     # optimizer steps done
         self.best_ap = -1.0
+        self.select_on = cfg["train"].get("select_on", "val")
+        if self.select_on not in ("val", "val_stain"):
+            raise ValueError(f"train.select_on must be val or val_stain, got {self.select_on!r}")
+        self.val_stain_ds = None
+        if cfg["eval"].get("val_stain"):
+            self.val_stain_ds = DetectionDataset(self.val_coco, self.val_ds.images_dir, self.val_ds.transform,
+                                                 self.val_ds.ids, shift=val_stain_shift(cfg))
+        elif self.select_on == "val_stain":
+            raise ValueError("train.select_on: val_stain needs eval.val_stain: true")
         self.scheduler = None    # created once the micro-batch is known
 
     # -- setup ---------------------------------------------------------------------------
@@ -192,6 +208,7 @@ class Trainer:
         self.accum = eff // mb
         self.loader, self.sampler = train_loader(self.train_ds, self.cfg, mb)
         self.val_loader = eval_loader(self.val_ds, self.cfg)
+        self.val_stain_loader = eval_loader(self.val_stain_ds, self.cfg) if self.val_stain_ds is not None else None
         self.steps_per_epoch = math.ceil(len(self.loader) / self.accum)
         total = self.steps_per_epoch * tr["epochs"]
         o = self.cfg["optim"]
@@ -279,8 +296,8 @@ class Trainer:
         })
         return stats
 
-    def validate(self) -> dict[str, Any]:
-        dets = predict(self.model, self.val_loader, self.device, self.val_ds.label_to_cat, self.amp)
+    def validate(self, loader=None) -> dict[str, Any]:
+        dets = predict(self.model, loader or self.val_loader, self.device, self.val_ds.label_to_cat, self.amp)
         return evaluate_coco(self.val_coco, dets)
 
     def fit(self) -> None:
@@ -297,11 +314,21 @@ class Trainer:
                 row.update({"val_AP": val["AP"], "val_AP50": val["AP50"], "val_AP75": val["AP75"],
                             "val_AR@300": val["AR@300"], "val_time_s": time.time() - t0})
                 row.update({f"val_AP50/{k}": v["AP50"] for k, v in val["per_class"].items()})
-                if val["AP"] > self.best_ap:
-                    self.best_ap = val["AP"]
+                sel = val
+                if self.val_stain_loader is not None:
+                    t0 = time.time()
+                    vs = self.validate(self.val_stain_loader)
+                    row.update({"val_stain_AP": vs["AP"], "val_stain_AP50": vs["AP50"],
+                                "val_stain_time_s": time.time() - t0})
+                    row.update({f"val_stain_AP50/{k}": v["AP50"] for k, v in vs["per_class"].items()})
+                    if self.select_on == "val_stain":
+                        sel = vs
+                if sel["AP"] > self.best_ap:
+                    self.best_ap = sel["AP"]
                     save_checkpoint(self.run_dir / "checkpoints" / "best.pt", model=self.model.state_dict(),
-                                    epoch=self.epoch, val=val, class_names=self.class_names)
-                    log.info("new best val AP %.4f at epoch %d", val["AP"], self.epoch)
+                                    epoch=self.epoch, val=sel, selected_on=self.select_on,
+                                    class_names=self.class_names)
+                    log.info("new best %s AP %.4f at epoch %d", self.select_on, sel["AP"], self.epoch)
             for k, v in row.items():
                 if isinstance(v, (int, float)) and k != "epoch":
                     self.tb.add_scalar(f"epoch/{k}", v, self.epoch)

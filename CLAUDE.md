@@ -71,6 +71,7 @@ python scripts/evaluate.py runs/<name> --split test --bootstrap  # reuses val th
 python scripts/compare_detr_runs.py --runs <names...> --split val [--select] --out reports/tables/<name>.csv
 python scripts/paired_detr_diff.py --runs <binary runs...> --pairs A:B ... --out reports/tables/<prefix>  # CPU, test
 python scripts/evaluate.py runs/<name> --split val --long-side N --bootstrap   # scale diagnostic, val thresholds, *_lsN
+python scripts/evaluate.py runs/<name> --split val --stain-shift --bootstrap   # synthetic stain-shifted val (VAL ONLY), *_stain
 python scripts/scale_diagnostic.py --runs <names...> --long-sides 640 840 1016 --out reports/tables/<prefix>  # CPU
 ```
 - The eval transform resizes to a fixed long side (800), so the raw x1.27 test cell size becomes x1.05 at the
@@ -200,7 +201,12 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   infected AP50 0.754-0.786 (CIs overlap full); test AP50 joint_frozen 0.276, imagenet_frozen 0.306, joint_lowlr 0.248,
   imagenet_lowlr 0.465; every variant - its full run is negative on test AP50 and recall (CIs exclude 0; e.g.
   imagenet_frozen AP50 -0.222 [-0.269, -0.169]); joint_frozen - imagenet_frozen CIs include 0. No multiplicity
-  correction, no selection by test. (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  correction, no selection by test. EXPLORATORY 2 (hypothesis after test): stain + scale augmentation of DETR.
+  `augment.stain_aug` (probe stain-shift family, p; appended only if p > 0), synthetic stain-shifted val
+  (`DetectionDataset(shift=)`, probe.stain_shift seed 2024 + image id, after the eval resize; `eval.val_stain`,
+  `train.select_on: val_stain`). Configs b_vit_{joint,imagenet}_aug (stain_aug.p 0.5, train_long_side [576, 1056],
+  select on val_stain); queue `configs/queues/phase4_aug.txt` (~3.1 h, smoke 125 s/epoch, 11.1 GiB) NOT launched.
+  Before-rows on stain val (`reports/tables/phase4_aug_runs.csv`): infected AP50 A 0.682, imagenet 0.739, joint 0.722. (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report

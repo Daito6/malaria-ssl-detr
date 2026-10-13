@@ -1,0 +1,16 @@
+# Phase 4 EXPLORATORY (hypothesis formed AFTER seeing test results): the DETR decoder / class head overfits
+# the train-domain appearance, so strong stain and scale augmentation should help under the val -> test shift.
+# b_vit_imagenet (full fine-tuning, seed 42, 40 epochs) + augmentation keys only, declared before running:
+#   augment.stain_aug.p 0 -> 0.5   strong stain shift, same family and strength as the stain-shifted probe
+#   augment.train_long_side [640, 960] -> [576, 1056]   wider scale jitter (x0.72-1.32 of the eval side 800)
+# Epoch selection on the synthetic stain-shifted val (never test): eval.val_stain, train.select_on.
+# The strength is fixed here and not tuned (in particular not on test).
+base: configs/experiments/b_vit_imagenet.yaml
+augment:
+  train_long_side: [576, 1056, 32]
+  stain_aug:
+    p: 0.5
+train:
+  select_on: val_stain
+eval:
+  val_stain: true

@@ -45,6 +45,14 @@ def run_row(name: str, boot: np.ndarray, point: dict[str, float]) -> dict:
                 assert abs(p[k] - point[k]) < 1e-9, (name, k, p[k], point[k])  # same matching as evaluate.py
                 row[f"test_{k}"] = p[k]
                 row[f"test_{k}_lo"], row[f"test_{k}_hi"] = ci(boot[:, j])
+    stain = run_dir / "metrics_val_stain.json"  # evaluate.py --stain-shift (synthetic stain-shifted val), optional
+    if stain.exists():
+        m = json.loads(stain.read_text(encoding="utf-8"))
+        b = m["bootstrap"]["ci95"][f"AP50/{CLS}"]
+        row["val_stain_AP50_infected"] = m["coco"]["per_class"][CLS]["AP50"]
+        row["val_stain_AP50_infected_lo"], row["val_stain_AP50_infected_hi"] = b["low"], b["high"]
+        row["val_stain_recall"] = m["prf"]["per_class"][CLS]["recall"]
+        row["selected_on"] = m["checkpoint_selected_on"]
     sh = json.loads((resolve_path("reports/tables") / f"shift_{name}.json").read_text(encoding="utf-8"))
     for split in ("val", "test"):
         row[f"{split}_median_score"] = sh[split]["median_score"]
@@ -59,7 +67,7 @@ def run_row(name: str, boot: np.ndarray, point: dict[str, float]) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", nargs="+", required=True)
-    ap.add_argument("--pairs", nargs="+", required=True, metavar="A:B")
+    ap.add_argument("--pairs", nargs="*", default=[], metavar="A:B")
     ap.add_argument("--n", type=int, default=1000, help="bootstrap resamples of test images")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--data-config", default="configs/data.yaml")
@@ -86,7 +94,7 @@ def main() -> None:
         for j, m in enumerate(METRICS):
             diffs.append({"a": a, "b": b, "metric": f"test_{m}_{CLS}",
                           **summarize_diff(points[a][m], points[b][m], boots[a][:, j], boots[b][:, j])})
-    diff = pd.DataFrame(diffs)
+    diff = pd.DataFrame(diffs, columns=None if diffs else ["a", "b", "metric"])
 
     out = resolve_path(args.out)
     table.to_csv(f"{out}_runs.csv", index=False, float_format="%.4f")

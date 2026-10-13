@@ -39,7 +39,9 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD, HEDJitter, load_split_coco
+from malaria_ssl.data.detection import (  # noqa: F401  (stain shift re-exported for existing callers)
+    IMAGENET_MEAN, IMAGENET_STD, apply_stain_shift, build_stain_shift, load_split_coco,
+)
 from malaria_ssl.ssl.data import normalize
 
 log = logging.getLogger(__name__)
@@ -99,24 +101,6 @@ def window_and_patch_mask(box: np.ndarray, img_w: int, img_h: int, window: int, 
         d = (px - cx) ** 2 + (py - cy) ** 2
         inside.flat[int(np.argmin(d))] = True
     return (x0, y0), inside.reshape(-1).astype(np.float32)
-
-
-def build_stain_shift(scfg: dict[str, Any]) -> A.Compose:
-    """Strong photometric shift of the stain-shifted probe; every transform is always applied."""
-    cj = scfg["color_jitter"]
-    return A.Compose([
-        HEDJitter(sigma=scfg["hed_sigma"], p=1.0),
-        A.ColorJitter(brightness=cj["brightness"], contrast=cj["contrast"], saturation=cj["saturation"],
-                      hue=cj["hue"], p=1.0),
-        A.GaussianBlur(sigma_limit=tuple(scfg["blur_sigma"]), p=1.0),
-        A.ImageCompression(quality_range=tuple(scfg["jpeg_quality"]), p=1.0),
-    ])
-
-
-def apply_stain_shift(img: np.ndarray, transform: A.Compose, seed: int, image_id: int) -> np.ndarray:
-    """Shift of one image, fixed by (seed, image id)."""
-    transform.set_random_seed(int(np.random.default_rng([seed, int(image_id)]).integers(0, 2**31 - 1)))
-    return transform(image=img)["image"]
 
 
 @torch.no_grad()
