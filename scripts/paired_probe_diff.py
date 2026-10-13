@@ -28,8 +28,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from malaria_ssl.ssl.probe import (compute_metrics, knn_predict, linear_predict, paired_bootstrap_diff,
-                                   stratified_subset)
+from malaria_ssl.ssl.probe import compute_metrics, fit_all, paired_bootstrap_diff
 from malaria_ssl.utils.config import load_experiment, resolve_path
 
 # (row name, method, eval set, label fraction, metric key)
@@ -46,29 +45,6 @@ def load_feats(tag: str, sets: tuple[str, ...]) -> dict[str, dict]:
     d = resolve_path("runs/probe") / tag
     return {s: torch.load(d / f"features_{s}.pt", map_location="cpu", weights_only=False)
             for s in sets}
-
-
-def fit_all(feats: dict[str, dict], pcfg: dict, n_classes: int, metrics: list) -> dict:
-    """{(method, eval set, fraction): [probabilities per seed]} for every entry of `metrics`."""
-    xtr, ytr = feats["train"]["features"].float(), feats["train"]["label"].long()
-    out = {}
-    for _, method, eval_set, frac, _ in metrics:
-        if (method, eval_set, frac) in out:
-            continue
-        seeds = [None] if frac >= 1 else range(pcfg["low_label"]["seeds"])
-        probs = []
-        for s in seeds:
-            idx = (np.arange(len(ytr)) if s is None
-                   else stratified_subset(ytr.numpy(), frac, n_classes, seed=pcfg["seed"] + s))
-            idx = torch.as_tensor(idx)
-            xte = feats[eval_set]["features"].float()
-            if method == "knn":
-                p = knn_predict(xtr[idx], ytr[idx], xte, n_classes, pcfg["knn"]["k"], pcfg["knn"]["temperature"])
-            else:
-                p = linear_predict(xtr[idx], ytr[idx], xte, n_classes, pcfg["linear"]["l2"], pcfg["linear"]["max_iter"])
-            probs.append(p.numpy())
-        out[(method, eval_set, frac)] = probs
-    return out
 
 
 def reference_value(probe: dict, method: str, eval_set: str, frac: float, key: str) -> float:

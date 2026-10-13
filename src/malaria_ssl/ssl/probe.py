@@ -85,6 +85,12 @@ def build_crop_set(split: str, data_cfg: dict[str, Any], pcfg: dict[str, Any], c
             "label": np.asarray(labels)}
 
 
+def subset_images(crops: dict[str, np.ndarray], image_ids: list[int]) -> dict[str, np.ndarray]:
+    """The crops of the given images only (order kept)."""
+    keep = np.isin(crops["image_id"], np.asarray(image_ids))
+    return {k: v[keep] for k, v in crops.items()}
+
+
 def window_and_patch_mask(box: np.ndarray, img_w: int, img_h: int, window: int, patch: int
                           ) -> tuple[tuple[int, int], np.ndarray]:
     """Window origin (box-centred, clamped inside the image) and the (g*g,) mask of patches whose
@@ -318,13 +324,38 @@ def stratified_subset(y: np.ndarray, fraction: float, n_classes: int, seed: int)
     return np.sort(np.concatenate(idx))
 
 
+def fit_all(feats: dict[str, dict], pcfg: dict, n_classes: int, metrics: list) -> dict:
+    """Refit of the probe classifiers on saved features (runs/probe/<tag>/features_*.pt):
+    {(method, eval set, fraction): [probabilities per seed]} for every (name, method, eval set, fraction, key)
+    entry of `metrics`."""
+    xtr, ytr = feats["train"]["features"].float(), feats["train"]["label"].long()
+    out = {}
+    for _, method, eval_set, frac, _ in metrics:
+        if (method, eval_set, frac) in out:
+            continue
+        seeds = [None] if frac >= 1 else range(pcfg["low_label"]["seeds"])
+        probs = []
+        for s in seeds:
+            idx = (np.arange(len(ytr)) if s is None
+                   else stratified_subset(ytr.numpy(), frac, n_classes, seed=pcfg["seed"] + s))
+            idx = torch.as_tensor(idx)
+            xte = feats[eval_set]["features"].float()
+            if method == "knn":
+                p = knn_predict(xtr[idx], ytr[idx], xte, n_classes, pcfg["knn"]["k"], pcfg["knn"]["temperature"])
+            else:
+                p = linear_predict(xtr[idx], ytr[idx], xte, n_classes, pcfg["linear"]["l2"], pcfg["linear"]["max_iter"])
+            probs.append(p.numpy())
+        out[(method, eval_set, frac)] = probs
+    return out
+
+
 # --------------------------------------------------------------------------- protocol
 
 class Prober:
     """Builds the train / val crop sets once; `evaluate(encoder)` extracts features and fits probes."""
 
     def __init__(self, cfg: dict[str, Any], data_cfg: dict[str, Any], caches: dict[str, Path], resolve,
-                 device: torch.device, eval_split: str = "val"):
+                 device: torch.device, eval_split: str = "val", eval_image_ids: list[int] | None = None):
         self.cfg, self.pcfg, self.device = cfg, cfg["probe"], device
         self.eval_split = eval_split  # "test" only for the final test-crop evaluation (no stain shift)
         self.names, _, self.infected = probe_classes(data_cfg, self.pcfg["exclude"])
@@ -333,6 +364,8 @@ class Prober:
         for split, path in caches.items():
             index = json.loads(path.with_name(f"{split}_index.json").read_text(encoding="utf-8"))
             self.crops[split] = build_crop_set(split, data_cfg, self.pcfg, index, resolve)
+        if eval_image_ids is not None:   # e.g. one held-out test fold
+            self.crops[eval_split] = subset_images(self.crops[eval_split], eval_image_ids)
         self.amp = torch.bfloat16 if device.type == "cuda" else None
 
     def counts(self) -> dict[str, dict[str, int]]:
@@ -374,11 +407,11 @@ class Prober:
         return entry
 
     def evaluate(self, encoder: torch.nn.Module, full: bool = True,
-                 feats: dict[str, torch.Tensor] | None = None) -> dict[str, Any]:
+                 feats: dict[str, torch.Tensor] | None = None, input_norm: tuple[Any, Any] | None = None) -> dict[str, Any]:
         """Light (full=False): 100% labels, point estimates. Full: + bootstrap CIs, low-label and, if
         `feats` has `val_stain` (computed by default when the config has `stain_shift`), the
         stain-shifted probe."""
-        feats = feats or self.features(encoder, stain_shift=full and "stain_shift" in self.pcfg)
+        feats = feats or self.features(encoder, stain_shift=full and "stain_shift" in self.pcfg, input_norm=input_norm)
         ev = self.eval_split
         y = self.crops[ev]["label"]
         ytr = self.crops["train"]["label"]

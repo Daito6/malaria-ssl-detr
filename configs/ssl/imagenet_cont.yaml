@@ -1,0 +1,16 @@
+# Phase 5 EXPLORATORY (hypothesis formed AFTER seeing test results): self-supervised domain adaptation.
+# CONTROL imagenet_cont: continued joint MAE + InfoNCE pretraining from the ImageNet ViT-S/16
+# (timm vit_small_patch16_224.augreg_in21k_ft_in1k, input mean = std = 0.5) on TRAIN images only.
+# Separates "domain adaptation" (imagenet_da_f*) from "just more pretraining". Fold-independent.
+# Fixed in advance (not tuned, in particular not on test):
+#   same objective / views / augmentations as ssl_joint (mask 0.75, InfoNCE tau 0.2, lambda_con 0.2, DETR-scale
+#   views); fresh MAE decoder and projector; 30 epochs x 25600 pairs (0.77 M pairs, 30% of the 100-epoch
+#   from-scratch budget); blr 1.5e-4 (lr 7.5e-5 at batch 128; MAE default, 1/3.3 of the from-scratch 5e-4,
+#   to keep the pretrained features), 5% warmup.
+base: configs/ssl/base.yaml
+model:
+  init: imagenet
+optim:
+  blr: 1.5e-4
+train:
+  epochs: 30

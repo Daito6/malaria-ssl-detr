@@ -1,0 +1,49 @@
+# Phase 5 EXPLORATORY: self-supervised domain adaptation (hypothesis formed AFTER seeing test results).
+# Continued joint MAE + InfoNCE pretraining (30 epochs, blr 1.5e-4, fresh decoder / projector) from the ImageNet
+# ViT-S/16 or from ssl_joint, on train images only (_cont controls) or train + the UNLABELED images of one test
+# fold (_da_f<F>, fraction 0.5). Test labels are never used for adaptation; an encoder adapted on fold F is
+# evaluated only on the crops of the other fold. Everything is declared in configs/ssl/{imagenet,joint}_{cont,da_f1,
+# da_f2}.yaml before running; single seed (42); no tuning on test.
+# Order: ImageNet-initialised variants first (main hypothesis), then the ssl_joint-initialised ones (secondary; can
+# be dropped if time is short). Probes and the paired bootstrap follow; the ImageNet-only comparison is written
+# first (phase5_da_imagenet), so it exists even if the joint runs are dropped.
+#
+# Estimate (GPU smoke runs/dry_p5_imagenet_da_f1, 2 epochs): 89.7 s/epoch steady (120 s first), peak 10.75 GiB,
+# batch 128, light probe ~20 s every 10 epochs -> ~0.8 h per 30-epoch run.
+#   imagenet_cont 0.8 h | imagenet_da (2 folds) 1.6 h | joint_cont 0.8 h | joint_da (2 folds) 1.6 h
+#   probes (6 val + 16 fold probes) + paired bootstrap ~0.3 h  ->  total ~5.1 h
+# Run:  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase5_da.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+phase5_prep        | python scripts/make_test_folds.py
+
+ssl_imagenet_cont  | python scripts/pretrain.py --config configs/ssl/imagenet_cont.yaml
+ssl_imagenet_da_f1 | python scripts/pretrain.py --config configs/ssl/imagenet_da_f1.yaml
+ssl_imagenet_da_f2 | python scripts/pretrain.py --config configs/ssl/imagenet_da_f2.yaml
+ssl_joint_cont     | python scripts/pretrain.py --config configs/ssl/joint_cont.yaml
+ssl_joint_da_f1    | python scripts/pretrain.py --config configs/ssl/joint_da_f1.yaml
+ssl_joint_da_f2    | python scripts/pretrain.py --config configs/ssl/joint_da_f2.yaml
+
+# ImageNet-initialised: standard val probe (clean + stain-shifted val + low-label) and held-out test folds
+ssl_imagenet_cont  | python scripts/probe.py --run runs/ssl_imagenet_cont
+ssl_imagenet_da_f1 | python scripts/probe.py --run runs/ssl_imagenet_da_f1
+ssl_imagenet_da_f2 | python scripts/probe.py --run runs/ssl_imagenet_da_f2
+phase5_prep        | python scripts/probe.py --ref imagenet --eval-split test --eval-fold 1
+phase5_prep        | python scripts/probe.py --ref imagenet --eval-split test --eval-fold 2
+ssl_imagenet_cont  | python scripts/probe.py --run runs/ssl_imagenet_cont --eval-split test --eval-fold 1
+ssl_imagenet_cont  | python scripts/probe.py --run runs/ssl_imagenet_cont --eval-split test --eval-fold 2
+ssl_imagenet_da_f2 | python scripts/probe.py --run runs/ssl_imagenet_da_f2 --eval-split test --eval-fold 1
+ssl_imagenet_da_f1 | python scripts/probe.py --run runs/ssl_imagenet_da_f1 --eval-split test --eval-fold 2
+phase5_prep        | python scripts/paired_fold_diff.py --enc imagenet=ref_imagenet imagenet_cont=ssl_imagenet_cont imagenet_da=ssl_imagenet_da_f2,ssl_imagenet_da_f1 --pairs imagenet_da:imagenet imagenet_da:imagenet_cont --out reports/tables/phase5_da_imagenet
+
+# ssl_joint-initialised
+ssl_joint_cont     | python scripts/probe.py --run runs/ssl_joint_cont
+ssl_joint_da_f1    | python scripts/probe.py --run runs/ssl_joint_da_f1
+ssl_joint_da_f2    | python scripts/probe.py --run runs/ssl_joint_da_f2
+phase5_prep        | python scripts/probe.py --run runs/ssl_joint --eval-split test --eval-fold 1
+phase5_prep        | python scripts/probe.py --run runs/ssl_joint --eval-split test --eval-fold 2
+ssl_joint_cont     | python scripts/probe.py --run runs/ssl_joint_cont --eval-split test --eval-fold 1
+ssl_joint_cont     | python scripts/probe.py --run runs/ssl_joint_cont --eval-split test --eval-fold 2
+ssl_joint_da_f2    | python scripts/probe.py --run runs/ssl_joint_da_f2 --eval-split test --eval-fold 1
+ssl_joint_da_f1    | python scripts/probe.py --run runs/ssl_joint_da_f1 --eval-split test --eval-fold 2
+phase5_prep        | python scripts/paired_fold_diff.py --enc imagenet=ref_imagenet imagenet_cont=ssl_imagenet_cont imagenet_da=ssl_imagenet_da_f2,ssl_imagenet_da_f1 joint=ssl_joint joint_cont=ssl_joint_cont joint_da=ssl_joint_da_f2,ssl_joint_da_f1 --pairs imagenet_da:imagenet imagenet_da:imagenet_cont joint_da:joint joint_da:joint_cont joint_da:imagenet_da --out reports/tables/phase5_da

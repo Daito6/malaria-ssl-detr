@@ -1,0 +1,8 @@
+# Phase 5 EXPLORATORY: joint_da, adaptation fold 1. = joint_cont + the UNLABELED images of test fold 1
+# (data/splits/test_folds.json, images only; no boxes, no labels). Evaluated on the crops of fold 2 only.
+# fraction 0.5 (domain-balanced sampling), fixed in advance, not tuned.
+base: configs/ssl/joint_cont.yaml
+target:
+  folds_file: data/splits/test_folds.json
+  fold: 1
+  fraction: 0.5

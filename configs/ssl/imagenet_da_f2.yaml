@@ -1,0 +1,9 @@
+# Phase 5 EXPLORATORY: imagenet_da, adaptation fold 2. = imagenet_cont + the UNLABELED images of test fold 2
+# (data/splits/test_folds.json, images only; no boxes, no labels). Evaluated on the crops of fold 1 only.
+# fraction 0.5: domain-balanced sampling (a draw comes from the 60 target images with probability 0.5),
+# fixed in advance, not tuned.
+base: configs/ssl/imagenet_cont.yaml
+target:
+  folds_file: data/splits/test_folds.json
+  fold: 2
+  fraction: 0.5

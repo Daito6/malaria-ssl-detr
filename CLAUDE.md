@@ -110,6 +110,9 @@ python scripts/diagnose_shift.py runs/<binary DETR run>
 python scripts/compare_probes.py --tags <probe tags...> --out reports/tables/<name>.csv   # reads probe json only
 python scripts/paired_probe_diff.py --pairs A:B [A:B ...] --out reports/tables/<name>   # CPU, saved features
 powershell -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/<queue>.txt [-DryRun]
+python scripts/make_test_folds.py                                  # phase 5: data/splits/test_folds.json (ids + file names only)
+python scripts/probe.py --run runs/<ssl run> --eval-split test --eval-fold k   # held-out test fold k: probe_test_fold<k>_<tag>
+python scripts/paired_fold_diff.py --enc NAME=TAG1[,TAG2] ... --pairs A:B ... --out reports/tables/<prefix>   # CPU
 ```
 Queue lines are `<run name> | <command>`; output goes to `runs/<run name>/queue.log`; failures do not
 stop the queue; commands logged `QUEUE DONE` are skipped on rerun; pretrain/train_detr get `--resume`
@@ -216,3 +219,11 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   val and diagnose_shift fractions next to test AP50 (test = 120 images, wide CIs).
 - User decisions: extra lr run (blr 5e-4) added; tie-breaks as in the selection rule; mae_only
   embedding anisotropy (std x sqrt(d) ~ 0.09) is acceptable, keep monitoring.
+- Phase 5 (EXPLORATORY self-supervised domain adaptation, `reports/phase5_summary.md`): continued joint MAE + InfoNCE
+  (30 epochs, blr 1.5e-4, fresh decoder / projector) from the ImageNet ViT (`model.init: imagenet`, input norm 0.5/0.5
+  recorded as `model.input_norm`; probe and vit_detr read it) or from ssl_joint; `_cont` = train only, `_da_f<F>` =
+  train + UNLABELED images of test fold F (`target.fraction` 0.5, `MixedImageSampler`; `build_target_cache` reads only
+  the folds file + that fold's JPEGs, never annotations). Folds: `make_test_folds.py` seed 42, balanced by infected
+  count (60/60 images, 150/153 infected). An encoder adapted on fold F is probed only on the other fold. Smoke 89.7
+  s/epoch, 10.75 GiB -> ~0.8 h per run; queue `configs/queues/phase5_da.txt` (~5.1 h, ImageNet variants first) NOT
+  launched.
