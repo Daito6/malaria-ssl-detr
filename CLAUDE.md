@@ -69,6 +69,7 @@ python scripts/train_detr.py --config configs/experiments/<exp>.yaml [--resume] 
 python scripts/evaluate.py runs/<name> --split val --bootstrap   # val first: picks F1 thresholds
 python scripts/evaluate.py runs/<name> --split test --bootstrap  # reuses val thresholds
 python scripts/compare_detr_runs.py --runs <names...> --split val [--select] --out reports/tables/<name>.csv
+python scripts/paired_detr_diff.py --runs <binary runs...> --pairs A:B ... --out reports/tables/<prefix>  # CPU, test
 ```
 Non-obvious decisions (details in `reports/phase2_summary.md`):
 - Model is called WITHOUT labels; loss is ours (`detr/loss.py`, HF matcher/ImageLoss reused)
@@ -163,8 +164,14 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   stride 16 vs 58 s R50, peak 8.2 GiB; `reports/phase4_summary.md`); `optim.layer_decay` added; step 4 queue
   `configs/queues/phase4_recipe.txt` (5 runs, VAL ONLY) done (`reports/phase4_recipe_summary.md`): leader llrd
   val infected AP50 0.798 [0.751, 0.854]; full 0.769, s32 0.790, lora_lr5e4 0.797 tied, lora 0.670 not ->
-  winner full (base defaults); plateau 30->40 ep +0.013 -> keep 40 epochs. Step 5 queue
-  `configs/queues/phase4_main.txt` (~4.6 h, b_vit_imagenet reused: test + diagnose only) not launched. Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  winner full (base defaults); plateau 30->40 ep +0.013 -> keep 40 epochs. Step 5 `phase4_main` done
+  (seed 42; `reports/phase4_summary.md`, `notebooks/04_detr_ssl.ipynb`): val infected AP50 all ViT 0.711-0.774
+  (CIs overlap), but test infected AP50 imagenet 0.528, joint 0.329, mae 0.336, random 0.327, con 0.251 vs
+  baseline A 0.551. Paired test bootstrap (1000 shared resamples): joint - imagenet AP50 -0.198 [-0.254, -0.142];
+  joint > con (AP50 and recall); joint - mae / - random AP50 CIs include 0; imagenet - baseline A AP50
+  -0.024 [-0.074, 0.032] but recall -0.155 [-0.208, -0.104]. Anomalies: random loses uninfected on test
+  (AP50 0.523); con test recall 0.020; joint best epoch 32 (val inf AP50 still rising). Step 5b queue
+  `configs/queues/phase4_seeds.txt` (joint/imagenet seeds 43, 44; ~4.6 h) not launched; SSL itself is 1 run. Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report
