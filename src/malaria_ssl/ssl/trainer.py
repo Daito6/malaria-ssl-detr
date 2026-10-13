@@ -6,10 +6,15 @@ Run directory layout (runs/<name>/), same as DETR runs:
     metrics.csv        one row per epoch: train losses, effective weights, lr, grad norm, throughput,
                        memory, val losses, collapse diagnostics, light-probe metrics
     tb/                TensorBoard logs
-    recon/             MAE reconstruction grids on fixed val crops (original | masked | reconstruction)
+    recon/             MAE reconstruction grids on fixed val crops (original | masked | reconstruction);
+                       target_epoch_XXX.png on fixed crops of the unlabeled target images (if `target`)
     checkpoints/       last.pt (full training state), encoder_epXXX.pt, encoder_final.pt (timm state dicts)
 
 No gradient accumulation: it would shrink the set of in-batch negatives of InfoNCE.
+
+`model.init` (random | imagenet | encoder state dict) selects the start point; the encoder's input
+normalization is recorded as `model.input_norm` in config.yaml. `target` (folds file + fold + fraction)
+adds the unlabeled images of one target fold: a draw comes from them with probability `fraction`.
 """
 from __future__ import annotations
 
@@ -29,8 +34,10 @@ import yaml
 from torch.utils.data import DataLoader, Sampler
 
 from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD, seed_worker
-from malaria_ssl.ssl.data import RandomImageSampler, TwoViewDataset, ensure_caches
-from malaria_ssl.ssl.models import SSLModel, build_encoder, info_nce, param_groups
+from malaria_ssl.ssl.data import (MixedImageSampler, MixedTwoViewDataset, RandomImageSampler, TwoViewDataset,
+                                   build_target_cache, ensure_caches)
+from malaria_ssl.ssl.encoders import init_encoder, is_imagenet_norm
+from malaria_ssl.ssl.models import SSLModel, info_nce, param_groups
 from malaria_ssl.ssl.probe import Prober
 from malaria_ssl.utils.config import load_config, resolve_path
 from malaria_ssl.utils.run import append_csv, atomic_save, load_checkpoint, lr_lambda, run_info, save_checkpoint
@@ -61,15 +68,16 @@ def collapse_stats(e1: torch.Tensor, e2: torch.Tensor) -> dict[str, float]:
             "erank": torch.exp(-(p * torch.log(p.clamp_min(1e-12))).sum()).item()}
 
 
-def to_uint8(x: torch.Tensor) -> np.ndarray:
-    """ImageNet-normalised (3, H, W) -> uint8 (H, W, 3) RGB."""
-    img = x.float().cpu().numpy().transpose(1, 2, 0) * IMAGENET_STD + IMAGENET_MEAN
+def to_uint8(x: torch.Tensor, mean=IMAGENET_MEAN, std=IMAGENET_STD) -> np.ndarray:
+    """Normalised (3, H, W) -> uint8 (H, W, 3) RGB."""
+    img = x.float().cpu().numpy().transpose(1, 2, 0) * np.asarray(std) + np.asarray(mean)
     return (np.clip(img, 0, 1) * 255).round().astype(np.uint8)
 
 
-def save_recon_grid(path: Path, original: torch.Tensor, masked: torch.Tensor, recon: torch.Tensor) -> None:
+def save_recon_grid(path: Path, original: torch.Tensor, masked: torch.Tensor, recon: torch.Tensor,
+                    mean=IMAGENET_MEAN, std=IMAGENET_STD) -> None:
     """Rows: original | masked | reconstruction; one column per crop."""
-    rows = [np.concatenate([to_uint8(t) for t in batch], axis=1) for batch in (original, masked, recon)]
+    rows = [np.concatenate([to_uint8(t, mean, std) for t in batch], axis=1) for batch in (original, masked, recon)]
     path.parent.mkdir(parents=True, exist_ok=True)
     ok, buf = cv2.imencode(".png", cv2.cvtColor(np.concatenate(rows, axis=0), cv2.COLOR_RGB2BGR))
     if not ok:
@@ -115,26 +123,43 @@ class SSLTrainer:
         set_seed(cfg["seed"])
         self.caches = caches or ensure_caches(cfg, resolve_path)
         tr, mon = cfg["train"], cfg["monitor"]
-        self.model = SSLModel(build_encoder(cfg["model"]["encoder"], cfg["model"]["drop_path_rate"]), cfg).to(self.device)
+        encoder, norm = init_encoder(cfg["model"], cfg["probe"]["references"]["imagenet"], resolve_path)
+        cfg["model"]["input_norm"] = norm
+        self.norm = (norm["mean"], norm["std"])
+        self.model = SSLModel(encoder, cfg).to(self.device)
         self.amp = AMP_DTYPES[tr["amp_dtype"]] if self.device.type == "cuda" else None
 
         n_over = tr.get("overfit_crops")
         if n_over:
-            self.train_ds = TwoViewDataset(self.caches["train"], cfg["views"], augment=False)
+            self.train_ds = TwoViewDataset(self.caches["train"], cfg["views"], augment=False, input_norm=self.norm)
             self.overfit_keys = list(RandomImageSampler(len(self.train_ds), n_over, cfg["seed"]))
             mon_ds, mon_keys = self.train_ds, self.overfit_keys[: mon["val_pairs"]]
         else:
-            self.train_ds = TwoViewDataset(self.caches["train"], cfg["views"], augment=True)
+            self.train_ds = TwoViewDataset(self.caches["train"], cfg["views"], augment=True, input_norm=self.norm)
             self.overfit_keys = None
-            mon_ds = TwoViewDataset(self.caches["val"], cfg["views"], augment=True)
+            mon_ds = TwoViewDataset(self.caches["val"], cfg["views"], augment=True, input_norm=self.norm)
             mon_keys = list(RandomImageSampler(len(mon_ds), mon["val_pairs"], mon["monitor_seed"]))
         self.mon_v1, self.mon_v2 = collect(mon_ds, mon_keys)
+        self.target_ds, self.target_v1 = None, None
+        if cfg.get("target") and not n_over:
+            t = cfg["target"]
+            npy = self.caches.get("target")
+            if npy is None:
+                raw_images = resolve_path(load_config(resolve_path(cfg["data_config"]))["paths"]["raw_root"]) / "images"
+                npy = build_target_cache(resolve_path(t["folds_file"]), t["fold"], raw_images, cfg["cache"],
+                                         resolve_path)[0]
+            self.target_ds = TwoViewDataset(npy, cfg["views"], augment=True, input_norm=self.norm)
+            self.train_ds = MixedTwoViewDataset([self.train_ds, self.target_ds])
+            tkeys = list(RandomImageSampler(len(self.target_ds), mon["recon_crops"], mon["monitor_seed"]))
+            self.target_v1 = collect(self.target_ds, tkeys)[0]
+            log.info("target fold %d: %d unlabeled images, sampling fraction %.2f", t["fold"], len(self.target_ds),
+                     t["fraction"])
         g = torch.Generator().manual_seed(mon["monitor_seed"])
         self.mon_noise = torch.rand(len(mon_keys), (cfg["views"]["out_size"] // self.model.patch) ** 2, generator=g)
         self.prober = None
         if mon["probe_every"]:
-            self.prober = Prober(cfg, load_config(resolve_path(cfg["data_config"])), self.caches, resolve_path,
-                                 self.device)
+            self.prober = Prober(cfg, load_config(resolve_path(cfg["data_config"])),
+                                 {s: self.caches[s] for s in ("train", "val")}, resolve_path, self.device)
         self.optimizer = None
         self.scheduler = None
         self.epoch = 0           # next epoch to run
@@ -193,6 +218,10 @@ class SSLTrainer:
             self.optimizer, lr_lambda(max(1, round(o["warmup_fraction"] * total)), total, o["min_lr_ratio"]))
         if self.overfit_keys:
             self.sampler = FixedKeysSampler(self.overfit_keys, tr["samples_per_epoch"], self.cfg["seed"])
+        elif self.target_ds is not None:
+            n_src = len(self.train_ds) - len(self.target_ds)
+            self.sampler = MixedImageSampler(n_src, len(self.target_ds), self.cfg["target"]["fraction"],
+                                             tr["samples_per_epoch"], self.cfg["seed"])
         else:
             self.sampler = RandomImageSampler(len(self.train_ds), tr["samples_per_epoch"], self.cfg["seed"])
         nw = tr["num_workers"]
@@ -307,7 +336,11 @@ class SSLTrainer:
                 k = self.cfg["monitor"]["recon_crops"]
                 x = self.mon_v1[:k].to(self.device).float()
                 masked, recon = m.reconstruct(x, self.mon_noise[:k].to(self.device))
-                save_recon_grid(recon_path, x, masked, recon)
+                save_recon_grid(recon_path, x, masked, recon, *self.norm)
+                if self.target_v1 is not None:
+                    x = self.target_v1.to(self.device).float()
+                    masked, recon = m.reconstruct(x, self.mon_noise[:len(x)].to(self.device))
+                    save_recon_grid(recon_path.with_name("target_" + recon_path.name), x, masked, recon, *self.norm)
         if mae:
             out["val_loss_mae"] = sum(v * c for v, c in mae) / sum(c for _, c in mae)
         if con:
@@ -319,7 +352,8 @@ class SSLTrainer:
         return out
 
     def light_probe(self) -> dict[str, float]:
-        res = self.prober.evaluate(self.model.encoder, full=False)
+        norm = None if is_imagenet_norm(*self.norm) else self.norm
+        res = self.prober.evaluate(self.model.encoder, full=False, input_norm=norm)
         self.model.train()
         return {f"probe/{meth}/{k}": e["metrics"][k] for meth, e in res["methods"].items() for k in PROBE_METRICS}
 

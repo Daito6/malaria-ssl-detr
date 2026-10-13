@@ -7,6 +7,7 @@ Usage:
     python scripts/probe.py --ref imagenet                       # ImageNet ViT-S/16 (timm) reference
     python scripts/probe.py --run runs/ssl_joint --eval-split test   # FINAL evaluation on test crops (no tuning)
     python scripts/probe.py --detr-run runs/b_vit_joint           # the ViT after DETR fine-tuning (tag detr_<run>)
+    python scripts/probe.py --run runs/ssl_imagenet_da_f1 --eval-split test --eval-fold 2   # held-out test fold only
 
 Also runs the stain-shifted probe (same classifiers, fitted on clean train crops, evaluated on val
 crops with the fixed seeded shift of `probe.stain_shift`): `stain_shift` in the JSON, rows with
@@ -14,6 +15,9 @@ eval_set=val_stain in the CSV.
 
 Input normalization: crops are ImageNet-normalized (as in SSL pretraining and DETR); the ImageNet
 reference is re-mapped to its own timm statistics (augreg ViT: mean = std = 0.5), recorded in `source`.
+
+--eval-fold k (with --eval-split test) keeps only the test crops of fold k of the folds file
+(scripts/make_test_folds.py); tag test_fold<k>_<tag>. Used to evaluate encoders adapted on the other fold.
 
 Writes reports/tables/probe_<tag>.{json,csv} and runs/probe/<tag>/features_{train,val,val_stain}.pt.
 """
@@ -23,11 +27,12 @@ import argparse
 import json
 import logging
 import time
+from pathlib import Path
 
 import pandas as pd
 import torch
 
-from malaria_ssl.ssl.data import ensure_caches
+from malaria_ssl.ssl.data import ensure_caches, load_fold_images
 from malaria_ssl.ssl.encoders import load_encoder
 from malaria_ssl.ssl.probe import Prober, results_table
 from malaria_ssl.utils.config import load_config, load_experiment, resolve_path
@@ -47,7 +52,12 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--eval-split", default="val", choices=["val", "test"],
                         help="test = final evaluation on test crops (fit on train; no stain shift; writes probe_test_<tag>)")
+    parser.add_argument("--eval-fold", type=int, choices=[1, 2], default=None,
+                        help="with --eval-split test: evaluate on the test crops of this fold only")
+    parser.add_argument("--folds-file", default="data/splits/test_folds.json")
     args = parser.parse_args()
+    if args.eval_fold and args.eval_split != "test":
+        parser.error("--eval-fold needs --eval-split test")
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
     cfg = load_experiment(args.config)
@@ -56,9 +66,12 @@ def main() -> None:
     encoder.to(device)
     on_test = args.eval_split == "test"
     caches = ensure_caches(cfg, resolve_path, ("train", args.eval_split), allow_test=on_test)
-    prober = Prober(cfg, load_config(resolve_path(cfg["data_config"])), caches, resolve_path, device, args.eval_split)
+    fold_ids = ([im["id"] for im in load_fold_images(resolve_path(args.folds_file), args.eval_fold)]
+                if args.eval_fold else None)
+    prober = Prober(cfg, load_config(resolve_path(cfg["data_config"])), caches, resolve_path, device, args.eval_split,
+                    eval_image_ids=fold_ids)
     if on_test:
-        tag = f"test_{tag}"
+        tag = f"test_fold{args.eval_fold}_{tag}" if args.eval_fold else f"test_{tag}"
     log.info("crops per class: %s", prober.counts())
 
     t0 = time.time()
@@ -66,6 +79,9 @@ def main() -> None:
     feats = prober.features(encoder, stain_shift=not on_test, input_norm=norm)
     t_feat = time.time() - t0
     res = prober.evaluate(encoder, full=True, feats=feats)
+    if args.eval_fold:
+        res["eval_fold"] = {"fold": args.eval_fold, "folds_file": Path(args.folds_file).as_posix(),
+                            "n_images": len(fold_ids)}
     res.update(tag=tag, source=source, probe_config=cfg["probe"],
                time_s={"features": round(t_feat, 1), "total": round(time.time() - t0, 1)})
 

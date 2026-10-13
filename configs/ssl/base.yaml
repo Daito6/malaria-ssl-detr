@@ -3,8 +3,11 @@
 base: configs/ssl/probe.yaml
 
 model:
-  encoder: vit_small_patch16_224     # random init, never pretrained weights
-  drop_path_rate: 0.0
+  encoder: vit_small_patch16_224
+  init: random                       # random | imagenet (probe.references.imagenet) | encoder state dict path
+  drop_path_rate: 0.0                # (the encoder's input norm is recorded as model.input_norm in the run config)
+
+target: null                         # phase 5: {folds_file, fold, fraction} adds unlabeled target-fold images
 
 mae:
   mask_ratio: 0.75

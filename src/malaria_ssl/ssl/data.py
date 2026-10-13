@@ -14,6 +14,10 @@ Views (per sample, all randomness from the sample seed):
     4. per-view flips / rot90 / colour jitter / HED jitter / blur / JPEG, ImageNet normalisation.
 With anchor 260 and crop scale [0.5, 1] the crop side is 184-260 px at training scale, i.e. the
 crop is rescaled by 0.86-1.22x to 224 (about 1.0 on average): cells keep the DETR scale.
+
+Target domain (phase 5): `make_folds` splits the test images into two folds; `build_target_cache` caches
+the images of one fold from the folds file (ids + file names) alone, without opening any annotation file;
+`MixedTwoViewDataset` + `MixedImageSampler` draw a fixed fraction of the pairs from those images.
 """
 from __future__ import annotations
 
@@ -136,9 +140,10 @@ def build_view_transform(vcfg: dict[str, Any]) -> A.Compose:
     return A.Compose(t)
 
 
-def normalize(img: np.ndarray) -> torch.Tensor:
-    """uint8 HWC RGB -> ImageNet-normalized float CHW tensor."""
-    return torch.from_numpy(((img.astype(np.float32) / 255.0 - IMAGENET_MEAN) / IMAGENET_STD).transpose(2, 0, 1).copy())
+def normalize(img: np.ndarray, mean=IMAGENET_MEAN, std=IMAGENET_STD) -> torch.Tensor:
+    """uint8 HWC RGB -> normalized float CHW tensor (default: ImageNet mean / std)."""
+    mean, std = np.asarray(mean, np.float32), np.asarray(std, np.float32)
+    return torch.from_numpy(((img.astype(np.float32) / 255.0 - mean) / std).transpose(2, 0, 1).copy())
 
 
 class TwoViewDataset(Dataset):
@@ -148,10 +153,12 @@ class TwoViewDataset(Dataset):
     the per-view augmentations (used for MAE overfitting / fixed monitoring crops).
     """
 
-    def __init__(self, npy_path: Path, vcfg: dict[str, Any], augment: bool = True, image_ids: list[int] | None = None):
+    def __init__(self, npy_path: Path, vcfg: dict[str, Any], augment: bool = True, image_ids: list[int] | None = None,
+                 input_norm: tuple[Any, Any] | None = None):
         self.npy_path = Path(npy_path)
         self.vcfg = vcfg
         self.augment = augment
+        self.norm = input_norm or (IMAGENET_MEAN, IMAGENET_STD)   # the encoder's input (mean, std)
         self.transform = build_view_transform(vcfg) if augment else None
         shape = np.load(self.npy_path, mmap_mode="r").shape
         self.n, self.hc, self.wc = shape[0], shape[1], shape[2]
@@ -183,8 +190,25 @@ class TwoViewDataset(Dataset):
             if self.transform is not None:
                 self.transform.set_random_seed(int(view_seeds[k]))
                 v = self.transform(image=v)["image"]
-            views.append(normalize(v))
+            views.append(normalize(v, *self.norm))
         return views[0], views[1], torch.from_numpy(crops).float()
+
+
+class MixedTwoViewDataset(Dataset):
+    """Several TwoViewDatasets (e.g. train + unlabeled target images) behind one global image index:
+    `ds[(i, seed)]` reads image i - offset of the source that i falls into."""
+
+    def __init__(self, sources: list[TwoViewDataset]):
+        self.sources = sources
+        self.offsets = np.cumsum([0] + [len(s) for s in sources])
+
+    def __len__(self) -> int:
+        return int(self.offsets[-1])
+
+    def __getitem__(self, key: tuple[int, int]):
+        idx, seed = key
+        k = int(np.searchsorted(self.offsets, idx, side="right") - 1)
+        return self.sources[k][(idx - int(self.offsets[k]), seed)]
 
 
 # --------------------------------------------------------------------------- sampling
@@ -209,6 +233,86 @@ class RandomImageSampler(Sampler):
         idx = rng.integers(0, self.n, size=self.samples)
         seeds = rng.integers(0, 2**31 - 1, size=self.samples)
         return iter(zip(idx.tolist(), seeds.tolist()))
+
+
+class MixedImageSampler(Sampler):
+    """Like RandomImageSampler over [source images | target images]: each draw comes from the target
+    images with probability `target_fraction`, then a uniform image of that source. Depends only on
+    (seed, epoch)."""
+
+    def __init__(self, n_source: int, n_target: int, target_fraction: float, samples_per_epoch: int, seed: int):
+        if not 0 <= target_fraction <= 1:
+            raise ValueError("target_fraction must be in [0, 1]")
+        self.n_source, self.n_target, self.fraction = n_source, n_target, target_fraction
+        self.samples, self.seed, self.epoch = samples_per_epoch, seed, 0
+
+    def set_epoch(self, epoch: int) -> None:
+        self.epoch = epoch
+
+    def __len__(self) -> int:
+        return self.samples
+
+    def __iter__(self) -> Iterator[tuple[int, int]]:
+        rng = np.random.default_rng([self.seed, self.epoch])
+        is_target = rng.random(self.samples) < self.fraction
+        idx = np.where(is_target, self.n_source + rng.integers(0, self.n_target, size=self.samples),
+                       rng.integers(0, self.n_source, size=self.samples))
+        seeds = rng.integers(0, 2**31 - 1, size=self.samples)
+        return iter(zip(idx.tolist(), seeds.tolist()))
+
+
+# --------------------------------------------------------------------------- target domain (unlabeled)
+
+def make_folds(image_ids: list[int], n_infected: dict[int, int], seed: int) -> dict[int, int]:
+    """Two folds of the images, balanced by the number of infected cells: images sorted by
+    (n_infected, id), then within each consecutive pair one image goes to each fold at random
+    (an odd last image goes to a random fold). Returns {image id: fold (1 or 2)}."""
+    order = sorted(image_ids, key=lambda i: (n_infected.get(i, 0), i))
+    rng = np.random.default_rng(seed)
+    fold = {}
+    for s in range(0, len(order), 2):
+        pair = order[s:s + 2]
+        for im, f in zip(pair, rng.permutation([1, 2])):
+            fold[im] = int(f)
+    return fold
+
+
+def load_fold_images(folds_path: Path, fold: int) -> list[dict[str, Any]]:
+    """[{id, file_name}] of one fold from the folds file (image ids and file names only, no labels)."""
+    folds = json.loads(Path(folds_path).read_text(encoding="utf-8"))["folds"]
+    return sorted(folds[str(fold)], key=lambda im: im["id"])
+
+
+def build_target_cache(folds_path: Path, fold: int, raw_images: Path, cache_cfg: dict[str, Any],
+                       resolve) -> tuple[Path, Path]:
+    """Unlabeled target-domain cache of ONE fold: decodes only the image files listed for that fold in
+    the folds file. Never opens an annotation file. Idempotent; same layout as `build_cache`."""
+    images = load_fold_images(folds_path, fold)
+    long_side = cache_cfg["long_side"]
+    npy, idx_path = cache_paths(resolve(cache_cfg["dir"]), f"target_fold{fold}", long_side)
+    h0, w0 = read_rgb(Path(raw_images) / images[0]["file_name"]).shape[:2]
+    scale = long_side / max(w0, h0)
+    hc, wc = round(h0 * scale), round(w0 * scale)
+    index = {"split": f"target_fold{fold}", "long_side": long_side, "scale": scale, "shape": [len(images), hc, wc, 3],
+             "images": [{"id": im["id"], "file_name": im["file_name"]} for im in images]}
+    if npy.exists() and idx_path.exists():
+        if json.loads(idx_path.read_text(encoding="utf-8")) == index:
+            return npy, idx_path
+        log.warning("target cache index for fold %d changed, rebuilding", fold)
+    npy.parent.mkdir(parents=True, exist_ok=True)
+    tmp = npy.with_name(npy.stem + ".tmp.npy")
+    arr = np.lib.format.open_memmap(tmp, mode="w+", dtype=np.uint8, shape=tuple(index["shape"]))
+    for i, im in enumerate(images):
+        img = read_rgb(Path(raw_images) / im["file_name"])
+        if img.shape[:2] != (h0, w0):
+            raise ValueError(f"target fold {fold}: {im['file_name']} is {img.shape[:2]}, expected {(h0, w0)}")
+        arr[i] = cv2.resize(img, (wc, hc), interpolation=cv2.INTER_AREA)
+    arr.flush()
+    del arr
+    tmp.replace(npy)
+    idx_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
+    log.info("built %s (%s)", npy, index["shape"])
+    return npy, idx_path
 
 
 def box_iou(a: np.ndarray, b: np.ndarray) -> float:

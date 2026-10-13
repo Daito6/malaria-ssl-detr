@@ -12,6 +12,42 @@ from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD
 from malaria_ssl.ssl.models import build_encoder
 
 
+def is_imagenet_norm(mean, std) -> bool:
+    return bool(torch.allclose(torch.as_tensor(mean, dtype=torch.float64), torch.as_tensor(IMAGENET_MEAN, dtype=torch.float64))
+                and torch.allclose(torch.as_tensor(std, dtype=torch.float64), torch.as_tensor(IMAGENET_STD, dtype=torch.float64)))
+
+
+def encoder_input_norm(path: Path) -> tuple[list[float], list[float]]:
+    """Input (mean, std) of an exported SSL encoder (runs/<run>/checkpoints/<file>.pt): the run's
+    `model.input_norm` (e.g. an ImageNet-initialised run keeps timm's 0.5 / 0.5); ImageNet stats if the
+    run config has none (random-init runs) or the file is not inside a run."""
+    run_cfg = Path(path).resolve().parent.parent / "config.yaml"
+    norm = None
+    if run_cfg.exists():
+        norm = (yaml.safe_load(run_cfg.read_text(encoding="utf-8")).get("model") or {}).get("input_norm")
+    if norm is None:
+        return [float(v) for v in IMAGENET_MEAN], [float(v) for v in IMAGENET_STD]
+    return [float(v) for v in norm["mean"]], [float(v) for v in norm["std"]]
+
+
+def init_encoder(model_cfg: dict[str, Any], imagenet_name: str, resolve) -> tuple[torch.nn.Module, dict[str, Any]]:
+    """SSL encoder and its input normalization. `model_cfg.init`: random (default) | imagenet (timm
+    `imagenet_name`, its own mean / std) | path to a timm state dict (continued pretraining; the
+    normalization of the run that produced it). Returns (encoder, {"mean": [...], "std": [...]})."""
+    init, name, dpr = model_cfg.get("init", "random"), model_cfg["encoder"], model_cfg["drop_path_rate"]
+    if init == "random":
+        enc, mean, std = build_encoder(name, dpr), IMAGENET_MEAN, IMAGENET_STD
+    elif init == "imagenet":
+        enc = build_encoder(imagenet_name, dpr, pretrained=True)
+        pc = timm.models.get_pretrained_cfg(imagenet_name)
+        mean, std = pc.mean, pc.std
+    else:
+        enc = build_encoder(name, dpr)
+        enc.load_state_dict(torch.load(resolve(init), map_location="cpu", weights_only=True), strict=True)
+        mean, std = encoder_input_norm(resolve(init))
+    return enc, {"mean": [float(v) for v in mean], "std": [float(v) for v in std]}
+
+
 def load_encoder(cfg: dict[str, Any], ref: str | None = None, run: str | None = None, encoder: str | None = None,
                  detr_run: str | None = None, tag: str | None = None) -> tuple[torch.nn.Module, str, dict[str, Any]]:
     """(encoder, tag, source). Exactly one of ref (random | imagenet), run (SSL run dir), encoder (timm state
@@ -36,7 +72,11 @@ def load_encoder(cfg: dict[str, Any], ref: str | None = None, run: str | None = 
         path, name, default_tag = Path(encoder), cfg["model"]["encoder"], Path(encoder).stem
     enc = build_encoder(name)
     enc.load_state_dict(torch.load(path, map_location="cpu", weights_only=True), strict=True)
-    return enc, tag or default_tag, {"encoder_path": str(path)}
+    source = {"encoder_path": str(path)}
+    mean, std = encoder_input_norm(path)
+    if not is_imagenet_norm(mean, std):   # e.g. continued pretraining from the ImageNet ViT (0.5 / 0.5)
+        source.update(input_mean=mean, input_std=std)
+    return enc, tag or default_tag, source
 
 
 def _from_detr(run_dir: Path, tag: str | None) -> tuple[torch.nn.Module, str, dict[str, Any]]:

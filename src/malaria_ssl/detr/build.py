@@ -189,8 +189,11 @@ def build_vit_backbone(vit_cfg: dict[str, Any]) -> ViTBackbone:
         pc = timm.models.get_pretrained_cfg(vit_cfg["imagenet"])
         mean, std = pc.mean, pc.std
     else:
+        from malaria_ssl.ssl.encoders import encoder_input_norm
+
         enc = build_encoder(vit_cfg["arch"], drop_path_rate=dpr)
         enc.load_state_dict(torch.load(resolve_path(init), map_location="cpu", weights_only=True), strict=True)
+        mean, std = encoder_input_norm(resolve_path(init))   # the SSL run's input norm (ImageNet unless recorded)
     log.info("ViT backbone %s (init %s), input mean %s std %s, stride %d",
              vit_cfg["arch"], init, tuple(float(v) for v in mean), tuple(float(v) for v in std), vit_cfg["stride"])
     return ViTBackbone(enc, mean, std, vit_cfg["stride"])

@@ -1,0 +1,6 @@
+# Phase 5 EXPLORATORY: CONTROL joint_cont. Same recipe as imagenet_cont (train images only, 30 epochs, blr 1.5e-4,
+# fresh MAE decoder and projector), but initialised from our in-domain SSL encoder runs/ssl_joint (ImageNet
+# input normalization, as in its pretraining).
+base: configs/ssl/imagenet_cont.yaml
+model:
+  init: runs/ssl_joint/checkpoints/encoder_final.pt
