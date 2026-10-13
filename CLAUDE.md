@@ -102,6 +102,8 @@ Non-obvious decisions (details in `reports/phase2_summary.md`):
 python scripts/pretrain.py --config configs/ssl/<exp>.yaml [--resume] [--set key=value] [--name ...]
 python scripts/probe.py --run runs/ssl_<exp>        # or --encoder <pt> | --ref random | --ref imagenet
 python scripts/probe.py --run runs/ssl_<exp> --eval-split test   # FINAL eval only: probe_test_<tag>.json
+python scripts/probe.py --detr-run runs/<vit_detr run> [--eval-split test]   # ViT after DETR fine-tuning
+python scripts/two_stage.py {candidates|features|evaluate} ...   # DETR boxes + frozen crop classifier
 python scripts/compare_probes.py --val-test --tags <tags...> --out reports/tables/<name>.csv
 python scripts/diagnose_shift.py runs/<binary DETR run>
 python scripts/compare_probes.py --tags <probe tags...> --out reports/tables/<name>.csv   # reads probe json only
@@ -185,8 +187,13 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   outscored by uninfected in 62-77% for ViT-DETR (baseline A 37%; val 3-8%). Frozen-encoder probe on test crops
   (fit on train): linear AUPRC ImageNet 0.876, con 0.853, mae 0.835, joint 0.808, random 0.513; joint - ImageNet
   -0.068 [-0.107, -0.030], kNN AUPRC +0.005 [-0.047, 0.055]. Scale is not the cause: at the real x1.05 no AP50
-  change (CIs include 0); x0.8 / x1.27 change val AP50 by <= 0.056. Not done yet: probing the encoders AFTER
-  DETR fine-tuning (would separate encoder vs DETR-head contributions). Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  change (CIs include 0); x0.8 / x1.27 change val AP50 by <= 0.056.
+  Two-stage diagnostic (`scripts/two_stage.py`, eval only): DETR class-agnostic boxes (A or b_vit_imagenet,
+  NMS 0.5) + frozen-encoder linear crop classifier (train GT crops, clean or +stain); objectness x p chosen on val
+  everywhere. Test AP50 0.52-0.61 for all encoders incl. SSL (joint 0.58-0.59 = ImageNet, diffs CIs include 0);
+  vs the boxes' own end-to-end DETR no significant AP50 gain; vs the SSL encoders' own ViT-DETR +0.25..+0.29.
+  Probe of the ViT AFTER DETR fine-tuning (`probe.py --detr-run`): ImageNet test kNN AUPRC +0.112, joint worse
+  (stain val -0.014, test 10%-label -0.131, kNN -0.055); fine-tuned joint still linear test AUPRC 0.786. Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report

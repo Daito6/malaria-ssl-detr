@@ -1,0 +1,145 @@
+run,comparison,training,metric,diff,low,high,share_le_0,n
+a_coco_detr_binary,ref_imagenet two-stage - end-to-end,clean,test_AP50_infected,0.0475,-0.0066,0.1156,0.0460,1000
+a_coco_detr_binary,ref_imagenet two-stage - end-to-end,clean,test_precision_infected,-0.0870,-0.1546,-0.0205,0.9900,1000
+a_coco_detr_binary,ref_imagenet two-stage - end-to-end,clean,test_recall_infected,0.0462,-0.0091,0.1040,0.0590,1000
+a_coco_detr_binary,ref_imagenet two-stage - end-to-end,clean,test_f1_infected,0.0218,-0.0314,0.0733,0.2220,1000
+a_coco_detr_binary,ref_imagenet two-stage - b_vit_imagenet end-to-end,clean,test_AP50_infected,0.0711,0.0031,0.1404,0.0180,1000
+a_coco_detr_binary,ref_imagenet two-stage - b_vit_imagenet end-to-end,clean,test_precision_infected,-0.0801,-0.1639,0.0025,0.9660,1000
+a_coco_detr_binary,ref_imagenet two-stage - b_vit_imagenet end-to-end,clean,test_recall_infected,0.2013,0.1329,0.2731,0.0000,1000
+a_coco_detr_binary,ref_imagenet two-stage - b_vit_imagenet end-to-end,clean,test_f1_infected,0.1925,0.1224,0.2653,0.0000,1000
+a_coco_detr_binary,ssl_con_only two-stage - end-to-end,clean,test_AP50_infected,-0.0226,-0.0803,0.0432,0.7250,1000
+a_coco_detr_binary,ssl_con_only two-stage - end-to-end,clean,test_precision_infected,-0.1840,-0.2652,-0.0987,1.0000,1000
+a_coco_detr_binary,ssl_con_only two-stage - end-to-end,clean,test_recall_infected,-0.0231,-0.1074,0.0563,0.7230,1000
+a_coco_detr_binary,ssl_con_only two-stage - end-to-end,clean,test_f1_infected,-0.0603,-0.1438,0.0151,0.9330,1000
+a_coco_detr_binary,ssl_con_only two-stage - b_vit_con end-to-end,clean,test_AP50_infected,0.2773,0.2040,0.3545,0.0000,1000
+a_coco_detr_binary,ssl_con_only two-stage - b_vit_con end-to-end,clean,test_precision_infected,-0.1966,-0.4028,0.0450,0.9480,1000
+a_coco_detr_binary,ssl_con_only two-stage - b_vit_con end-to-end,clean,test_recall_infected,0.3333,0.2583,0.4164,0.0000,1000
+a_coco_detr_binary,ssl_con_only two-stage - b_vit_con end-to-end,clean,test_f1_infected,0.4215,0.3430,0.5017,0.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - end-to-end,clean,test_AP50_infected,0.0297,-0.0303,0.0949,0.1630,1000
+a_coco_detr_binary,ssl_mae_only two-stage - end-to-end,clean,test_precision_infected,-0.0644,-0.1871,0.0543,0.8690,1000
+a_coco_detr_binary,ssl_mae_only two-stage - end-to-end,clean,test_recall_infected,-0.2475,-0.3174,-0.1888,1.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - end-to-end,clean,test_f1_infected,-0.2996,-0.3795,-0.2288,1.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - b_vit_mae end-to-end,clean,test_AP50_infected,0.2448,0.1640,0.3308,0.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - b_vit_mae end-to-end,clean,test_precision_infected,-0.1922,-0.3256,-0.0650,0.9980,1000
+a_coco_detr_binary,ssl_mae_only two-stage - b_vit_mae end-to-end,clean,test_recall_infected,0.0132,-0.0366,0.0652,0.3280,1000
+a_coco_detr_binary,ssl_mae_only two-stage - b_vit_mae end-to-end,clean,test_f1_infected,0.0145,-0.0643,0.0957,0.3660,1000
+a_coco_detr_binary,ssl_joint two-stage - end-to-end,clean,test_AP50_infected,0.0242,-0.0325,0.0967,0.1990,1000
+a_coco_detr_binary,ssl_joint two-stage - end-to-end,clean,test_precision_infected,-0.0780,-0.1567,0.0141,0.9590,1000
+a_coco_detr_binary,ssl_joint two-stage - end-to-end,clean,test_recall_infected,-0.0297,-0.0978,0.0336,0.8130,1000
+a_coco_detr_binary,ssl_joint two-stage - end-to-end,clean,test_f1_infected,-0.0433,-0.1138,0.0245,0.8970,1000
+a_coco_detr_binary,ssl_joint two-stage - b_vit_joint end-to-end,clean,test_AP50_infected,0.2461,0.1787,0.3220,0.0000,1000
+a_coco_detr_binary,ssl_joint two-stage - b_vit_joint end-to-end,clean,test_precision_infected,-0.0541,-0.1572,0.0560,0.8410,1000
+a_coco_detr_binary,ssl_joint two-stage - b_vit_joint end-to-end,clean,test_recall_infected,0.1353,0.0716,0.2056,0.0000,1000
+a_coco_detr_binary,ssl_joint two-stage - b_vit_joint end-to-end,clean,test_f1_infected,0.1413,0.0656,0.2196,0.0000,1000
+a_coco_detr_binary,ssl_joint - ref_imagenet (two-stage),clean,test_AP50_infected,-0.0233,-0.0738,0.0240,0.8250,1000
+a_coco_detr_binary,ssl_joint - ref_imagenet (two-stage),clean,test_precision_infected,0.0090,-0.0620,0.0817,0.3910,1000
+a_coco_detr_binary,ssl_joint - ref_imagenet (two-stage),clean,test_recall_infected,-0.0759,-0.1447,-0.0158,0.9940,1000
+a_coco_detr_binary,ssl_joint - ref_imagenet (two-stage),clean,test_f1_infected,-0.0651,-0.1303,-0.0028,0.9800,1000
+a_coco_detr_binary,ref_imagenet two-stage - end-to-end,stain,test_AP50_infected,0.0466,-0.0107,0.1123,0.0610,1000
+a_coco_detr_binary,ref_imagenet two-stage - end-to-end,stain,test_precision_infected,-0.0675,-0.1360,-0.0037,0.9810,1000
+a_coco_detr_binary,ref_imagenet two-stage - end-to-end,stain,test_recall_infected,-0.0198,-0.0737,0.0344,0.7870,1000
+a_coco_detr_binary,ref_imagenet two-stage - end-to-end,stain,test_f1_infected,-0.0319,-0.0871,0.0210,0.8880,1000
+a_coco_detr_binary,ref_imagenet two-stage - b_vit_imagenet end-to-end,stain,test_AP50_infected,0.0702,0.0041,0.1327,0.0180,1000
+a_coco_detr_binary,ref_imagenet two-stage - b_vit_imagenet end-to-end,stain,test_precision_infected,-0.0605,-0.1506,0.0259,0.9100,1000
+a_coco_detr_binary,ref_imagenet two-stage - b_vit_imagenet end-to-end,stain,test_recall_infected,0.1353,0.0714,0.2014,0.0000,1000
+a_coco_detr_binary,ref_imagenet two-stage - b_vit_imagenet end-to-end,stain,test_f1_infected,0.1388,0.0680,0.2075,0.0000,1000
+a_coco_detr_binary,ssl_con_only two-stage - end-to-end,stain,test_AP50_infected,-0.0109,-0.0679,0.0572,0.5840,1000
+a_coco_detr_binary,ssl_con_only two-stage - end-to-end,stain,test_precision_infected,-0.1582,-0.2293,-0.0802,1.0000,1000
+a_coco_detr_binary,ssl_con_only two-stage - end-to-end,stain,test_recall_infected,-0.0297,-0.1075,0.0455,0.7820,1000
+a_coco_detr_binary,ssl_con_only two-stage - end-to-end,stain,test_f1_infected,-0.0600,-0.1371,0.0114,0.9430,1000
+a_coco_detr_binary,ssl_con_only two-stage - b_vit_con end-to-end,stain,test_AP50_infected,0.2890,0.2209,0.3679,0.0000,1000
+a_coco_detr_binary,ssl_con_only two-stage - b_vit_con end-to-end,stain,test_precision_infected,-0.1709,-0.3727,0.0676,0.9210,1000
+a_coco_detr_binary,ssl_con_only two-stage - b_vit_con end-to-end,stain,test_recall_infected,0.3267,0.2554,0.4062,0.0000,1000
+a_coco_detr_binary,ssl_con_only two-stage - b_vit_con end-to-end,stain,test_f1_infected,0.4218,0.3445,0.5015,0.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - end-to-end,stain,test_AP50_infected,0.0375,-0.0219,0.1033,0.1140,1000
+a_coco_detr_binary,ssl_mae_only two-stage - end-to-end,stain,test_precision_infected,-0.1102,-0.1857,-0.0436,1.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - end-to-end,stain,test_recall_infected,-0.0297,-0.0967,0.0345,0.8360,1000
+a_coco_detr_binary,ssl_mae_only two-stage - end-to-end,stain,test_f1_infected,-0.0497,-0.1160,0.0115,0.9470,1000
+a_coco_detr_binary,ssl_mae_only two-stage - b_vit_mae end-to-end,stain,test_AP50_infected,0.2525,0.1762,0.3395,0.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - b_vit_mae end-to-end,stain,test_precision_infected,-0.2380,-0.3312,-0.1441,1.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - b_vit_mae end-to-end,stain,test_recall_infected,0.2310,0.1644,0.3007,0.0000,1000
+a_coco_detr_binary,ssl_mae_only two-stage - b_vit_mae end-to-end,stain,test_f1_infected,0.2644,0.1821,0.3340,0.0000,1000
+a_coco_detr_binary,ssl_joint two-stage - end-to-end,stain,test_AP50_infected,0.0415,-0.0176,0.1114,0.0830,1000
+a_coco_detr_binary,ssl_joint two-stage - end-to-end,stain,test_precision_infected,-0.1361,-0.2076,-0.0568,1.0000,1000
+a_coco_detr_binary,ssl_joint two-stage - end-to-end,stain,test_recall_infected,0.0726,0.0000,0.1407,0.0290,1000
+a_coco_detr_binary,ssl_joint two-stage - end-to-end,stain,test_f1_infected,0.0289,-0.0420,0.0960,0.2100,1000
+a_coco_detr_binary,ssl_joint two-stage - b_vit_joint end-to-end,stain,test_AP50_infected,0.2634,0.1907,0.3390,0.0000,1000
+a_coco_detr_binary,ssl_joint two-stage - b_vit_joint end-to-end,stain,test_precision_infected,-0.1122,-0.1951,-0.0301,0.9950,1000
+a_coco_detr_binary,ssl_joint two-stage - b_vit_joint end-to-end,stain,test_recall_infected,0.2376,0.1684,0.3145,0.0000,1000
+a_coco_detr_binary,ssl_joint two-stage - b_vit_joint end-to-end,stain,test_f1_infected,0.2135,0.1452,0.2883,0.0000,1000
+a_coco_detr_binary,ssl_joint - ref_imagenet (two-stage),stain,test_AP50_infected,-0.0051,-0.0571,0.0437,0.5760,1000
+a_coco_detr_binary,ssl_joint - ref_imagenet (two-stage),stain,test_precision_infected,-0.0686,-0.1317,-0.0007,0.9780,1000
+a_coco_detr_binary,ssl_joint - ref_imagenet (two-stage),stain,test_recall_infected,0.0924,0.0273,0.1565,0.0030,1000
+a_coco_detr_binary,ssl_joint - ref_imagenet (two-stage),stain,test_f1_infected,0.0608,-0.0025,0.1257,0.0320,1000
+b_vit_imagenet,ref_imagenet two-stage - end-to-end,clean,test_AP50_infected,0.0349,-0.0259,0.0986,0.1170,1000
+b_vit_imagenet,ref_imagenet two-stage - end-to-end,clean,test_precision_infected,-0.1616,-0.2555,-0.0677,1.0000,1000
+b_vit_imagenet,ref_imagenet two-stage - end-to-end,clean,test_recall_infected,0.1023,0.0498,0.1591,0.0000,1000
+b_vit_imagenet,ref_imagenet two-stage - end-to-end,clean,test_f1_infected,0.0876,0.0210,0.1502,0.0040,1000
+b_vit_imagenet,ref_imagenet two-stage - b_vit_imagenet end-to-end,clean,test_AP50_infected,0.0349,-0.0259,0.0986,0.1170,1000
+b_vit_imagenet,ref_imagenet two-stage - b_vit_imagenet end-to-end,clean,test_precision_infected,-0.1616,-0.2555,-0.0677,1.0000,1000
+b_vit_imagenet,ref_imagenet two-stage - b_vit_imagenet end-to-end,clean,test_recall_infected,0.1023,0.0498,0.1591,0.0000,1000
+b_vit_imagenet,ref_imagenet two-stage - b_vit_imagenet end-to-end,clean,test_f1_infected,0.0876,0.0210,0.1502,0.0040,1000
+b_vit_imagenet,ssl_con_only two-stage - end-to-end,clean,test_AP50_infected,-0.0035,-0.0717,0.0702,0.4880,1000
+b_vit_imagenet,ssl_con_only two-stage - end-to-end,clean,test_precision_infected,-0.1918,-0.3019,-0.0789,0.9990,1000
+b_vit_imagenet,ssl_con_only two-stage - end-to-end,clean,test_recall_infected,0.0495,-0.0307,0.1250,0.1080,1000
+b_vit_imagenet,ssl_con_only two-stage - end-to-end,clean,test_f1_infected,0.0315,-0.0672,0.1213,0.2510,1000
+b_vit_imagenet,ssl_con_only two-stage - b_vit_con end-to-end,clean,test_AP50_infected,0.2728,0.2022,0.3525,0.0000,1000
+b_vit_imagenet,ssl_con_only two-stage - b_vit_con end-to-end,clean,test_precision_infected,-0.2115,-0.4275,0.0319,0.9540,1000
+b_vit_imagenet,ssl_con_only two-stage - b_vit_con end-to-end,clean,test_recall_infected,0.2508,0.1871,0.3200,0.0000,1000
+b_vit_imagenet,ssl_con_only two-stage - b_vit_con end-to-end,clean,test_f1_infected,0.3427,0.2644,0.4208,0.0000,1000
+b_vit_imagenet,ssl_mae_only two-stage - end-to-end,clean,test_AP50_infected,0.0651,-0.0032,0.1347,0.0330,1000
+b_vit_imagenet,ssl_mae_only two-stage - end-to-end,clean,test_precision_infected,-0.0193,-0.1857,0.1258,0.6050,1000
+b_vit_imagenet,ssl_mae_only two-stage - end-to-end,clean,test_recall_infected,-0.1320,-0.1908,-0.0796,1.0000,1000
+b_vit_imagenet,ssl_mae_only two-stage - end-to-end,clean,test_f1_infected,-0.1892,-0.2703,-0.1133,1.0000,1000
+b_vit_imagenet,ssl_mae_only two-stage - b_vit_mae end-to-end,clean,test_AP50_infected,0.2565,0.1741,0.3407,0.0000,1000
+b_vit_imagenet,ssl_mae_only two-stage - b_vit_mae end-to-end,clean,test_precision_infected,-0.1540,-0.3309,0.0000,0.9780,1000
+b_vit_imagenet,ssl_mae_only two-stage - b_vit_mae end-to-end,clean,test_recall_infected,-0.0264,-0.0761,0.0169,0.8970,1000
+b_vit_imagenet,ssl_mae_only two-stage - b_vit_mae end-to-end,clean,test_f1_infected,-0.0458,-0.1269,0.0250,0.8970,1000
+b_vit_imagenet,ssl_joint two-stage - end-to-end,clean,test_AP50_infected,0.0549,-0.0112,0.1209,0.0520,1000
+b_vit_imagenet,ssl_joint two-stage - end-to-end,clean,test_precision_infected,-0.0723,-0.1723,0.0340,0.9210,1000
+b_vit_imagenet,ssl_joint two-stage - end-to-end,clean,test_recall_infected,0.0693,0.0094,0.1327,0.0170,1000
+b_vit_imagenet,ssl_joint two-stage - end-to-end,clean,test_f1_infected,0.0712,-0.0059,0.1487,0.0330,1000
+b_vit_imagenet,ssl_joint two-stage - b_vit_joint end-to-end,clean,test_AP50_infected,0.2531,0.1826,0.3291,0.0000,1000
+b_vit_imagenet,ssl_joint two-stage - b_vit_joint end-to-end,clean,test_precision_infected,-0.0553,-0.1656,0.0531,0.8430,1000
+b_vit_imagenet,ssl_joint two-stage - b_vit_joint end-to-end,clean,test_recall_infected,0.0792,0.0146,0.1449,0.0080,1000
+b_vit_imagenet,ssl_joint two-stage - b_vit_joint end-to-end,clean,test_f1_infected,0.0851,0.0031,0.1652,0.0200,1000
+b_vit_imagenet,ssl_joint - ref_imagenet (two-stage),clean,test_AP50_infected,0.0200,-0.0300,0.0680,0.2310,1000
+b_vit_imagenet,ssl_joint - ref_imagenet (two-stage),clean,test_precision_infected,0.0894,0.0069,0.1716,0.0160,1000
+b_vit_imagenet,ssl_joint - ref_imagenet (two-stage),clean,test_recall_infected,-0.0330,-0.0847,0.0141,0.9200,1000
+b_vit_imagenet,ssl_joint - ref_imagenet (two-stage),clean,test_f1_infected,-0.0164,-0.0704,0.0388,0.7270,1000
+b_vit_imagenet,ref_imagenet two-stage - end-to-end,stain,test_AP50_infected,0.0487,-0.0264,0.1171,0.0900,1000
+b_vit_imagenet,ref_imagenet two-stage - end-to-end,stain,test_precision_infected,-0.0917,-0.1910,0.0043,0.9670,1000
+b_vit_imagenet,ref_imagenet two-stage - end-to-end,stain,test_recall_infected,0.0693,0.0144,0.1195,0.0060,1000
+b_vit_imagenet,ref_imagenet two-stage - end-to-end,stain,test_f1_infected,0.0682,0.0006,0.1318,0.0250,1000
+b_vit_imagenet,ref_imagenet two-stage - b_vit_imagenet end-to-end,stain,test_AP50_infected,0.0487,-0.0264,0.1171,0.0900,1000
+b_vit_imagenet,ref_imagenet two-stage - b_vit_imagenet end-to-end,stain,test_precision_infected,-0.0917,-0.1910,0.0043,0.9670,1000
+b_vit_imagenet,ref_imagenet two-stage - b_vit_imagenet end-to-end,stain,test_recall_infected,0.0693,0.0144,0.1195,0.0060,1000
+b_vit_imagenet,ref_imagenet two-stage - b_vit_imagenet end-to-end,stain,test_f1_infected,0.0682,0.0006,0.1318,0.0250,1000
+b_vit_imagenet,ssl_con_only two-stage - end-to-end,stain,test_AP50_infected,0.0076,-0.0541,0.0835,0.3460,1000
+b_vit_imagenet,ssl_con_only two-stage - end-to-end,stain,test_precision_infected,-0.1708,-0.2756,-0.0644,1.0000,1000
+b_vit_imagenet,ssl_con_only two-stage - end-to-end,stain,test_recall_infected,0.0495,-0.0287,0.1250,0.1110,1000
+b_vit_imagenet,ssl_con_only two-stage - end-to-end,stain,test_f1_infected,0.0351,-0.0598,0.1267,0.2180,1000
+b_vit_imagenet,ssl_con_only two-stage - b_vit_con end-to-end,stain,test_AP50_infected,0.2839,0.2192,0.3653,0.0000,1000
+b_vit_imagenet,ssl_con_only two-stage - b_vit_con end-to-end,stain,test_precision_infected,-0.1905,-0.4078,0.0501,0.9400,1000
+b_vit_imagenet,ssl_con_only two-stage - b_vit_con end-to-end,stain,test_recall_infected,0.2508,0.1839,0.3214,0.0000,1000
+b_vit_imagenet,ssl_con_only two-stage - b_vit_con end-to-end,stain,test_f1_infected,0.3463,0.2637,0.4247,0.0000,1000
+b_vit_imagenet,ssl_mae_only two-stage - end-to-end,stain,test_AP50_infected,0.0782,-0.0001,0.1491,0.0260,1000
+b_vit_imagenet,ssl_mae_only two-stage - end-to-end,stain,test_precision_infected,-0.1255,-0.2238,-0.0296,0.9940,1000
+b_vit_imagenet,ssl_mae_only two-stage - end-to-end,stain,test_recall_infected,0.0726,0.0034,0.1419,0.0220,1000
+b_vit_imagenet,ssl_mae_only two-stage - end-to-end,stain,test_f1_infected,0.0660,-0.0214,0.1467,0.0730,1000
+b_vit_imagenet,ssl_mae_only two-stage - b_vit_mae end-to-end,stain,test_AP50_infected,0.2696,0.1742,0.3573,0.0000,1000
+b_vit_imagenet,ssl_mae_only two-stage - b_vit_mae end-to-end,stain,test_precision_infected,-0.2602,-0.3509,-0.1551,1.0000,1000
+b_vit_imagenet,ssl_mae_only two-stage - b_vit_mae end-to-end,stain,test_recall_infected,0.1782,0.1093,0.2438,0.0000,1000
+b_vit_imagenet,ssl_mae_only two-stage - b_vit_mae end-to-end,stain,test_f1_infected,0.2094,0.1169,0.2908,0.0000,1000
+b_vit_imagenet,ssl_joint two-stage - end-to-end,stain,test_AP50_infected,0.0655,-0.0011,0.1353,0.0280,1000
+b_vit_imagenet,ssl_joint two-stage - end-to-end,stain,test_precision_infected,-0.1042,-0.1932,-0.0068,0.9790,1000
+b_vit_imagenet,ssl_joint two-stage - end-to-end,stain,test_recall_infected,0.1419,0.0774,0.2099,0.0000,1000
+b_vit_imagenet,ssl_joint two-stage - end-to-end,stain,test_f1_infected,0.1358,0.0584,0.2137,0.0000,1000
+b_vit_imagenet,ssl_joint two-stage - b_vit_joint end-to-end,stain,test_AP50_infected,0.2638,0.1918,0.3442,0.0000,1000
+b_vit_imagenet,ssl_joint two-stage - b_vit_joint end-to-end,stain,test_precision_infected,-0.0872,-0.1831,0.0143,0.9590,1000
+b_vit_imagenet,ssl_joint two-stage - b_vit_joint end-to-end,stain,test_recall_infected,0.1518,0.0871,0.2237,0.0000,1000
+b_vit_imagenet,ssl_joint two-stage - b_vit_joint end-to-end,stain,test_f1_infected,0.1497,0.0757,0.2283,0.0000,1000
+b_vit_imagenet,ssl_joint - ref_imagenet (two-stage),stain,test_AP50_infected,0.0169,-0.0381,0.0767,0.2430,1000
+b_vit_imagenet,ssl_joint - ref_imagenet (two-stage),stain,test_precision_infected,-0.0124,-0.1077,0.0862,0.5850,1000
+b_vit_imagenet,ssl_joint - ref_imagenet (two-stage),stain,test_recall_infected,0.0726,0.0199,0.1293,0.0040,1000
+b_vit_imagenet,ssl_joint - ref_imagenet (two-stage),stain,test_f1_infected,0.0676,0.0103,0.1306,0.0120,1000
