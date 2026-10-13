@@ -317,3 +317,19 @@ def test_phase4_freeze_configs_differ_only_as_declared():
             c = flat(load_experiment(f"configs/experiments/b_vit_{enc}_{variant}.yaml"))
             diff = {k: (ref.get(k), c.get(k)) for k in set(c) | set(ref) if ref.get(k) != c.get(k)}
             assert diff == expected, (enc, variant, diff)
+
+
+def test_phase4_aug_configs_differ_only_as_declared():
+    def flat(d, p=""):
+        out = {}
+        for k, v in d.items():
+            out.update(flat(v, f"{p}{k}.")) if isinstance(v, dict) else out.__setitem__(f"{p}{k}", v)
+        return out
+
+    expected = {"augment.stain_aug.p": (0.0, 0.5), "augment.train_long_side": ([640, 960, 32], [576, 1056, 32]),
+                "train.select_on": ("val", "val_stain"), "eval.val_stain": (False, True)}
+    for enc in ("joint", "imagenet"):
+        ref = flat(load_experiment(f"configs/experiments/b_vit_{enc}.yaml"))
+        c = flat(load_experiment(f"configs/experiments/b_vit_{enc}_aug.yaml"))
+        diff = {k: (ref.get(k), c.get(k)) for k in set(c) | set(ref) if ref.get(k) != c.get(k)}
+        assert diff == expected, (enc, diff)

@@ -86,6 +86,29 @@ class HEDJitter(A.ImageOnlyTransform):
         return (np.clip(out, 0, 1) * 255).astype(np.uint8)
 
 
+def stain_shift_transforms(scfg: dict[str, Any]) -> list[A.BasicTransform]:
+    """Strong photometric shift of the stain-shifted probe (HED, colour jitter, blur, JPEG), each with p=1."""
+    cj = scfg["color_jitter"]
+    return [
+        HEDJitter(sigma=scfg["hed_sigma"], p=1.0),
+        A.ColorJitter(brightness=cj["brightness"], contrast=cj["contrast"], saturation=cj["saturation"],
+                      hue=cj["hue"], p=1.0),
+        A.GaussianBlur(sigma_limit=tuple(scfg["blur_sigma"]), p=1.0),
+        A.ImageCompression(quality_range=tuple(scfg["jpeg_quality"]), p=1.0),
+    ]
+
+
+def build_stain_shift(scfg: dict[str, Any]) -> A.Compose:
+    """Fixed-per-image stain shift (stain-shifted probe and the synthetic stain-shifted val)."""
+    return A.Compose(stain_shift_transforms(scfg))
+
+
+def apply_stain_shift(img: np.ndarray, transform: A.Compose, seed: int, image_id: int) -> np.ndarray:
+    """Shift of one image, fixed by (seed, image id)."""
+    transform.set_random_seed(int(np.random.default_rng([seed, int(image_id)]).integers(0, 2**31 - 1)))
+    return transform(image=img)["image"]
+
+
 def build_transforms(aug: dict[str, Any], train: bool) -> A.Compose:
     """Albumentations pipeline from the `augment` config section."""
     bbox_params = A.BboxParams(format="coco", label_fields=["labels"],
@@ -115,6 +138,9 @@ def build_transforms(aug: dict[str, Any], train: bool) -> A.Compose:
     t.append(A.GaussianBlur(sigma_limit=tuple(bl["sigma"]), p=bl["p"]))
     jp = aug["jpeg"]
     t.append(A.ImageCompression(quality_range=tuple(jp["quality"]), p=jp["p"]))
+    sa = aug.get("stain_aug", {})
+    if sa.get("p", 0) > 0:  # appended only when on, so the random stream of older configs is unchanged
+        t.append(A.Sequential(stain_shift_transforms(sa), p=sa["p"]))
     return A.Compose(t, bbox_params=bbox_params)
 
 
@@ -132,13 +158,15 @@ def read_rgb(path: Path) -> np.ndarray:
 class DetectionDataset(Dataset):
     """COCO split -> (normalized image tensor, DETR target dict).
 
-    `__getitem__` accepts an int index or an `(index, sample_seed)` tuple.
+    `__getitem__` accepts an int index or an `(index, sample_seed)` tuple. `shift` = (stain-shift
+    transform, seed) applies a fixed per-image shift (seed, image id) after `transform` (eval only).
     """
 
     def __init__(self, coco: dict[str, Any], images_dir: Path, transform: A.Compose,
-                 image_ids: list[int] | None = None):
+                 image_ids: list[int] | None = None, shift: tuple[A.Compose, int] | None = None):
         self.images_dir = Path(images_dir)
         self.transform = transform
+        self.shift = shift
         self.cat_to_label, self.label_to_cat, self.class_names = contiguous_labels(coco)
         self.images = {im["id"]: im for im in coco["images"]}
         self.ids = sorted(self.images) if image_ids is None else list(image_ids)
@@ -159,6 +187,8 @@ class DetectionDataset(Dataset):
         out = self.transform(image=img, bboxes=np.array([a["bbox"] for a in anns], dtype=np.float32).reshape(-1, 4),
                              labels=[self.cat_to_label[a["category_id"]] for a in anns])
         image = out["image"]
+        if self.shift is not None:
+            image = apply_stain_shift(image, *self.shift, info["id"])
         h, w = image.shape[:2]
         boxes = np.asarray(out["bboxes"], dtype=np.float32).reshape(-1, 4)
         cxcywh = np.stack([(boxes[:, 0] + boxes[:, 2] / 2) / w, (boxes[:, 1] + boxes[:, 3] / 2) / h,

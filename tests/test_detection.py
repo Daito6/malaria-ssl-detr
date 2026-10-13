@@ -131,3 +131,68 @@ def test_hed_jitter_seeded_and_changes_image():
     # sigma=0 must be (almost) the identity
     ident = A.Compose([HEDJitter(sigma=0.0, p=1.0)])(image=img)["image"]
     assert np.abs(ident.astype(int) - img).max() <= 1
+
+
+# --------------------------------------------------------------------------- stain augmentation / shifted val
+
+def _toy_dataset(tmp_path, transform, shift=None):
+    import cv2
+    rng = np.random.default_rng(0)
+    for i in (1, 2):
+        img = rng.integers(40, 220, (120, 160, 3), dtype=np.uint8)
+        cv2.imwrite(str(tmp_path / f"img{i}.png"), img)
+    cats = [{"id": 1, "name": "uninfected"}, {"id": 2, "name": "infected"}]
+    images = [{"id": i, "file_name": f"img{i}.png", "width": 160, "height": 120} for i in (1, 2)]
+    anns = [{"id": k, "image_id": 1 + k % 2, "category_id": 1 + k % 2, "bbox": [10 + 20 * k, 20, 18, 16]}
+            for k in range(4)]
+    return DetectionDataset({"images": images, "annotations": anns, "categories": cats}, tmp_path, transform,
+                            shift=shift)
+
+
+def _aug(**stain):
+    aug = {**CFG["augment"], "train_long_side": [96, 160, 32], "eval_long_side": 128}
+    return {**aug, "stain_aug": {**CFG["augment"]["stain_aug"], **stain}}
+
+
+def test_stain_aug_off_leaves_the_pipeline_unchanged(tmp_path):
+    old = {k: v for k, v in _aug().items() if k != "stain_aug"}          # a config from before the option
+    a = _toy_dataset(tmp_path, build_transforms(old, train=True))[(0, 123)]
+    b = _toy_dataset(tmp_path, build_transforms(_aug(p=0.0), train=True))[(0, 123)]
+    assert len(build_transforms(old, train=True).transforms) == len(build_transforms(_aug(p=0.0), train=True).transforms)
+    assert torch.equal(a[0], b[0]) and torch.equal(a[1]["boxes"], b[1]["boxes"])
+
+
+def test_stain_aug_on_changes_colour_but_not_geometry(tmp_path):
+    off = _toy_dataset(tmp_path, build_transforms(_aug(p=0.0), train=True))
+    on = _toy_dataset(tmp_path, build_transforms(_aug(p=1.0), train=True))
+    for key in ((0, 5), (1, 6), (0, 7)):
+        (xa, ta), (xb, tb) = off[key], on[key]
+        assert xa.shape == xb.shape and torch.equal(ta["boxes"], tb["boxes"])   # appended last: geometry identical
+        assert (xa - xb).abs().mean() > 0.05
+    again = _toy_dataset(tmp_path, build_transforms(_aug(p=1.0), train=True))[(0, 5)][0]
+    assert torch.equal(on[(0, 5)][0], again)                                   # seeded
+
+
+def test_stain_shifted_val_is_fixed_per_image_and_keeps_boxes(tmp_path):
+    from malaria_ssl.data.detection import apply_stain_shift, build_stain_shift
+    from malaria_ssl.detr.trainer import val_stain_shift
+    sc = load_config(resolve_path("configs/ssl/probe.yaml"))["probe"]["stain_shift"]
+    assert {k: CFG["augment"]["stain_aug"][k] for k in ("hed_sigma", "color_jitter", "blur_sigma", "jpeg_quality")} \
+        == {k: sc[k] for k in ("hed_sigma", "color_jitter", "blur_sigma", "jpeg_quality")}   # same family/strength
+    tf = build_transforms(_aug(), train=False)
+    clean = _toy_dataset(tmp_path, tf)
+    shifted = _toy_dataset(tmp_path, tf, shift=val_stain_shift(CFG))
+    x0, t0 = clean[0]
+    x1, t1 = shifted[0]
+    assert torch.equal(t0["boxes"], t1["boxes"]) and t0["scale"] == t1["scale"] and (x0 - x1).abs().mean() > 0.05
+    assert torch.equal(x1, shifted[0][0]) and torch.equal(shifted[1][0], shifted[1][0])   # same every call
+    _ = shifted[1]
+    assert torch.equal(x1, shifted[0][0])                                      # other images do not disturb it
+    # identical to the probe's shift of the resized image (seed, image id)
+    import cv2
+    raw = cv2.cvtColor(cv2.imread(str(tmp_path / "img1.png")), cv2.COLOR_BGR2RGB)
+    ref = apply_stain_shift(tf(image=raw, bboxes=np.zeros((0, 4)), labels=[])["image"], build_stain_shift(sc),
+                            sc["seed"], 1)
+    from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD
+    exp = torch.from_numpy(((ref.astype(np.float32) / 255 - IMAGENET_MEAN) / IMAGENET_STD).transpose(2, 0, 1).copy())
+    assert torch.allclose(x1, exp)

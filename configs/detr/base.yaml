@@ -19,6 +19,12 @@ augment:
   hed_jitter: {enabled: false, sigma: 0.03, p: 0.5}
   blur: {sigma: [0.1, 1.0], p: 0.1}
   jpeg: {quality: [60, 100], p: 0.3}   # the test split is JPEG-compressed
+  stain_aug:                        # strong stain shift (probe family, configs/ssl/probe.yaml), resampled per sample
+    p: 0.0                          # 0 = off (not added to the pipeline)
+    hed_sigma: 0.08
+    color_jitter: {brightness: 0.3, contrast: 0.3, saturation: 0.3, hue: 0.05}
+    blur_sigma: [0.5, 1.0]
+    jpeg_quality: [30, 60]
 
 model:
   name: coco_detr_r50                 # coco_detr_r50 | scratch_r50 | vit_detr
@@ -67,6 +73,7 @@ train:
   micro_batch: auto                   # auto = probe the largest that fits
   probe_memory_fraction: 0.85         # max share of GPU memory the probe may use
   eval_every: 2
+  select_on: val                      # best.pt by AP on: val | val_stain (synthetic stain-shifted val; needs eval.val_stain)
   num_workers: 6
   persistent_workers: true
   amp_dtype: bfloat16
@@ -77,3 +84,5 @@ eval:
   batch_size: 4
   iou_threshold: 0.5
   bootstrap: 200
+  val_stain: false                    # also evaluate the synthetic stain-shifted val during training
+  stain_shift_config: configs/ssl/probe.yaml   # probe.stain_shift: fixed shift per val image (seed, image id)

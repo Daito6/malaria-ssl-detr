@@ -1,0 +1,24 @@
+# Phase 4 EXPLORATORY: "the DETR decoder / class head overfits the train-domain appearance; strong stain + scale
+# augmentation helps under the val -> test shift". The hypothesis was formed AFTER seeing test results; one seed (42);
+# the augmentation strength is fixed in the configs (declared before running) and not tuned, in particular not on test.
+# Variants (configs verified by tests/test_vit_detr.py to differ from b_vit_<enc> only in these keys):
+#   augment.stain_aug.p 0 -> 0.5 (stain-shifted probe family/strength), augment.train_long_side [640, 960] -> [576, 1056],
+#   train.select_on val -> val_stain and eval.val_stain true (best.pt chosen on the synthetic stain-shifted val, never test).
+# Each run: train -> val (thresholds) -> val --stain-shift (val thresholds) -> test (val thresholds) -> diagnose_shift.
+#
+# Estimate (2-epoch smoke runs/dry_c_joint_aug): ~125 s/epoch steady (161 s first), peak 11.1 GiB, micro-batch 8;
+# + clean and stain-shifted val every 2 epochs -> ~90 min train + ~3 min eval per run. Total ~3.1 h.
+# Run:  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase4_aug.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+b_vit_joint_aug    | python scripts/train_detr.py --config configs/experiments/b_vit_joint_aug.yaml
+b_vit_joint_aug    | python scripts/evaluate.py runs/b_vit_joint_aug --split val --bootstrap
+b_vit_joint_aug    | python scripts/evaluate.py runs/b_vit_joint_aug --split val --stain-shift --bootstrap
+b_vit_joint_aug    | python scripts/evaluate.py runs/b_vit_joint_aug --split test --bootstrap
+b_vit_joint_aug    | python scripts/diagnose_shift.py runs/b_vit_joint_aug
+
+b_vit_imagenet_aug | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_aug.yaml
+b_vit_imagenet_aug | python scripts/evaluate.py runs/b_vit_imagenet_aug --split val --bootstrap
+b_vit_imagenet_aug | python scripts/evaluate.py runs/b_vit_imagenet_aug --split val --stain-shift --bootstrap
+b_vit_imagenet_aug | python scripts/evaluate.py runs/b_vit_imagenet_aug --split test --bootstrap
+b_vit_imagenet_aug | python scripts/diagnose_shift.py runs/b_vit_imagenet_aug
