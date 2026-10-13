@@ -57,7 +57,11 @@ def summarize(scores: dict[str, np.ndarray], thr: float) -> dict[str, float]:
     return {"n_gt": int(len(s)), "median_score": float(np.median(s)) if len(s) else float("nan"),
             "frac_ge_val_threshold": float(np.mean(s >= thr)),
             "frac_no_target_detection": float(np.mean(s == 0)),
-            "frac_other_class_scores_higher": float(np.mean(o > s))}
+            "frac_other_class_scores_higher": float(np.mean(o > s)),
+            # mutually exclusive outcomes per GT box (sum to 1): not localized by any class at IoU >= thr /
+            # localized but another class scores higher / the target class scores highest
+            "frac_no_detection_any_class": float(np.mean((s == 0) & (o == 0))),
+            "frac_target_scores_highest": float(np.mean((s > 0) & (s >= o)))}
 
 
 def plot_shift(scores: dict[str, dict[str, np.ndarray]], curves: dict[str, dict[str, np.ndarray]], thr: float,

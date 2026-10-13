@@ -14,7 +14,7 @@ import argparse
 
 import pandas as pd
 
-from malaria_ssl.detr.compare import run_summary, select_by_simplicity, val_curve
+from malaria_ssl.detr.compare import run_summary, select_by_simplicity, shift_rows, val_curve
 from malaria_ssl.utils.config import resolve_path
 
 
@@ -26,6 +26,7 @@ def main() -> None:
     ap.add_argument("--select", action="store_true")
     ap.add_argument("--out", required=True)
     ap.add_argument("--curves", help="optional csv of in-training val AP50 of --cls per epoch")
+    ap.add_argument("--shift-out", help="optional csv of the val/test diagnose_shift fractions (shift_<run>.json)")
     args = ap.parse_args()
 
     rows = [run_summary(resolve_path(f"runs/{r}"), args.split, args.cls) for r in args.runs]
@@ -41,6 +42,13 @@ def main() -> None:
         curves.to_csv(resolve_path(args.curves), float_format="%.4f")
         print(curves.to_string(float_format=lambda v: f"{v:.4f}"))
         print(f"wrote {resolve_path(args.curves)}")
+
+    if args.shift_out:
+        tables = resolve_path("reports/tables")
+        sh = pd.DataFrame([r for run in args.runs for r in shift_rows(tables / f"shift_{run}.json")])
+        sh.to_csv(resolve_path(args.shift_out), index=False, float_format="%.4f")
+        print(sh.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
+        print(f"wrote {resolve_path(args.shift_out)}")
 
     if args.select:
         sel = select_by_simplicity(rows, args.cls)

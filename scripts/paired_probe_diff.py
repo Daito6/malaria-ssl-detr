@@ -1,4 +1,4 @@
-"""Paired bootstrap of probe-metric differences between encoders (val crops only, CPU, no encoder pass).
+"""Paired bootstrap of probe-metric differences between encoders (val or test crops, CPU, no encoder pass).
 
 Usage:
     python scripts/paired_probe_diff.py --pairs ssl_joint:ssl_con_only ssl_joint:ssl_mae_only \
@@ -13,6 +13,9 @@ estimates reproduce reports/tables/probe_<tag>.json. Then, for each metric, scor
 SAME bootstrap resamples of val images (same seed as the marginal CIs) and reports metric(a) - metric(b)
 with its 95% percentile CI. The 10%-label metric is the mean over the low-label seeds (same subsets for
 both encoders); per-seed differences are reported too.
+
+--split test (final evaluation only) reads probe_test_<tag>.json and runs/probe/test_<tag>/features_{train,test}.pt
+from `probe.py --eval-split test`; clean metrics only (no stain shift on test), plus kNN AUPRC.
 
 Writes <out>.csv and <out>.json.
 """
@@ -35,19 +38,21 @@ METRICS = [("auprc_clean", "linear", "val", 1.0, "auprc_infected"),
            ("auprc_10pct", "linear", "val", 0.1, "auprc_infected"),
            ("macro_f1", "linear", "val", 1.0, "macro_f1"),
            ("knn_balanced_acc", "knn", "val", 1.0, "balanced_acc")]
+TEST_METRICS = [(n, m, "test", f, k) for n, m, e, f, k in METRICS if e == "val"] + [
+    ("knn_auprc", "knn", "test", 1.0, "auprc_infected")]
 
 
-def load_feats(tag: str) -> dict[str, dict]:
+def load_feats(tag: str, sets: tuple[str, ...]) -> dict[str, dict]:
     d = resolve_path("runs/probe") / tag
     return {s: torch.load(d / f"features_{s}.pt", map_location="cpu", weights_only=False)
-            for s in ("train", "val", "val_stain")}
+            for s in sets}
 
 
-def fit_all(feats: dict[str, dict], pcfg: dict, n_classes: int) -> dict:
-    """{(method, eval set, fraction): [val probabilities per seed]} for every entry of METRICS."""
+def fit_all(feats: dict[str, dict], pcfg: dict, n_classes: int, metrics: list) -> dict:
+    """{(method, eval set, fraction): [probabilities per seed]} for every entry of `metrics`."""
     xtr, ytr = feats["train"]["features"].float(), feats["train"]["label"].long()
     out = {}
-    for _, method, eval_set, frac, _ in METRICS:
+    for _, method, eval_set, frac, _ in metrics:
         if (method, eval_set, frac) in out:
             continue
         seeds = [None] if frac >= 1 else range(pcfg["low_label"]["seeds"])
@@ -70,7 +75,7 @@ def reference_value(probe: dict, method: str, eval_set: str, frac: float, key: s
     """The same point estimate as stored by scripts/probe.py."""
     if frac < 1:
         return probe["low_label"][str(frac)][method]["mean"][key]
-    src = probe["methods"] if eval_set == "val" else probe["stain_shift"]["methods"]
+    src = probe["methods"] if eval_set in ("val", "test") else probe["stain_shift"]["methods"]
     return src[method]["metrics"][key]
 
 
@@ -78,6 +83,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--pairs", nargs="+", required=True, metavar="A:B")
     ap.add_argument("--config", default="configs/ssl/base.yaml")
+    ap.add_argument("--split", default="val", choices=["val", "test"])
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -86,25 +92,28 @@ def main() -> None:
     if any(len(pr) != 2 for pr in pairs):
         raise SystemExit("pairs must be A:B")
     tags = list(dict.fromkeys(t for pr in pairs for t in pr))
-    probes = {t: json.loads((resolve_path("reports/tables") / f"probe_{t}.json").read_text(encoding="utf-8"))
+    ev = args.split
+    metrics, sets, pre = ((METRICS, ("train", "val", "val_stain"), "") if ev == "val"
+                          else (TEST_METRICS, ("train", "test"), "test_"))
+    probes = {t: json.loads((resolve_path("reports/tables") / f"probe_{pre}{t}.json").read_text(encoding="utf-8"))
               for t in tags}
     names = probes[tags[0]]["classes"]
     infected = np.array([n in probes[tags[0]]["infected"] for n in names])
-    feats = {t: load_feats(t) for t in tags}
+    feats = {t: load_feats(pre + t, sets) for t in tags}
     ref = feats[tags[0]]
     for t in tags:   # identical crop sets (same order) are what makes the bootstrap paired
         assert probes[t]["classes"] == names
-        for s in ("train", "val", "val_stain"):
+        for s in sets:
             assert torch.equal(feats[t][s]["label"], ref[s]["label"]), (t, s)
             assert torch.equal(feats[t][s]["image_id"], ref[s]["image_id"]), (t, s)
-    y, image_ids = ref["val"]["label"].numpy(), ref["val"]["image_id"].numpy()
+    y, image_ids = ref[ev]["label"].numpy(), ref[ev]["image_id"].numpy()
 
     torch.manual_seed(0)
-    probs = {t: fit_all(feats[t], pcfg, len(names)) for t in tags}
+    probs = {t: fit_all(feats[t], pcfg, len(names), metrics) for t in tags}
 
     check = []
     for t in tags:
-        for name, method, eval_set, frac, key in METRICS:
+        for name, method, eval_set, frac, key in metrics:
             v = float(np.mean([compute_metrics(y, p, infected, names)[key] for p in probs[t][(method, eval_set, frac)]]))
             check.append({"encoder": t, "metric": name, "refit": v,
                           "probe_json": reference_value(probes[t], method, eval_set, frac, key)})
@@ -115,7 +124,7 @@ def main() -> None:
 
     rows, per_seed = [], {}
     for a, b in pairs:
-        for name, method, eval_set, frac, key in METRICS:
+        for name, method, eval_set, frac, key in metrics:
             pa, pb = probs[a][(method, eval_set, frac)], probs[b][(method, eval_set, frac)]
             r = paired_bootstrap_diff(y, pa, pb, image_ids, infected, names, key, pcfg["bootstrap"], pcfg["seed"])
             rows.append({"a": a, "b": b, "metric": name, "value_a": r["a"], "value_b": r["b"],
@@ -131,8 +140,8 @@ def main() -> None:
     df.to_csv(out.with_suffix(".csv"), index=False, float_format="%.4f")
     out.with_suffix(".json").write_text(json.dumps(
         {"rows": rows, "per_seed_diff": per_seed, "refit_check": check.to_dict("records"),
-         "n_resamples": pcfg["bootstrap"], "seed": pcfg["seed"], "n_val_images": int(len(np.unique(image_ids))),
-         "n_val_crops": int(len(y))}, indent=2), encoding="utf-8")
+         "n_resamples": pcfg["bootstrap"], "seed": pcfg["seed"], "split": ev, "n_images": int(len(np.unique(image_ids))),
+         "n_crops": int(len(y))}, indent=2), encoding="utf-8")
     print(df.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
     for k, v in per_seed.items():
         print(k, "per seed:", [round(x, 4) for x in v])

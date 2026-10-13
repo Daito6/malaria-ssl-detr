@@ -26,13 +26,20 @@ def run_summary(run_dir: str | Path, split: str = "val", cls: str = "infected") 
         row[f"AP50_{c}_lo"] = ci[f"AP50/{c}"]["low"]
         row[f"AP50_{c}_hi"] = ci[f"AP50/{c}"]["high"]
     found = _TRAINABLE.search((run_dir / "train.log").read_text(encoding="utf-8"))
-    row["trainable_params"] = int(found.group(1))
-    row["total_params"] = int(found.group(2))
+    # older (phase 2) runs did not log the parameter count
+    row["trainable_params"] = int(found.group(1)) if found else None
+    row["total_params"] = int(found.group(2)) if found else None
     hist = pd.read_csv(run_dir / "metrics.csv")
     row["epochs"] = len(hist)
     row["train_min"] = (hist["epoch_time_s"].sum() + hist["val_time_s"].fillna(0).sum()) / 60
     row["primary"] = cls
     return row
+
+
+def shift_rows(shift_json: str | Path) -> list[dict[str, Any]]:
+    """Val and test rows of a reports/tables/shift_<run>.json (scripts/diagnose_shift.py)."""
+    s = json.loads(Path(shift_json).read_text(encoding="utf-8"))
+    return [{"run": s["run"], "split": split, **s[split]} for split in ("val", "test")]
 
 
 def val_curve(run_dir: str | Path, cls: str = "infected") -> pd.Series:

@@ -1,10 +1,11 @@
-"""Cell-level kNN / linear probe of a ViT encoder on train -> val crops (no DETR, no test split).
+"""Cell-level kNN / linear probe of a ViT encoder on train -> val crops (no DETR; test only via --eval-split).
 
 Usage:
     python scripts/probe.py --run runs/ssl_joint                 # runs/<name>/checkpoints/encoder_final.pt
     python scripts/probe.py --encoder runs/ssl_joint/checkpoints/encoder_ep020.pt --tag ssl_joint_ep020
     python scripts/probe.py --ref random                         # random-init ViT-S/16 reference
     python scripts/probe.py --ref imagenet                       # ImageNet ViT-S/16 (timm) reference
+    python scripts/probe.py --run runs/ssl_joint --eval-split test   # FINAL evaluation on test crops (no tuning)
 
 Also runs the stain-shifted probe (same classifiers, fitted on clean train crops, evaluated on val
 crops with the fixed seeded shift of `probe.stain_shift`): `stain_shift` in the JSON, rows with
@@ -65,6 +66,8 @@ def main() -> None:
     parser.add_argument("--config", default="configs/ssl/base.yaml")
     parser.add_argument("--tag", default=None)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--eval-split", default="val", choices=["val", "test"],
+                        help="test = final evaluation on test crops (fit on train; no stain shift; writes probe_test_<tag>)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -72,13 +75,16 @@ def main() -> None:
     device = torch.device(args.device)
     encoder, tag, source = load_encoder(args, cfg)
     encoder.to(device)
-    caches = ensure_caches(cfg, resolve_path)
-    prober = Prober(cfg, load_config(resolve_path(cfg["data_config"])), caches, resolve_path, device)
+    on_test = args.eval_split == "test"
+    caches = ensure_caches(cfg, resolve_path, ("train", args.eval_split), allow_test=on_test)
+    prober = Prober(cfg, load_config(resolve_path(cfg["data_config"])), caches, resolve_path, device, args.eval_split)
+    if on_test:
+        tag = f"test_{tag}"
     log.info("crops per class: %s", prober.counts())
 
     t0 = time.time()
     norm = (source["input_mean"], source["input_std"]) if "input_mean" in source else None  # None = ImageNet stats
-    feats = prober.features(encoder, stain_shift=True, input_norm=norm)
+    feats = prober.features(encoder, stain_shift=not on_test, input_norm=norm)
     t_feat = time.time() - t0
     res = prober.evaluate(encoder, full=True, feats=feats)
     res.update(tag=tag, source=source, probe_config=cfg["probe"],
@@ -96,7 +102,7 @@ def main() -> None:
                     "classes": prober.names}, feat_dir / f"features_{split}.pt")
     for m, e in res["methods"].items():
         log.info("%s: %s", m, {k: round(v, 4) for k, v in e["metrics"].items()})
-    for m, e in res["stain_shift"]["methods"].items():
+    for m, e in res.get("stain_shift", {}).get("methods", {}).items():
         log.info("%s (stain-shifted val): %s", m, {k: round(v, 4) for k, v in e["metrics"].items()})
     log.info("wrote %s", out_dir / f"probe_{tag}.json")
 

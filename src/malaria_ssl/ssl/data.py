@@ -42,9 +42,11 @@ def cache_paths(cache_dir: Path, split: str, long_side: int) -> tuple[Path, Path
     return cache_dir / f"{split}_{long_side}.npy", cache_dir / f"{split}_index.json"
 
 
-def build_cache(split: str, data_cfg: dict[str, Any], cache_cfg: dict[str, Any], resolve) -> tuple[Path, Path]:
-    """Decode + resize all images of a split into a uint8 .npy (idempotent). Never writes to raw data."""
-    if split == "test":
+def build_cache(split: str, data_cfg: dict[str, Any], cache_cfg: dict[str, Any], resolve,
+                allow_test: bool = False) -> tuple[Path, Path]:
+    """Decode + resize all images of a split into a uint8 .npy (idempotent). Never writes to raw data.
+    `allow_test` is only for the final test-crop probe evaluation (scripts/probe.py --eval-split test)."""
+    if split == "test" and not allow_test:
         raise ValueError("the test split is never used for SSL")
     long_side = cache_cfg["long_side"]
     npy, idx_path = cache_paths(resolve(cache_cfg["dir"]), split, long_side)
@@ -79,9 +81,10 @@ def build_cache(split: str, data_cfg: dict[str, Any], cache_cfg: dict[str, Any],
     return npy, idx_path
 
 
-def ensure_caches(cfg: dict[str, Any], resolve, splits: tuple[str, ...] = ("train", "val")) -> dict[str, Path]:
+def ensure_caches(cfg: dict[str, Any], resolve, splits: tuple[str, ...] = ("train", "val"),
+                  allow_test: bool = False) -> dict[str, Path]:
     data_cfg = load_config(resolve(cfg["data_config"]))
-    return {s: build_cache(s, data_cfg, cfg["cache"], resolve)[0] for s in splits}
+    return {s: build_cache(s, data_cfg, cfg["cache"], resolve, allow_test)[0] for s in splits}
 
 
 # --------------------------------------------------------------------------- views
