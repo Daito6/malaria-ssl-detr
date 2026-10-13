@@ -207,3 +207,61 @@ def test_phase5_configs_differ_only_in_declared_keys():
             da = load(f"{enc}_da_f{f}")
             assert diff(cont, da) == {"target.folds_file", "target.fold", "target.fraction"}
             assert da["target.fold"] == f and da["target.fraction"] == 0.5
+
+
+def test_arm_configs_differ_only_in_declared_keys():
+    load = lambda n: _flat(load_experiment(f"configs/ssl/{n}.yaml"))   # noqa: E731
+    diff = lambda a, b: {k for k in a.keys() | b.keys() if a.get(k) != b.get(k)}   # noqa: E731
+    for f in (1, 2):
+        da = load(f"imagenet_da_f{f}")
+        kang = load(f"imagenet_da_kang_f{f}")
+        assert diff(da, kang) == {"views.color_jitter.hue", "views.grayscale.p"}   # augmentation keys only
+        assert kang["views.color_jitter.hue"] == 0.1 and kang["views.grayscale.p"] == 0.2
+        assert da["views.grayscale.p"] == 0.0 and da["views.vflip_p"] == kang["views.vflip_p"] == 0.5
+        assert kang["views.color_jitter.brightness"] == kang["views.color_jitter.contrast"] == 0.2
+        assert kang["views.color_jitter.saturation"] == 0.2 and kang["views.color_jitter.p"] == 0.8
+        seed2 = load(f"imagenet_da_seed2_f{f}")
+        assert diff(da, seed2) == {"seed"} and da["seed"] == 42 and seed2["seed"] == 43
+
+
+def test_grayscale_off_keeps_stream_and_on_drops_colour(tmp_path):
+    p = tmp_path / "c.npy"
+    np.save(p, np.random.default_rng(0).integers(0, 256, (2, 72, 96, 3), dtype=np.uint8))
+    base = {**VCFG, "anchor": 40, "out_size": 32, "train_long_side": [96, 96, 32]}
+    no_key = {k: v for k, v in base.items() if k != "grayscale"}
+    off = {**base, "grayscale": {"p": 0.0}}
+    on = {**base, "grayscale": {"p": 1.0}}
+    a, b = TwoViewDataset(p, no_key)[(0, 7)], TwoViewDataset(p, off)[(0, 7)]
+    assert all(torch.equal(x, y) for x, y in zip(a, b))
+    v = TwoViewDataset(p, on, input_norm=HALF)[(0, 7)][0]   # mean = std = 0.5 per channel -> gray = equal channels
+    assert torch.allclose(v[0], v[1], atol=1e-6) and torch.allclose(v[1], v[2], atol=1e-6)
+
+
+def test_dino_reference_uses_timm_pretrained_norm(monkeypatch):
+    import timm
+
+    from malaria_ssl.ssl import encoders
+    from malaria_ssl.ssl.probe import extract_features
+    from malaria_ssl.ssl.data import normalize
+
+    cfg = load_experiment("configs/ssl/base.yaml")
+    name = cfg["probe"]["references"]["dino"]
+    assert name == "vit_small_patch16_224.dino"
+    monkeypatch.setattr(encoders, "build_encoder", lambda n, *a, pretrained=False, **k: build_encoder(n))  # no download
+    enc, tag, source = load_encoder(cfg, ref="dino")
+    pc = timm.models.get_pretrained_cfg(name)
+    assert tag == "ref_dino" and source["timm"] == name
+    assert source["input_mean"] == list(pc.mean) and source["input_std"] == list(pc.std)
+
+    seen = []
+    real = enc.forward_features
+    enc.forward_features = lambda x: (seen.append(x.detach().clone()), real(x))[1]
+    img = np.random.default_rng(1).integers(0, 256, (1, 600, 800, 3), dtype=np.uint8)
+    crops = {"box": np.array([[300.0, 200.0, 340.0, 240.0]], np.float32), "row": np.array([0]),
+             "image_id": np.array([5]), "label": np.array([0])}
+    pcfg = {**cfg["probe"], "long_side": 800, "batch_size": 4}
+    extract_features(enc, img, crops, pcfg, torch.device("cpu"), None,
+                     input_norm=(source["input_mean"], source["input_std"]))
+    x0, y0 = 320 - 112, 220 - 112
+    expected = normalize(img[0, y0:y0 + 224, x0:x0 + 224], pc.mean, pc.std)
+    assert torch.allclose(seen[0][0], expected, atol=1e-5)

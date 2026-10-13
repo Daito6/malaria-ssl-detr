@@ -135,6 +135,9 @@ def build_view_transform(vcfg: dict[str, Any]) -> A.Compose:
     ]
     if vcfg["hed_jitter"]["enabled"]:
         t.append(HEDJitter(sigma=vcfg["hed_jitter"]["sigma"], p=vcfg["hed_jitter"]["p"]))
+    gray = vcfg.get("grayscale", {}).get("p", 0.0)
+    if gray > 0:   # after the colour / stain jitter (a dropped colour stays dropped); only when on, so
+        t.append(A.ToGray(num_output_channels=3, p=gray))   # configs without it keep their random stream
     t.append(A.GaussianBlur(sigma_limit=tuple(bl["sigma"]), p=bl["p"]))
     t.append(A.ImageCompression(quality_range=tuple(jp["quality"]), p=jp["p"]))
     return A.Compose(t)

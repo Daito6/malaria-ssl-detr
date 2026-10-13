@@ -1,4 +1,4 @@
-# Фаза 5: self-supervised domain adaptation (EXPLORATORY; підготовлено, не запущено)
+# Фаза 5: self-supervised domain adaptation (EXPLORATORY; підготовлено, не запущено; + ARM 1–3)
 
 ## Гіпотеза і статус
 
@@ -144,3 +144,95 @@ DETR із цими енкодерами не входить у цю фазу. Р
 ```
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase5_da.txt
 ```
+
+## Додаткові руки (EXPLORATORY; оголошено 2026-10-13 до будь-якого запуску фази 5)
+
+Три руки дописано в **кінець** черги `configs/queues/phase5_da.txt`. Наявні кроки 1–27 і їхній порядок не змінено,
+тож кожну руку можна відкинути, якщо бракує часу. Обмеження ті самі, що для всієї фази:
+- EXPLORATORY: гіпотеза після перегляду test;
+- один seed, крім ARM 2;
+- поправки на множинність немає;
+- на test нічого не підбирається;
+- test — лише 120 зображень; held-out фолд — 60 зображень і 150–153 infected-кропи, тож CI широкі.
+
+### ARM 1: imagenet_da_kang (фолди 1 і 2)
+
+Конфіги `configs/ssl/imagenet_da_kang_f{1,2}.yaml` відрізняються від `imagenet_da_f{1,2}` **лише** ключами
+аугментації; це перевіряє `tests/test_ssl_da.py`. Рецепт узято з Kang et al., CVPR 2023, «Benchmarking
+Self-Supervised Learning on Diverse Pathology Datasets» (arXiv 2212.04690v2, Додаток B.3):
+- weak colour jitter: p 0.8, brightness / contrast / saturation / hue = 0.2 / 0.2 / 0.2 / 0.1;
+- random grayscale: p 0.2;
+- vertical flip: p 0.5;
+- solarization немає;
+- RandStainNA-GMM: p 0.8.
+
+**Наш рецепт уже має** jitter p 0.8 з 0.2 / 0.2 / 0.2 / **0.02**, vertical flip p 0.5 і не має solarization. Тож
+джиттер Kang **не слабший** за наш: B/C/S однакові, hue сильніший. За рішенням користувача беремо значення
+статті буквально. Задекларовані зміни:
+
+| ключ | imagenet_da | imagenet_da_kang |
+|---|---|---|
+| `views.color_jitter.hue` | 0.02 | 0.1 |
+| `views.grayscale.p` | 0 (вимкнено) | 0.2 |
+
+Незмінні: brightness / contrast / saturation 0.2, jitter p 0.8, vflip 0.5, hflip 0.5, rot90 0.5, HED jitter
+(σ 0.03, p 0.5), blur, JPEG, solarization немає.
+
+RandStainNA-GMM не реалізовано. Його роль stain-аугментації виконує наш HED jitter, тому повна відповідність
+статті неможлива.
+
+Grayscale (`A.ToGray`, 3 канали) стоїть після colour jitter і HED jitter, щоб знебарвлений кроп лишався сірим.
+Він потрапляє в пайплайн лише при p > 0, тому випадковий потік інших конфігів не змінюється; це перевіряє тест.
+
+GPU-smoke `runs/dry_p5_imagenet_da_kang_f1` (2 епохи): 90.3 с на епоху (перша 121 с), пік 10.75 GiB.
+
+Оцінка (`phase5_da_kang`), парний bootstrap на тих самих held-out фолдах:
+- imagenet_da_kang − imagenet_da;
+- imagenet_da_kang − ImageNet (заморожений референс).
+
+### ARM 2: imagenet_da_seed2 (фолди 1 і 2)
+
+Конфіги `configs/ssl/imagenet_da_seed2_f{1,2}.yaml` відрізняються від `imagenet_da_f{1,2}` **лише** `seed`: 42 → 43;
+це перевіряє тест. Від seed залежать порядок семплів, view і аугментації, маски MAE та ініціалізація свіжих
+декодера і projector. ImageNet-ініт і фолди ті самі.
+
+Оцінка (`phase5_da_seeds`):
+- imagenet_da (seed 42) і imagenet_da_seed2 (seed 43) поруч, а також їхнє середнє `imagenet_da_2seeds`
+  (`paired_fold_diff.py --mean`: метрика усереднюється на тих самих ресемплах);
+- окремо для кожного held-out фолду і як середнє фолдів.
+
+Пари різниць, задекларовані заздалегідь:
+- seed2 − seed1 (варіабельність за seed);
+- 2seeds − ImageNet;
+- 2seeds − imagenet_cont.
+
+Навіть два seed-и — це не оцінка дисперсії; результат інформативний лише щодо знаку і порядку величини.
+
+### ARM 3: DINO ViT-S/16, референс (без тренування)
+
+timm `vit_small_patch16_224.dino` (`probe.references.dino`, `probe.py --ref dino`, тег `ref_dino`). Mean і std
+читаються з `timm.models.get_pretrained_cfg` і записуються в `source` probe json; для цієї моделі це 0.485 / 0.456
+/ 0.406 і 0.229 / 0.224 / 0.225. Тест перевіряє, що `load_encoder` бере саме ці значення і що вхід енкодера в probe
+дорівнює `(crop / 255 − mean) / std` з цього конфігу.
+
+Оцінка (нічого не тренується, DETR із DINO не тренуємо):
+- **Crop-probe:** val (чистий, stain-shifted, 10% міток; kNN і лінійний L-BFGS; AUPRC infected, 95% CI) і
+  test-кропи (`--eval-split test`, фінальна оцінка).
+- **Парний bootstrap** (`paired_probe_diff.py`, val і test): joint − dino і dino − ImageNet-supervised.
+- **Двоетапний пайплайн** (`two_stage.py`):
+  - ті самі кандидати (`a_coco_detr_binary`, `b_vit_imagenet`) і той самий лінійний класифікатор (clean і
+    stain-augmented);
+  - варіант скору і поріг обираються на val;
+  - пари `--pairs ssl_joint:ref_dino ref_dino:ref_imagenet` (нова опція; за замовчуванням лишається joint −
+    ImageNet, як у фазі 4);
+  - ImageNet і joint у таблиці `phase5_two_stage_dino` перераховано з тими самими фічами, що у фазі 4.
+
+### Оцінка часу всієї черги
+
+| частина | год |
+|---|---|
+| основна частина (кроки 1–27, див. вище) | ≈5.1 |
+| ARM 1 (2 × 0.8 год + 4 probe) | ≈1.7 |
+| ARM 2 (2 × 0.8 год + 4 probe) | ≈1.7 |
+| ARM 3 (2 probe, 2 bootstrap, ознаки 1 енкодера, evaluate на CPU) | ≈0.25 |
+| **разом** | **≈8.75** |

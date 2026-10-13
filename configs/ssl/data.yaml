@@ -19,6 +19,7 @@ views:
   vflip_p: 0.5
   rot90_p: 0.5
   color_jitter: {brightness: 0.2, contrast: 0.2, saturation: 0.2, hue: 0.02, p: 0.8}
+  grayscale: {p: 0.0}                # random grayscale (colour dropping); 0 = off (not in the pipeline)
   hed_jitter: {enabled: true, sigma: 0.03, p: 0.5}
   blur: {sigma: [0.1, 1.5], p: 0.2}
   jpeg: {quality: [60, 100], p: 0.3}   # the test split is JPEG-compressed

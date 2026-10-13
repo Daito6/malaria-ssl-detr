@@ -5,6 +5,7 @@ Usage:
     python scripts/probe.py --encoder runs/ssl_joint/checkpoints/encoder_ep020.pt --tag ssl_joint_ep020
     python scripts/probe.py --ref random                         # random-init ViT-S/16 reference
     python scripts/probe.py --ref imagenet                       # ImageNet ViT-S/16 (timm) reference
+    python scripts/probe.py --ref dino                           # DINO ViT-S/16 (timm vit_small_patch16_224.dino)
     python scripts/probe.py --run runs/ssl_joint --eval-split test   # FINAL evaluation on test crops (no tuning)
     python scripts/probe.py --detr-run runs/b_vit_joint           # the ViT after DETR fine-tuning (tag detr_<run>)
     python scripts/probe.py --run runs/ssl_imagenet_da_f1 --eval-split test --eval-fold 2   # held-out test fold only
@@ -45,7 +46,7 @@ def main() -> None:
     src = parser.add_mutually_exclusive_group(required=True)
     src.add_argument("--run")
     src.add_argument("--encoder")
-    src.add_argument("--ref", choices=["random", "imagenet"])
+    src.add_argument("--ref", choices=["random", "imagenet", "dino"])
     src.add_argument("--detr-run", help="vit_detr run dir: probe its ViT after DETR fine-tuning (best.pt)")
     parser.add_argument("--config", default="configs/ssl/base.yaml")
     parser.add_argument("--tag", default=None)
