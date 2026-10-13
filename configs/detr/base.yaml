@@ -33,6 +33,7 @@ model:
     imagenet: vit_small_patch16_224.augreg_in21k_ft_in1k   # its own input mean/std (0.5) are applied
     stride: 16                        # 16 | 32 (2x2 space-to-depth before the 1x1 input projection)
     drop_path_rate: 0.0
+    freeze: false                     # true: ViT is a fixed feature extractor (no grad, eval mode); the rest trains
   adapt: full                         # vit_detr only: full (whole transformer trains) | lora
   lora:                               # adapt: lora -> transformer base weights frozen, LoRA (peft) on these linears
     r: 16

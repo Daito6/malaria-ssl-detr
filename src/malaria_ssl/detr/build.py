@@ -131,6 +131,7 @@ class ViTBackbone(nn.Module):
     def __init__(self, encoder: nn.Module, enc_mean, enc_std, stride: int = 16):
         super().__init__()
         self.encoder = encoder
+        self.frozen = False
         self.patch = encoder.patch_embed.patch_size[0]
         if stride not in (self.patch, 2 * self.patch):
             raise ValueError(f"stride must be {self.patch} or {2 * self.patch}, got {stride}")
@@ -140,6 +141,19 @@ class ViTBackbone(nn.Module):
         # x_enc = (x * in_std + in_mean - enc_mean) / enc_std
         self.register_buffer("scale", (in_std / enc_std).view(1, 3, 1, 1), persistent=False)
         self.register_buffer("shift", ((in_mean - enc_mean) / enc_std).view(1, 3, 1, 1), persistent=False)
+
+    def freeze(self) -> None:
+        """Fixed feature extractor: no ViT parameter trains and the ViT stays in eval mode (no dropout /
+        drop-path), also after model.train(); no autograd graph is built through it."""
+        self.frozen = True
+        self.encoder.requires_grad_(False)
+        self.encoder.eval()
+
+    def train(self, mode: bool = True) -> "ViTBackbone":
+        super().train(mode)
+        if self.frozen:
+            self.encoder.eval()
+        return self
 
     @property
     def num_channels(self) -> int:
@@ -247,7 +261,9 @@ def build_model(model_cfg: dict[str, Any], class_names: list[str], seed: int) ->
             apply_lora(hf, model_cfg["lora"])
         elif adapt != "full":
             raise ValueError(f"unknown adapt {adapt!r} (full | lora)")
-        return Detr(hf, aux_loss=model_cfg["auxiliary_loss"])  # the whole ViT is trainable
+        if model_cfg["vit"].get("freeze", False):   # after apply_lora, which marks non-transformer params trainable
+            backbone.freeze()
+        return Detr(hf, aux_loss=model_cfg["auxiliary_loss"])  # the whole ViT is trainable unless vit.freeze
     elif name == "scratch_r50":
         cfg = DetrConfig.from_pretrained(model_cfg["pretrained"])  # same architecture hyper-parameters
         cfg.backbone_config.use_pretrained_backbone = False

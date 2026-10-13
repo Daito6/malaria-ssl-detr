@@ -256,3 +256,64 @@ def test_layer_decay_groups_share_the_schedule(vit_model):
     shared = lams[0]
     assert all(lam is shared for lam, n in zip(lams, names) if n != "projection")
     assert lams[names.index("projection")] is not shared
+
+
+# --------------------------------------------------------------------------- frozen ViT (model.vit.freeze)
+
+@pytest.fixture(scope="module")
+def frozen_model():
+    return build_model(_model_cfg(init="random", freeze=True, drop_path_rate=0.1), CLASSES, seed=42)
+
+
+def test_frozen_vit_has_no_trainable_params_and_the_rest_trains(frozen_model):
+    hf = frozen_model.hf
+    assert not any(p.requires_grad for p in hf.model.backbone.parameters())
+    rest = [p for n, p in frozen_model.named_parameters() if ".backbone." not in f".{n}"]
+    assert rest and all(p.requires_grad for p in rest)
+    groups = {g["name"]: g for g in param_groups(frozen_model, CFG["optim"])}
+    assert groups["backbone"]["params"] == []                         # kept (trainer logs group 1), empty
+    assert sum(p.numel() for g in groups.values() for p in g["params"]) == sum(p.numel() for p in rest)
+    torch.optim.AdamW(list(groups.values())).step()                   # an empty group is accepted
+
+
+def test_frozen_vit_stays_in_eval_mode_and_does_not_change(frozen_model):
+    frozen_model.train()
+    enc = frozen_model.hf.model.backbone.encoder
+    assert frozen_model.training and frozen_model.hf.model.input_projection.training
+    assert not any(m.training for m in enc.modules())                 # drop-path 0.1 is inactive
+    x, m = torch.randn(1, 3, 128, 160), torch.ones(1, 128, 160, dtype=torch.long)
+    with torch.no_grad():
+        (f1, _), = frozen_model.hf.model.backbone(x, m)
+        (f2, _), = frozen_model.hf.model.backbone(x, m)
+    assert torch.equal(f1, f2)
+    before = {k: v.clone() for k, v in enc.state_dict().items()}
+    groups = param_groups(frozen_model, CFG["optim"])
+    opt = torch.optim.AdamW(groups)
+    out = frozen_model(x, m)
+    (out.logits.sum() + out.pred_boxes.sum()).backward()
+    assert all(p.grad is None for p in enc.parameters())
+    assert frozen_model.hf.model.input_projection.weight.grad is not None
+    opt.step()
+    assert all(torch.equal(before[k], v) for k, v in enc.state_dict().items())
+
+
+def test_freeze_survives_lora():
+    model = build_model(_model_cfg(init="random", freeze=True) | {"adapt": "lora"}, CLASSES, seed=0)
+    assert not any(p.requires_grad for p in model.hf.model.backbone.parameters())
+    assert model.hf.model.input_projection.weight.requires_grad
+
+
+def test_phase4_freeze_configs_differ_only_as_declared():
+    def flat(d, p=""):
+        out = {}
+        for k, v in d.items():
+            out.update(flat(v, f"{p}{k}.")) if isinstance(v, dict) else out.__setitem__(f"{p}{k}", v)
+        return out
+
+    for enc in ("joint", "imagenet"):
+        ref = flat(load_experiment(f"configs/experiments/b_vit_{enc}.yaml"))
+        for variant, expected in (("frozen", {"model.vit.freeze": (False, True)}),
+                                  ("lowlr", {"optim.lr_backbone": (1.0e-5, 1.0e-7)})):
+            c = flat(load_experiment(f"configs/experiments/b_vit_{enc}_{variant}.yaml"))
+            diff = {k: (ref.get(k), c.get(k)) for k in set(c) | set(ref) if ref.get(k) != c.get(k)}
+            assert diff == expected, (enc, variant, diff)

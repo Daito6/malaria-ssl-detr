@@ -193,7 +193,10 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   everywhere. Test AP50 0.52-0.61 for all encoders incl. SSL (joint 0.58-0.59 = ImageNet, diffs CIs include 0);
   vs the boxes' own end-to-end DETR no significant AP50 gain; vs the SSL encoders' own ViT-DETR +0.25..+0.29.
   Probe of the ViT AFTER DETR fine-tuning (`probe.py --detr-run`): ImageNet test kNN AUPRC +0.112, joint worse
-  (stain val -0.014, test 10%-label -0.131, kNN -0.055); fine-tuned joint still linear test AUPRC 0.786. Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  (stain val -0.014, test 10%-label -0.131, kNN -0.055); fine-tuned joint still linear test AUPRC 0.786.
+  EXPLORATORY (hypothesis formed after seeing test): `model.vit.freeze` (ViTBackbone.freeze: no grad, eval mode);
+  queue `configs/queues/phase4_freeze.txt` (b_vit_{joint,imagenet}_{frozen,lowlr}; lowlr = lr_backbone 1e-7;
+  ~3.7 h) NOT launched. Report all four, no selection by test; paired test bootstrap vs the full-finetune run. Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report
