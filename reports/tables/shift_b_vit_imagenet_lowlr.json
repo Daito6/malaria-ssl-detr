@@ -1,0 +1,24 @@
+{
+  "run": "b_vit_imagenet_lowlr",
+  "class": "infected",
+  "val_threshold": 0.8641509413719177,
+  "iou": 0.5,
+  "val": {
+    "n_gt": 298,
+    "median_score": 0.963951975107193,
+    "frac_ge_val_threshold": 0.8993288590604027,
+    "frac_no_target_detection": 0.030201342281879196,
+    "frac_other_class_scores_higher": 0.0436241610738255,
+    "frac_no_detection_any_class": 0.006711409395973154,
+    "frac_target_scores_highest": 0.9496644295302014
+  },
+  "test": {
+    "n_gt": 303,
+    "median_score": 0.06340612471103668,
+    "frac_ge_val_threshold": 0.15841584158415842,
+    "frac_no_target_detection": 0.3333333333333333,
+    "frac_other_class_scores_higher": 0.5841584158415841,
+    "frac_no_detection_any_class": 0.033003300330033,
+    "frac_target_scores_highest": 0.38283828382838286
+  }
+}

@@ -34,6 +34,7 @@ def run_row(name: str, boot: np.ndarray, point: dict[str, float]) -> dict:
         b = m["bootstrap"]["ci95"]
         if split == "val":
             row["best_epoch"] = m["checkpoint_epoch"] + 1
+            row["val_recall"] = m["prf"]["per_class"][CLS]["recall"]  # point only, at the val-selected threshold
         for c in ("infected", "uninfected"):
             row[f"{split}_AP50_{c}"] = m["coco"]["per_class"][c]["AP50"]
             row[f"{split}_AP50_{c}_lo"], row[f"{split}_AP50_{c}_hi"] = b[f"AP50/{c}"]["low"], b[f"AP50/{c}"]["high"]
@@ -49,6 +50,9 @@ def run_row(name: str, boot: np.ndarray, point: dict[str, float]) -> dict:
         row[f"{split}_median_score"] = sh[split]["median_score"]
     for k in ("frac_ge_val_threshold", "frac_no_target_detection", "frac_other_class_scores_higher"):
         row[f"test_{k}"] = sh["test"][k]
+    for split in ("val", "test"):  # mutually exclusive outcomes per infected GT box
+        for k in ("frac_no_detection_any_class", "frac_other_class_scores_higher", "frac_target_scores_highest"):
+            row[f"{split}_excl_{k}"] = sh[split][k]
     return row
 
 
