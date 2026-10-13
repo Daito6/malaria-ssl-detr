@@ -196,7 +196,11 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   (stain val -0.014, test 10%-label -0.131, kNN -0.055); fine-tuned joint still linear test AUPRC 0.786.
   EXPLORATORY (hypothesis formed after seeing test): `model.vit.freeze` (ViTBackbone.freeze: no grad, eval mode);
   queue `configs/queues/phase4_freeze.txt` (b_vit_{joint,imagenet}_{frozen,lowlr}; lowlr = lr_backbone 1e-7;
-  ~3.7 h) NOT launched. Report all four, no selection by test; paired test bootstrap vs the full-finetune run. Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  ~3.7 h) done; frozen ViT verified bit-identical in best/last.pt. `reports/tables/phase4_freeze_{runs,diff}.csv`: val
+  infected AP50 0.754-0.786 (CIs overlap full); test AP50 joint_frozen 0.276, imagenet_frozen 0.306, joint_lowlr 0.248,
+  imagenet_lowlr 0.465; every variant - its full run is negative on test AP50 and recall (CIs exclude 0; e.g.
+  imagenet_frozen AP50 -0.222 [-0.269, -0.169]); joint_frozen - imagenet_frozen CIs include 0. No multiplicity
+  correction, no selection by test. (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report
