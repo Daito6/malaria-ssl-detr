@@ -543,7 +543,7 @@ Precision і F1 тих самих пар є в `phase4_freeze_diff.csv`.
   Частка «не локалізована» — 0.023–0.069 (у full-запусків 0.017). Медіанний infected-score на test — 0.000–0.063.
 - **Best epoch.** У трьох варіантах best epoch = 40, тобто останній, а в joint_lowlr — 36.
 
-## Експеримент «аугментація проти зсуву» (EXPLORATORY; підготовлено, не запущено)
+## Експеримент «аугментація проти зсуву» (EXPLORATORY; виконано)
 
 **Гіпотезу сформульовано ПІСЛЯ перегляду test-результатів.** Вона звучить так: декодер і класова голова DETR
 перенавчаються на вигляд train-домену, тому сильна аугментація фарбування і масштабу під час тренування DETR має
@@ -594,7 +594,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue
 
 ### Уже натреновані запуски на синтетичному stain-shifted val (до аугментації)
 
-Таблиця `reports/tables/phase4_aug_runs.csv` (`paired_detr_diff.py`). Рядки `_aug` буде додано після черги. CI для
+Таблиця `reports/tables/phase4_aug_runs.csv` (`paired_detr_diff.py`). Рядки `_aug` — у розділі «Результати» нижче. CI для
 AP50 — 200 ресемплів `evaluate.py`; best.pt усіх трьох обрано за чистим val.
 
 | запуск | val AP50 inf. | stain-val AP50 inf. [95% CI] | val recall | stain-val recall | test AP50 inf. | test recall |
@@ -608,6 +608,75 @@ AP50 — 200 ресемплів `evaluate.py`; best.pt усіх трьох об�
 - Парний bootstrap на test (1000 спільних ресемплів): `_aug − b_vit_<enc>` і `joint_aug − imagenet_aug`.
   Метрики: AP50 і recall при val-порозі.
 - Без вибору переможця і без поправки на множинність.
+
+### Результати (EXPLORATORY)
+
+Черга `phase4_aug` завершилась 2026-10-13: усі 10 кроків `QUEUE DONE`, тренування 90.8 хв (joint_aug) і 91 хв
+(imagenet_aug). Таблиці побудовано так:
+```
+python scripts/paired_detr_diff.py --runs a_coco_detr_binary b_vit_imagenet b_vit_joint b_vit_imagenet_aug \
+    b_vit_joint_aug --pairs b_vit_imagenet_aug:b_vit_imagenet b_vit_joint_aug:b_vit_joint \
+    b_vit_joint_aug:b_vit_imagenet_aug b_vit_imagenet_aug:a_coco_detr_binary b_vit_joint_aug:a_coco_detr_binary \
+    --out reports/tables/phase4_aug
+```
+Вихідні файли: `reports/tables/phase4_aug_runs.csv`, `phase4_aug_diff.csv`, `phase4_aug.json`.
+
+**Обмеження, які діють для всіх чисел нижче:**
+- експеримент EXPLORATORY: гіпотезу сформульовано після перегляду test;
+- поправки на множинність немає;
+- seed один (42);
+- силу аугментації не підбирали на test (її зафіксовано в конфігах до запуску);
+- **протоколи вибору best.pt різні**: у `_aug` його обрано за stain-shifted val, у батьківських запусків і в A — за
+  чистим val;
+- жоден запуск не обирається за test.
+
+Пари `_aug − A` додано до запланованих уже після черги, на прохання користувача (до перегляду їхніх різниць).
+
+**Таблиця запусків.** AP50 інфікованих з 95% CI: для val, stain-val і test — 200 ресемплів `evaluate.py`; для test
+recall — 1000 спільних ресемплів. Recall узято при порозі, обраному на val.
+
+| запуск | вибір best.pt | best epoch | val AP50 | stain-val AP50 | test AP50 | test recall |
+|---|---|---|---|---|---|---|
+| a_coco_detr_binary | val | 40 | 0.778 [0.728, 0.832] | 0.682 [0.626, 0.746] | 0.551 [0.479, 0.622] | 0.376 [0.311, 0.447] |
+| b_vit_imagenet | val | 36 | 0.769 [0.720, 0.833] | 0.739 [0.681, 0.808] | 0.528 [0.469, 0.593] | 0.221 [0.172, 0.280] |
+| b_vit_joint | val | 32 | 0.774 [0.717, 0.829] | 0.722 [0.666, 0.784] | 0.329 [0.269, 0.399] | 0.211 [0.163, 0.265] |
+| b_vit_imagenet_aug | val_stain | 32 | 0.820 [0.768, 0.873] | 0.782 [0.731, 0.837] | 0.549 [0.491, 0.610] | 0.234 [0.185, 0.297] |
+| b_vit_joint_aug | val_stain | 38 | 0.777 [0.728, 0.836] | 0.779 [0.724, 0.839] | 0.383 [0.333, 0.445] | 0.175 [0.130, 0.228] |
+
+**Частки `diagnose_shift` для інфікованих GT-боксів.** Три частки взаємовиключні: не локалізовано / uninfected має
+вищий score / infected має найвищий score.
+
+| запуск | val | test |
+|---|---|---|
+| a_coco_detr_binary | 0.017 / 0.040 / 0.943 | 0.013 / 0.370 / 0.617 |
+| b_vit_imagenet | 0.010 / 0.034 / 0.956 | 0.017 / 0.624 / 0.360 |
+| b_vit_joint | 0.034 / 0.034 / 0.933 | 0.017 / 0.650 / 0.333 |
+| b_vit_imagenet_aug | 0.013 / 0.037 / 0.950 | 0.023 / 0.591 / 0.386 |
+| b_vit_joint_aug | 0.017 / 0.034 / 0.950 | 0.017 / 0.670 / 0.314 |
+
+**Парний bootstrap на test** (1000 спільних ресемплів зображень, a − b) для інфікованих:
+
+| a − b | test AP50 [95% CI] | test recall [95% CI] |
+|---|---|---|
+| imagenet_aug − imagenet | +0.022 [−0.018, 0.061] | +0.013 [−0.032, 0.059] |
+| joint_aug − joint | +0.054 [0.005, 0.100] | −0.036 [−0.081, 0.006] |
+| joint_aug − imagenet_aug | −0.166 [−0.227, −0.109] | −0.059 [−0.119, −0.009] |
+| imagenet_aug − A | −0.002 [−0.061, 0.057] | −0.142 [−0.195, −0.087] |
+| joint_aug − A | −0.168 [−0.234, −0.107] | −0.201 [−0.265, −0.144] |
+
+Precision і F1 для тих самих пар є в `phase4_aug_diff.csv`.
+
+**Що змінилося (лише числа):**
+- Stain-val AP50: imagenet 0.739 → 0.782, joint 0.722 → 0.779. Цей val побудовано з того самого сімейства перетворень,
+  що й аугментація.
+- Чистий val AP50: imagenet 0.769 → 0.820, joint 0.774 → 0.777.
+- Test AP50, парні різниці: для imagenet_aug − imagenet CI включає 0; для joint_aug − joint маємо +0.054, CI не
+  включає 0, але нижня межа 0.005.
+- Test recall при val-порозі: в обох парах `_aug − батьківський` CI включає 0.
+- joint_aug − imagenet_aug: AP50 і recall від'ємні, CI не включають 0.
+- Відносно A: AP50 imagenet_aug — CI включає 0, AP50 joint_aug — нижче (CI не включає 0); recall обох `_aug`
+  нижчий (CI не включають 0).
+- Частка «uninfected має вищий score» на test: 0.624 → 0.591 (imagenet) і 0.650 → 0.670 (joint); у A вона 0.370.
 
 ## Крок 5б: seed-реплікації (підготовлено, не запущено)
 `configs/queues/phase4_seeds.txt`: `b_vit_{joint,imagenet}_seed{43,44}`. Вони відрізняються від батьківських конфігів

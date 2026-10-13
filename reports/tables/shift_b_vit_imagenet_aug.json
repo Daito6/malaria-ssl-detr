@@ -1,0 +1,24 @@
+{
+  "run": "b_vit_imagenet_aug",
+  "class": "infected",
+  "val_threshold": 0.8933400511741638,
+  "iou": 0.5,
+  "val": {
+    "n_gt": 298,
+    "median_score": 0.9640840888023376,
+    "frac_ge_val_threshold": 0.87248322147651,
+    "frac_no_target_detection": 0.026845637583892617,
+    "frac_other_class_scores_higher": 0.03691275167785235,
+    "frac_no_detection_any_class": 0.013422818791946308,
+    "frac_target_scores_highest": 0.9496644295302014
+  },
+  "test": {
+    "n_gt": 303,
+    "median_score": 0.45498883724212646,
+    "frac_ge_val_threshold": 0.23432343234323433,
+    "frac_no_target_detection": 0.22772277227722773,
+    "frac_other_class_scores_higher": 0.5907590759075908,
+    "frac_no_detection_any_class": 0.0231023102310231,
+    "frac_target_scores_highest": 0.38613861386138615
+  }
+}

@@ -205,8 +205,11 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   `augment.stain_aug` (probe stain-shift family, p; appended only if p > 0), synthetic stain-shifted val
   (`DetectionDataset(shift=)`, probe.stain_shift seed 2024 + image id, after the eval resize; `eval.val_stain`,
   `train.select_on: val_stain`). Configs b_vit_{joint,imagenet}_aug (stain_aug.p 0.5, train_long_side [576, 1056],
-  select on val_stain); queue `configs/queues/phase4_aug.txt` (~3.1 h, smoke 125 s/epoch, 11.1 GiB) NOT launched.
-  Before-rows on stain val (`reports/tables/phase4_aug_runs.csv`): infected AP50 A 0.682, imagenet 0.739, joint 0.722. (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  select on val_stain); queue `configs/queues/phase4_aug.txt` (~91 min train per run) done; `reports/tables/phase4_aug_{runs,diff}.csv`
+  (best.pt of _aug on val_stain, parents on clean val). Stain-val infected AP50 A 0.682, imagenet 0.739 -> aug 0.782,
+  joint 0.722 -> aug 0.779. Test AP50 imagenet_aug 0.549, joint_aug 0.383; paired test: imagenet_aug - imagenet
+  +0.022 [-0.018, 0.061], joint_aug - joint +0.054 [0.005, 0.100]; recall diffs vs parents CIs include 0; both _aug
+  recall < A (CIs exclude 0). (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report
