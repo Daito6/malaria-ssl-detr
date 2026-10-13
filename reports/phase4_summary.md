@@ -437,6 +437,38 @@ ViT витягнуто з `best.pt` b_vit_imagenet і b_vit_joint з тією н
   під час fine-tuning (−0.014…−0.131 за метриками вище). Розділити ці два внески точніше (наприклад, DETR-бокси +
   дотренований енкодер у двоетапному пайплайні) цей експеримент не дозволяє.
 
+## Експеримент «fine-tuning шкодить енкодеру» (EXPLORATORY; підготовлено, не запущено)
+
+**Гіпотезу сформульовано ПІСЛЯ перегляду test-результатів** (phase4_main і діагностики вище), тому це
+дослідницький, а не підтверджувальний експеримент. Жоден варіант не обирається за test; звітуються всі чотири.
+
+Варіанти оголошено до запуску; 2026-10-13, до будь-якого результату. Конфіги відрізняються від `b_vit_<enc>`
+лише вказаним ключем — це перевіряє `tests/test_vit_detr.py`. Решта — рецепт кроку 5: seed 42, 40 епох.
+
+| запуск | зміна |
+|---|---|
+| `b_vit_joint_frozen`, `b_vit_imagenet_frozen` | `model.vit.freeze: true`: ViT без градієнтів і в eval-режимі; input projection, трансформер, queries і голови тренуються |
+| `b_vit_joint_lowlr`, `b_vit_imagenet_lowlr` | повний fine-tuning з `optim.lr_backbone` 1e-5 → 1e-7 (у 100 разів менше) |
+
+Код: `ViTBackbone.freeze()`. `train()` лишає ViT в eval-режимі, тож dropout і drop-path неактивні; група оптимізатора
+`backbone` порожня. CPU-тести перевіряють, що градієнтів у ViT немає, ваги не змінюються після кроку оптимізатора і
+заморожування переживає LoRA. GPU-smoke `runs/dry_c_joint_frozen` (2 епохи) показав:
+- ViT після тренування побітово дорівнює `encoder_final.pt` (150 тензорів);
+- епоха триває 56 с проти 93 с у full;
+- пік пам'яті 3.9 GiB.
+
+Черга `configs/queues/phase4_freeze.txt` (≈3.7 год): train → val → test → `diagnose_shift`.
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase4_freeze.txt
+```
+**План аналізу (зафіксовано до запуску):**
+- Таблиця поруч із baseline A, b_vit_imagenet і b_vit_joint. Колонки: val / test infected AP50 [95% CI],
+  recall при val-порозі, частки `diagnose_shift` (не локалізована / uninfected вищий / infected найвищий,
+  медіанний score).
+- Парний bootstrap на test (1000 спільних ресемплів) кожного варіанта проти його full-fine-tune відповідника:
+  `_frozen − b_vit_<enc>` і `_lowlr − b_vit_<enc>`. Метрики: test AP50 infected і recall при val-порозі.
+- Без вибору переможця, без поправки на множинність (4 пари × 2 метрики) — про це буде сказано явно.
+
 ## Крок 5б: seed-реплікації (підготовлено, не запущено)
 `configs/queues/phase4_seeds.txt`: `b_vit_{joint,imagenet}_seed{43,44}`. Вони відрізняються від батьківських конфігів
 лише `seed`: порядок і аугментації батчів, ініціалізація нових голів і проєкції, а також bootstrap-ресемпли

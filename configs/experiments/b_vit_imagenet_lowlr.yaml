@@ -1,0 +1,6 @@
+# Phase 4 exploratory (hypothesis formed AFTER seeing test results): does end-to-end fine-tuning damage
+# the encoder? b_vit_imagenet with full fine-tuning at lr_backbone 100x smaller (1e-5 -> 1e-7); everything
+# else is the step-5 recipe (seed 42, 40 epochs). Only optim.lr_backbone changes.
+base: configs/experiments/b_vit_imagenet.yaml
+optim:
+  lr_backbone: 1.0e-7

@@ -1,0 +1,7 @@
+# Phase 4 exploratory (hypothesis formed AFTER seeing test results): does end-to-end fine-tuning damage
+# the encoder? b_vit_joint with the ViT frozen (no grad, eval mode); input projection, transformer,
+# queries and heads train as in the step-5 recipe. Only model.vit.freeze changes (seed 42, 40 epochs).
+base: configs/experiments/b_vit_joint.yaml
+model:
+  vit:
+    freeze: true

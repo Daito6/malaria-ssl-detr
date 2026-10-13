@@ -1,0 +1,32 @@
+# Phase 4 EXPLORATORY: "end-to-end fine-tuning damages the SSL encoder". The hypothesis was formed AFTER
+# seeing test results (phase4_main + test diagnostics); no variant is selected by test, all four are reported.
+# Variants declared before running (configs verified by tests/test_vit_detr.py to differ from b_vit_<enc>
+# only in the stated key; seed 42, 40 epochs, otherwise the step-5 recipe):
+#   b_vit_joint_frozen, b_vit_imagenet_frozen   model.vit.freeze: true (ViT no grad, eval mode)
+#   b_vit_joint_lowlr,  b_vit_imagenet_lowlr    optim.lr_backbone 1e-5 -> 1e-7 (full fine-tuning)
+# Each run: train -> evaluate val (thresholds) -> evaluate test (val thresholds) -> diagnose_shift.
+#
+# Estimate: frozen ~56 s/epoch (2-epoch smoke runs/dry_c_joint_frozen) -> ~43 min incl. val + eval;
+# lowlr = full fine-tuning (phase4_main: 66.2-66.8 min train) -> ~68 min incl. eval. Total ~3.7 h.
+# Run:  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase4_freeze.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+b_vit_joint_frozen    | python scripts/train_detr.py --config configs/experiments/b_vit_joint_frozen.yaml
+b_vit_joint_frozen    | python scripts/evaluate.py runs/b_vit_joint_frozen --split val --bootstrap
+b_vit_joint_frozen    | python scripts/evaluate.py runs/b_vit_joint_frozen --split test --bootstrap
+b_vit_joint_frozen    | python scripts/diagnose_shift.py runs/b_vit_joint_frozen
+
+b_vit_imagenet_frozen | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_frozen.yaml
+b_vit_imagenet_frozen | python scripts/evaluate.py runs/b_vit_imagenet_frozen --split val --bootstrap
+b_vit_imagenet_frozen | python scripts/evaluate.py runs/b_vit_imagenet_frozen --split test --bootstrap
+b_vit_imagenet_frozen | python scripts/diagnose_shift.py runs/b_vit_imagenet_frozen
+
+b_vit_joint_lowlr     | python scripts/train_detr.py --config configs/experiments/b_vit_joint_lowlr.yaml
+b_vit_joint_lowlr     | python scripts/evaluate.py runs/b_vit_joint_lowlr --split val --bootstrap
+b_vit_joint_lowlr     | python scripts/evaluate.py runs/b_vit_joint_lowlr --split test --bootstrap
+b_vit_joint_lowlr     | python scripts/diagnose_shift.py runs/b_vit_joint_lowlr
+
+b_vit_imagenet_lowlr  | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_lowlr.yaml
+b_vit_imagenet_lowlr  | python scripts/evaluate.py runs/b_vit_imagenet_lowlr --split val --bootstrap
+b_vit_imagenet_lowlr  | python scripts/evaluate.py runs/b_vit_imagenet_lowlr --split test --bootstrap
+b_vit_imagenet_lowlr  | python scripts/diagnose_shift.py runs/b_vit_imagenet_lowlr
