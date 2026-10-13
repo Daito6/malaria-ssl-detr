@@ -1,0 +1,20 @@
+{
+  "run": "b_vit_random",
+  "class": "infected",
+  "val_threshold": 0.8207806944847107,
+  "iou": 0.5,
+  "val": {
+    "n_gt": 298,
+    "median_score": 0.9494637846946716,
+    "frac_ge_val_threshold": 0.8221476510067114,
+    "frac_no_target_detection": 0.08053691275167785,
+    "frac_other_class_scores_higher": 0.08053691275167785
+  },
+  "test": {
+    "n_gt": 303,
+    "median_score": 0.5397442579269409,
+    "frac_ge_val_threshold": 0.43234323432343236,
+    "frac_no_target_detection": 0.4521452145214521,
+    "frac_other_class_scores_higher": 0.38613861386138615
+  }
+}

@@ -43,6 +43,44 @@ def val_curve(run_dir: str | Path, cls: str = "infected") -> pd.Series:
                      name=Path(run_dir).name)
 
 
+def plot_val_curves(curves: pd.DataFrame, colors: dict[str, str], ax=None, mark: dict[str, int] | None = None):
+    """In-training val AP50 curves (columns = runs); `mark` = {run: evaluated epoch} drawn as a dot."""
+    import matplotlib.pyplot as plt
+
+    from malaria_ssl.data.viz import _recessive_axes
+
+    ax = ax or plt.subplots(figsize=(8, 4.2))[1]
+    for run in curves.columns:
+        ax.plot(curves.index, curves[run], lw=2, color=colors[run], label=run)
+        if mark and run in mark:
+            ax.plot(mark[run], curves.loc[mark[run], run], "o", ms=8, color=colors[run], mec="white", mew=2)
+    ax.set_xlabel("epochs done")
+    ax.set_ylabel("val AP50 infected (in-training)")
+    ax.legend(frameon=False, fontsize=9)
+    _recessive_axes(ax)
+    return ax
+
+
+def plot_paired_diffs(diff: pd.DataFrame, metric: str, ax=None):
+    """Forest plot of paired differences a - b with 95% CI for one metric (rows of a *_diff.csv)."""
+    import matplotlib.pyplot as plt
+
+    from malaria_ssl.data.viz import _recessive_axes
+
+    d = diff[diff["metric"] == metric].iloc[::-1]
+    ax = ax or plt.subplots(figsize=(7, 0.5 * len(d) + 1))[1]
+    y = range(len(d))
+    ax.hlines(y, d["low"], d["high"], color="#555555", lw=2)
+    ax.plot(d["diff"], y, "o", ms=8, color="#2a78d6", mec="white", mew=2)
+    ax.axvline(0, color="#9a9a9a", lw=1, ls="--")
+    ax.set_yticks(list(y), [f"{a} − {b}" for a, b in zip(d["a"], d["b"])], fontsize=9)
+    ax.set_xlabel(f"paired difference, {metric} (95% CI)")
+    _recessive_axes(ax)
+    ax.grid(axis="y", visible=False)
+    ax.grid(axis="x", color="#e5e5e5", lw=0.8)
+    return ax
+
+
 def select_by_simplicity(rows: list[dict[str, Any]], cls: str = "infected") -> dict[str, Any]:
     """Leader = highest AP50 of `cls`; tied = point estimate inside the leader's 95% CI;
     winner = the first tied row in the given order (rows are passed simplest first)."""
