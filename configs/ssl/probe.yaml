@@ -1,12 +1,12 @@
 # Cell-level probe without DETR (scripts/probe.py, also the light probe during pretraining).
-# Fit on TRAIN crops, evaluate on VAL crops. The test split is never used here.
+# Fit on TRAIN crops, evaluate on VAL crops. Test crops only for the final evaluation (probe.py --eval-split test).
 base: configs/ssl/data.yaml
 
 probe:
   long_side: 800                 # DETR eval scale
   window: 224
   exclude: [difficult]           # as in the binary mapping
-  rbc_per_split: {train: 4000, val: 2000}   # all other classes are kept
+  rbc_per_split: {train: 4000, val: 2000, test: 2000}   # all other classes are kept (test: --eval-split test only)
   seed: 0
   batch_size: 256
   knn: {k: 20, temperature: 0.07}

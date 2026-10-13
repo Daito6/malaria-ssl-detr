@@ -70,7 +70,13 @@ python scripts/evaluate.py runs/<name> --split val --bootstrap   # val first: pi
 python scripts/evaluate.py runs/<name> --split test --bootstrap  # reuses val thresholds
 python scripts/compare_detr_runs.py --runs <names...> --split val [--select] --out reports/tables/<name>.csv
 python scripts/paired_detr_diff.py --runs <binary runs...> --pairs A:B ... --out reports/tables/<prefix>  # CPU, test
+python scripts/evaluate.py runs/<name> --split val --long-side N --bootstrap   # scale diagnostic, val thresholds, *_lsN
+python scripts/scale_diagnostic.py --runs <names...> --long-sides 640 840 1016 --out reports/tables/<prefix>  # CPU
 ```
+- The eval transform resizes to a fixed long side (800), so the raw x1.27 test cell size becomes x1.05 at the
+  model input (resized box median 59.26 vs 56.5 px); a scale diagnostic must change `--long-side`, not the image.
+- `diagnose_shift` outcomes per infected GT box are mutually exclusive: `frac_no_detection_any_class`,
+  `frac_other_class_scores_higher`, `frac_target_scores_highest` (old `frac_no_target_detection` overlaps).
 Non-obvious decisions (details in `reports/phase2_summary.md`):
 - Model is called WITHOUT labels; loss is ours (`detr/loss.py`, HF matcher/ImageLoss reused)
   so class weights work. Aux outputs come from decoder hooks: HF `auxiliary_loss=True`
@@ -95,6 +101,8 @@ Non-obvious decisions (details in `reports/phase2_summary.md`):
 ```
 python scripts/pretrain.py --config configs/ssl/<exp>.yaml [--resume] [--set key=value] [--name ...]
 python scripts/probe.py --run runs/ssl_<exp>        # or --encoder <pt> | --ref random | --ref imagenet
+python scripts/probe.py --run runs/ssl_<exp> --eval-split test   # FINAL eval only: probe_test_<tag>.json
+python scripts/compare_probes.py --val-test --tags <tags...> --out reports/tables/<name>.csv
 python scripts/diagnose_shift.py runs/<binary DETR run>
 python scripts/compare_probes.py --tags <probe tags...> --out reports/tables/<name>.csv   # reads probe json only
 python scripts/paired_probe_diff.py --pairs A:B [A:B ...] --out reports/tables/<name>   # CPU, saved features
@@ -106,8 +114,8 @@ when `runs/<run name>/checkpoints/last.pt` exists (so the run name must be the r
 Run it from a PowerShell with `conda activate medthesis` (commands call plain `python`).
 Config chain: `configs/ssl/data.yaml` <- `probe.yaml` <- `base.yaml` <- experiment files.
 Non-obvious decisions (details in `reports/phase3_summary.md`):
-- SSL trains on train images only (labels unused); val only for monitoring; test never read.
-  Images are cached once as uint8 memmaps at long side 960 in `data/processed/ssl_cache/`.
+- SSL trains on train images only (labels unused); val only for monitoring; test never read by SSL
+  (only by the final `probe.py --eval-split test`, cache `test_960`). Images are cached once as uint8 memmaps at long side 960 in `data/processed/ssl_cache/`.
 - Views: random DETR train scale L in [640, 960] -> 260 px anchor at scale L -> two crops
   (area 0.5-1, aspect 3/4-4/3) -> 224. Cells stay at DETR scale (x0.86-1.22).
 - Encoder = timm `vit_small_patch16_224`, random init, `dynamic_img_size=True`; exported as a
@@ -171,7 +179,14 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   joint > con (AP50 and recall); joint - mae / - random AP50 CIs include 0; imagenet - baseline A AP50
   -0.024 [-0.074, 0.032] but recall -0.155 [-0.208, -0.104]. Anomalies: random loses uninfected on test
   (AP50 0.523); con test recall 0.020; joint best epoch 32 (val inf AP50 still rising). Step 5b queue
-  `configs/queues/phase4_seeds.txt` (joint/imagenet seeds 43, 44; ~4.6 h) not launched; SSL itself is 1 run. Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
+  `configs/queues/phase4_seeds.txt` (joint/imagenet seeds 43, 44; ~4.6 h) NOT launched (user hold after the test
+  result); SSL itself is 1 run. Test-failure diagnostics done (evaluation only, `reports/phase4_summary.md`):
+  localization is fine on test (1.3-3.3% infected GT unlocalized; random 7.6%); infected cells are localized but
+  outscored by uninfected in 62-77% for ViT-DETR (baseline A 37%; val 3-8%). Frozen-encoder probe on test crops
+  (fit on train): linear AUPRC ImageNet 0.876, con 0.853, mae 0.835, joint 0.808, random 0.513; joint - ImageNet
+  -0.068 [-0.107, -0.030], kNN AUPRC +0.005 [-0.047, 0.055]. Scale is not the cause: at the real x1.05 no AP50
+  change (CIs include 0); x0.8 / x1.27 change val AP50 by <= 0.056. Not done yet: probing the encoders AFTER
+  DETR fine-tuning (would separate encoder vs DETR-head contributions). Launch with powershell -NoProfile; (3 plan) dry runs: memory/speed stride 16 vs 32, 8-image overfit = GATE (stop
   and report if loss does not drop clearly), budget; (4) recipe on val with b_vit_imagenet (full / LoRA /
   layer-wise lr decay 0.75); (5) main queue b_vit_{random,imagenet,mae,con,joint}, 1 seed (then propose +2
   seeds for joint and imagenet); multiclass only for the winner; (6) paired test bootstrap, always report

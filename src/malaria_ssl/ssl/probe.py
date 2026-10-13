@@ -340,8 +340,9 @@ class Prober:
     """Builds the train / val crop sets once; `evaluate(encoder)` extracts features and fits probes."""
 
     def __init__(self, cfg: dict[str, Any], data_cfg: dict[str, Any], caches: dict[str, Path], resolve,
-                 device: torch.device):
+                 device: torch.device, eval_split: str = "val"):
         self.cfg, self.pcfg, self.device = cfg, cfg["probe"], device
+        self.eval_split = eval_split  # "test" only for the final test-crop evaluation (no stain shift)
         self.names, _, self.infected = probe_classes(data_cfg, self.pcfg["exclude"])
         self.caches = {s: np.load(p, mmap_mode="r") for s, p in caches.items()}
         self.crops = {}
@@ -359,8 +360,8 @@ class Prober:
         `input_norm`: the encoder's own input (mean, std), see `extract_features`."""
         feats = {s: extract_features(encoder, self.caches[s], self.crops[s], self.pcfg, self.device, self.amp,
                                      input_norm=input_norm)
-                 for s in ("train", "val")}
-        if stain_shift:
+                 for s in ("train", self.eval_split)}
+        if stain_shift and self.eval_split == "val":
             sc = self.pcfg["stain_shift"]
             feats["val_stain"] = extract_features(encoder, self.caches["val"], self.crops["val"], self.pcfg,
                                                   self.device, self.amp, shift=(build_stain_shift(sc), sc["seed"]),
@@ -381,7 +382,7 @@ class Prober:
         return {s: {m: p[bounds[j]:bounds[j + 1]] for m, p in probs.items()} for j, s in enumerate(eval_sets)}
 
     def _entry(self, probs: np.ndarray, full: bool) -> dict[str, Any]:
-        y, img = self.crops["val"]["label"], self.crops["val"]["image_id"]
+        y, img = self.crops[self.eval_split]["label"], self.crops[self.eval_split]["image_id"]
         entry = {"metrics": compute_metrics(y, probs, self.infected, self.names)}
         if full:
             entry["ci95"] = bootstrap_metrics(y, probs, img, self.infected, self.names,
@@ -394,13 +395,15 @@ class Prober:
         `feats` has `val_stain` (computed by default when the config has `stain_shift`), the
         stain-shifted probe."""
         feats = feats or self.features(encoder, stain_shift=full and "stain_shift" in self.pcfg)
-        y = self.crops["val"]["label"]
+        ev = self.eval_split
+        y = self.crops[ev]["label"]
         ytr = self.crops["train"]["label"]
         all_idx = np.arange(len(ytr))
         res: dict[str, Any] = {"classes": self.names, "infected": [n for n, f in zip(self.names, self.infected) if f],
                                "n_crops": self.counts()}
-        fitted = self._fit(feats, all_idx, ("val", "val_stain") if "val_stain" in feats else ("val",))
-        res["methods"] = {m: self._entry(p, full) for m, p in fitted["val"].items()}
+        fitted = self._fit(feats, all_idx, (ev, "val_stain") if "val_stain" in feats else (ev,))
+        res["eval_split"] = ev
+        res["methods"] = {m: self._entry(p, full) for m, p in fitted[ev].items()}
         if "val_stain" in fitted:
             res["stain_shift"] = {"config": self.pcfg["stain_shift"],
                                   "methods": {m: self._entry(p, full) for m, p in fitted["val_stain"].items()}}
@@ -413,7 +416,7 @@ class Prober:
                 runs = defaultdict(list)
                 for s in range(ll["seeds"]):
                     idx = stratified_subset(ytr, frac, len(self.names), seed=self.pcfg["seed"] + s)
-                    for method, probs in self._fit(feats, idx)["val"].items():
+                    for method, probs in self._fit(feats, idx, (ev,))[ev].items():
                         runs[method].append({"n_train": int(len(idx)),
                                              **compute_metrics(y, probs, self.infected, self.names)})
                 res["low_label"][str(frac)] = {m: summarize_seeds(r) for m, r in runs.items()}

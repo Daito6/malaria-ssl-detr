@@ -1,0 +1,13 @@
+run,split,n_gt,median_score,frac_ge_val_threshold,frac_no_target_detection,frac_other_class_scores_higher,frac_no_detection_any_class,frac_target_scores_highest
+a_coco_detr_binary,val,298,0.9677,0.8826,0.0570,0.0403,0.0168,0.9430
+a_coco_detr_binary,test,303,0.7160,0.3762,0.3498,0.3696,0.0132,0.6172
+b_vit_random,val,298,0.9495,0.8221,0.0805,0.0805,0.0168,0.9027
+b_vit_random,test,303,0.5397,0.4323,0.4521,0.3861,0.0759,0.5380
+b_vit_imagenet,val,298,0.9730,0.9128,0.0302,0.0336,0.0101,0.9564
+b_vit_imagenet,test,303,0.2346,0.2211,0.2079,0.6238,0.0165,0.3597
+b_vit_mae,val,298,0.9516,0.8725,0.0570,0.0403,0.0235,0.9362
+b_vit_mae,test,303,0.0000,0.1155,0.5710,0.6898,0.0297,0.2805
+b_vit_con,val,298,0.9557,0.8289,0.0705,0.0570,0.0369,0.9060
+b_vit_con,test,303,0.0000,0.0198,0.6040,0.7723,0.0330,0.1947
+b_vit_joint,val,298,0.9562,0.8826,0.0570,0.0336,0.0336,0.9329
+b_vit_joint,test,303,0.0008,0.2112,0.4620,0.6502,0.0165,0.3333

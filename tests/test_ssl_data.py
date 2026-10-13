@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from malaria_ssl.ssl.data import RandomImageSampler, TwoViewDataset, box_iou, sample_windows
+from malaria_ssl.ssl.data import RandomImageSampler, TwoViewDataset, box_iou, build_cache, sample_windows
 from malaria_ssl.utils.config import load_config, resolve_path
 
 VCFG = load_config(resolve_path("configs/ssl/data.yaml"))["views"]
@@ -69,3 +69,8 @@ def test_sampler_depends_on_epoch_only():
     assert list(s) != e0
     s.set_epoch(0)
     assert list(s) == e0 and len(e0) == 20 and all(0 <= i < 10 for i, _ in e0)
+
+
+def test_test_cache_needs_explicit_opt_in():
+    with pytest.raises(ValueError, match="never used for SSL"):
+        build_cache("test", {}, {}, resolve_path)

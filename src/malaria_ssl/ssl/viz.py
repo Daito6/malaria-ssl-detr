@@ -109,6 +109,24 @@ def comparison_table(probes: list[dict[str, Any]]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def val_test_probe_table(tags: list[str], keys: tuple[str, ...] = ("auprc_infected", "auroc_infected",
+                                                                     "macro_f1", "balanced_acc_binary")) -> pd.DataFrame:
+    """Same classifiers (fit on train crops) on val crops (probe_<tag>.json) vs test crops (probe_test_<tag>.json),
+    95% CIs over images of each split (independent splits: the CIs are not paired)."""
+    rows = []
+    for t in tags:
+        val, test = load_probes([t, f"test_{t}"])
+        for m in ("linear", "knn"):
+            row = {"encoder": t, "method": m}
+            for split, p in (("val", val), ("test", test)):
+                for k in keys:
+                    e = p["methods"][m]
+                    row[f"{split}_{k}"] = e["metrics"][k]
+                    row[f"{split}_{k}_lo"], row[f"{split}_{k}_hi"] = e["ci95"][k]["low"], e["ci95"][k]["high"]
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def final_epoch_table(runs: list[dict[str, Any]]) -> pd.DataFrame:
     """Losses and collapse diagnostics (fixed val pairs) at the last logged epoch of each run."""
     cols = ["epoch", "loss_mae", "val_loss_mae", "loss_con", "val_loss_con", "rep/std_x_sqrt_d", "rep/erank",

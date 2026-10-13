@@ -8,13 +8,17 @@
     "median_score": 0.9515738189220428,
     "frac_ge_val_threshold": 0.87248322147651,
     "frac_no_target_detection": 0.05704697986577181,
-    "frac_other_class_scores_higher": 0.040268456375838924
+    "frac_other_class_scores_higher": 0.040268456375838924,
+    "frac_no_detection_any_class": 0.02348993288590604,
+    "frac_target_scores_highest": 0.9362416107382551
   },
   "test": {
     "n_gt": 303,
     "median_score": 0.0,
     "frac_ge_val_threshold": 0.11551155115511551,
     "frac_no_target_detection": 0.570957095709571,
-    "frac_other_class_scores_higher": 0.6897689768976898
+    "frac_other_class_scores_higher": 0.6897689768976898,
+    "frac_no_detection_any_class": 0.0297029702970297,
+    "frac_target_scores_highest": 0.28052805280528054
   }
 }
