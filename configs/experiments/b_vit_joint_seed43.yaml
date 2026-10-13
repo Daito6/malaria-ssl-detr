@@ -1,0 +1,5 @@
+# Phase 4 step 5 seed replicate: b_vit_joint with DETR training seed 43 (default 42).
+# Only the seed changes (data order/augmentation, init of the new heads and input projection, and the
+# evaluate.py bootstrap resamples). The ViT encoder init is unchanged (the SSL pretraining is a single run).
+base: configs/experiments/b_vit_joint.yaml
+seed: 43

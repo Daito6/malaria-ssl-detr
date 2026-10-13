@@ -1,0 +1,29 @@
+# Phase 4, step 5 seed replicates: DETR training seeds 43 and 44 for b_vit_joint and b_vit_imagenet
+# (seed 42 = the phase4_main runs). Same recipe and settings; the configs differ from their parent ONLY in
+# `seed` (verified by diffing the resolved configs). The SSL encoder is the same single pretraining run.
+# Each run: train -> evaluate val (picks thresholds) -> evaluate test (reuses val thresholds) -> diagnose_shift.
+#
+# Estimate (phase4_main: 66.2-66.4 min train wall-clock, val eval 1 min, test eval 0.8 min, diagnose 0.1 min):
+# ~68 min per run x 4 -> ~4.6 h.
+# Run:  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase4_seeds.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+b_vit_joint_seed43    | python scripts/train_detr.py --config configs/experiments/b_vit_joint_seed43.yaml
+b_vit_joint_seed43    | python scripts/evaluate.py runs/b_vit_joint_seed43 --split val --bootstrap
+b_vit_joint_seed43    | python scripts/evaluate.py runs/b_vit_joint_seed43 --split test --bootstrap
+b_vit_joint_seed43    | python scripts/diagnose_shift.py runs/b_vit_joint_seed43
+
+b_vit_imagenet_seed43 | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_seed43.yaml
+b_vit_imagenet_seed43 | python scripts/evaluate.py runs/b_vit_imagenet_seed43 --split val --bootstrap
+b_vit_imagenet_seed43 | python scripts/evaluate.py runs/b_vit_imagenet_seed43 --split test --bootstrap
+b_vit_imagenet_seed43 | python scripts/diagnose_shift.py runs/b_vit_imagenet_seed43
+
+b_vit_joint_seed44    | python scripts/train_detr.py --config configs/experiments/b_vit_joint_seed44.yaml
+b_vit_joint_seed44    | python scripts/evaluate.py runs/b_vit_joint_seed44 --split val --bootstrap
+b_vit_joint_seed44    | python scripts/evaluate.py runs/b_vit_joint_seed44 --split test --bootstrap
+b_vit_joint_seed44    | python scripts/diagnose_shift.py runs/b_vit_joint_seed44
+
+b_vit_imagenet_seed44 | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_seed44.yaml
+b_vit_imagenet_seed44 | python scripts/evaluate.py runs/b_vit_imagenet_seed44 --split val --bootstrap
+b_vit_imagenet_seed44 | python scripts/evaluate.py runs/b_vit_imagenet_seed44 --split test --bootstrap
+b_vit_imagenet_seed44 | python scripts/diagnose_shift.py runs/b_vit_imagenet_seed44
