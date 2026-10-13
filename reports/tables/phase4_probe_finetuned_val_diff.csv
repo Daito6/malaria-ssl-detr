@@ -1,0 +1,16 @@
+a,b,metric,value_a,value_b,diff,ci_low,ci_high,frac_le_0,excludes_0
+detr_b_vit_imagenet,ref_imagenet,auprc_clean,0.9953,0.9889,0.0064,0.0027,0.0112,0.0000,True
+detr_b_vit_imagenet,ref_imagenet,auprc_stain,0.9881,0.9849,0.0032,-0.0051,0.0116,0.2240,False
+detr_b_vit_imagenet,ref_imagenet,auprc_10pct,0.9917,0.9751,0.0166,0.0097,0.0241,0.0000,True
+detr_b_vit_imagenet,ref_imagenet,macro_f1,0.7584,0.7175,0.0409,-0.0056,0.0885,0.0480,False
+detr_b_vit_imagenet,ref_imagenet,knn_balanced_acc,0.6828,0.6765,0.0063,-0.0540,0.0603,0.4290,False
+detr_b_vit_joint,ssl_joint,auprc_clean,0.9906,0.9877,0.0029,0.0005,0.0064,0.0060,True
+detr_b_vit_joint,ssl_joint,auprc_stain,0.9701,0.9837,-0.0136,-0.0231,-0.0039,1.0000,True
+detr_b_vit_joint,ssl_joint,auprc_10pct,0.9840,0.9723,0.0118,0.0055,0.0202,0.0000,True
+detr_b_vit_joint,ssl_joint,macro_f1,0.7426,0.7244,0.0181,-0.0214,0.0543,0.1720,False
+detr_b_vit_joint,ssl_joint,knn_balanced_acc,0.7483,0.7814,-0.0331,-0.0897,0.0208,0.8480,False
+detr_b_vit_joint,detr_b_vit_imagenet,auprc_clean,0.9906,0.9953,-0.0047,-0.0136,0.0012,0.8950,False
+detr_b_vit_joint,detr_b_vit_imagenet,auprc_stain,0.9701,0.9881,-0.0180,-0.0343,-0.0032,0.9930,True
+detr_b_vit_joint,detr_b_vit_imagenet,auprc_10pct,0.9840,0.9917,-0.0077,-0.0191,0.0008,0.9570,False
+detr_b_vit_joint,detr_b_vit_imagenet,macro_f1,0.7426,0.7584,-0.0159,-0.0686,0.0378,0.7340,False
+detr_b_vit_joint,detr_b_vit_imagenet,knn_balanced_acc,0.7483,0.6828,0.0654,-0.0081,0.1436,0.0400,False

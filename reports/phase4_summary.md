@@ -312,6 +312,131 @@ AP50 infected при ×1.27: baseline A 0.775 [0.728, 0.826], imagenet 0.766 [0.
   test-клітини: у DETR медіанний infected-score ≈ 0. Probe енкодерів **після** DETR-fine-tuning ще не робили,
   тому розділити внесок енкодера і голови DETR поки не можна.
 
+## Двоетапний пайплайн «DETR локалізує, кроп-класифікатор класифікує» (лише оцінка, 2026-10-13)
+
+Без перетренування DETR. Варіант скору, пороги та все інше обрано на val; test використано лише для фінальних чисел.
+```
+python scripts/two_stage.py candidates --run runs/a_coco_detr_binary        # і runs/b_vit_imagenet (GPU, ~1 хв)
+python scripts/two_stage.py features --runs a_coco_detr_binary b_vit_imagenet \
+    --encoders ref:imagenet run:runs/ssl_con_only run:runs/ssl_mae_only run:runs/ssl_joint   # GPU, 8 хв
+python scripts/two_stage.py evaluate --runs a_coco_detr_binary b_vit_imagenet \
+    --tags ref_imagenet ssl_con_only ssl_mae_only ssl_joint --encoder-runs ref_imagenet:b_vit_imagenet \
+    ssl_con_only:b_vit_con ssl_mae_only:b_vit_mae ssl_joint:b_vit_joint --out reports/tables/phase4_two_stage   # CPU
+```
+- **Кандидати:** усі 300 queries DETR зі скором objectness = 1 − p(no-object), class-agnostic NMS з IoU 0.5
+  (фіксовано заздалегідь). Після NMS лишається 113–131 кандидат на зображення.
+- **Ознаки:** точно як у probe — вікно 224 при long side 800, середнє patch-токенів усередині бокса. Чисті
+  train-ознаки побітово збігаються з ознаками probe фази 3.
+- **Класифікатор:** лінійний (гіперпараметри probe, class-balanced), бінарний infected / uninfected, навчений на
+  train GT-кропах. Дві версії: `clean`, а також `stain` — clean разом зі stain-shifted копією кожного кропа
+  (HED / jitter / blur / JPEG, як у stain-shifted probe, один фіксований зсув на train-зображення).
+- **Скор:** objectness × p(infected) або лише p(infected); варіант обрано за val infected AP50. Для всіх 16
+  конфігурацій обрано objectness × p: на val він дав 0.735–0.800 проти 0.549–0.717 для p.
+- **Поріг:** max F1 на val, на test застосовано без змін.
+- **CI:** bootstrap по зображеннях, 1000 спільних ресемплів.
+
+### Результати (infected; `reports/tables/phase4_two_stage.csv`)
+
+| бокси | класифікатор | val AP50 | test AP50 [95% CI] | test P | test R | test F1 |
+|---|---|---|---|---|---|---|
+| baseline A | **end-to-end DETR** | 0.778 | **0.551** [0.486, 0.621] | 0.844 | 0.376 | 0.520 |
+| baseline A | ImageNet clean | 0.764 | 0.599 [0.533, 0.675] | 0.757 | 0.422 | 0.542 |
+| baseline A | ImageNet stain | 0.768 | 0.598 [0.528, 0.676] | 0.777 | 0.356 | 0.489 |
+| baseline A | con clean | 0.798 | 0.529 [0.461, 0.598] | 0.660 | 0.353 | 0.460 |
+| baseline A | con stain | 0.799 | 0.540 [0.475, 0.611] | 0.686 | 0.346 | 0.460 |
+| baseline A | mae clean | 0.790 | 0.581 [0.513, 0.659] | 0.780 | **0.129** | 0.221 |
+| baseline A | mae stain | 0.788 | 0.589 [0.530, 0.662] | 0.734 | 0.346 | 0.471 |
+| baseline A | joint clean | 0.800 | 0.576 [0.510, 0.650] | 0.766 | 0.346 | 0.477 |
+| baseline A | joint stain | 0.797 | 0.593 [0.526, 0.665] | 0.708 | 0.449 | 0.550 |
+| b_vit_imagenet | **end-to-end DETR** | 0.769 | **0.528** [0.469, 0.596] | 0.838 | 0.221 | 0.350 |
+| b_vit_imagenet | ImageNet clean | 0.735 | 0.562 [0.506, 0.635] | 0.676 | 0.323 | 0.438 |
+| b_vit_imagenet | ImageNet stain | 0.749 | 0.576 [0.507, 0.657] | 0.746 | 0.290 | 0.418 |
+| b_vit_imagenet | con clean | 0.763 | 0.524 [0.463, 0.598] | 0.646 | 0.271 | 0.381 |
+| b_vit_imagenet | con stain | 0.770 | 0.535 [0.477, 0.614] | 0.667 | 0.271 | 0.385 |
+| b_vit_imagenet | mae clean | 0.753 | 0.593 [0.522, 0.669] | 0.818 | **0.089** | 0.161 |
+| b_vit_imagenet | mae stain | 0.757 | 0.606 [0.540, 0.679] | 0.712 | 0.294 | 0.416 |
+| b_vit_imagenet | joint clean | 0.764 | 0.582 [0.518, 0.659] | 0.765 | 0.290 | 0.421 |
+| b_vit_imagenet | joint stain | 0.768 | 0.593 [0.530, 0.667] | 0.733 | 0.363 | 0.486 |
+| (b_vit_joint) | end-to-end DETR | 0.774 | 0.329 [0.276, 0.397] | 0.820 | 0.211 | 0.336 |
+
+CI для P/R/F1 наведено в `phase4_two_stage.csv`.
+
+### Парні різниці на test (`reports/tables/phase4_two_stage_diff.csv`)
+
+**(a) Двоетапний мінус end-to-end DETR, з якого взято бокси.** Значущих різниць за AP50 немає в жодній із 16
+конфігурацій. Найближчі до межі:
+- бокси b_vit_imagenet + mae stain: +0.078 [−0.000, 0.149];
+- бокси b_vit_imagenet + joint stain: +0.066 [−0.001, 0.135];
+- бокси baseline A + ImageNet clean: +0.048 [−0.007, 0.116].
+
+За recall при val-порозі:
+- значуще вищий recall на боксах b_vit_imagenet у ImageNet (clean +0.102 [0.050, 0.159], stain +0.069
+  [0.014, 0.120]), joint (clean +0.069 [0.009, 0.133], stain +0.142 [0.077, 0.210]) і mae stain
+  (+0.073 [0.003, 0.142]);
+- значуще нижчий recall у mae clean: −0.248 [−0.317, −0.189] на боксах A і −0.132 [−0.191, −0.080] на боксах
+  b_vit_imagenet. Це провал val-порогу на test, а не AP: stain-версія mae має recall 0.346 / 0.294.
+
+**(b) Joint мінус ImageNet у двоетапному пайплайні.**
+- За AP50 різниці не видно ніде: A clean −0.023 [−0.074, 0.024], A stain −0.005 [−0.057, 0.044],
+  IN clean +0.020 [−0.030, 0.068], IN stain +0.017 [−0.038, 0.077].
+- За recall: зі `stain`-класифікатором joint вищий (A +0.092 [0.027, 0.157], IN +0.073 [0.020, 0.129]);
+  з `clean` на боксах A — нижчий (−0.076 [−0.145, −0.016]).
+
+**(c) Двоетапний з енкодером X мінус end-to-end ViT-DETR, натренований з тим самим X.** Це додаткове порівняння;
+бокси тут інші — з baseline A або b_vit_imagenet.
+- joint: +0.246…+0.264 за AP50 (усі CI ≥ +0.179);
+- con: +0.273…+0.289;
+- mae: +0.245…+0.270;
+- ImageNet: +0.071 [0.003, 0.140] і +0.070 [0.004, 0.133] на боксах A, на власних боксах b_vit_imagenet —
+  +0.035 і +0.049 (CI містять 0).
+
+Порівнянь багато (2 бокси × 2 класифікатори × 9 пар × 2 метрики), поправки немає. Різниці в (c) для SSL-енкодерів
+мають частку ≤ 0 рівну 0.000, тож вони не на межі.
+
+## Енкодери після DETR fine-tuning (probe `--detr-run`)
+
+ViT витягнуто з `best.pt` b_vit_imagenet і b_vit_joint з тією нормалізацією, з якою його дотреновували
+(перевірено: для imagenet — 0.5 / 0.5). Probe — як у фазі 3: train → val / test кропи.
+Таблиці: `reports/tables/phase4_probe_finetuned.csv`, `phase4_probe_finetuned_{val,test}_diff.csv`.
+
+| енкодер | val linear AUPRC | val stain-shifted AUPRC | test linear AUPRC [95% CI] | test kNN AUPRC |
+|---|---|---|---|---|
+| ImageNet (заморожений) | 0.989 | 0.985 | 0.876 [0.832, 0.914] | 0.755 |
+| ImageNet після DETR | 0.995 | 0.988 | 0.897 [0.864, 0.928] | 0.861 |
+| joint (заморожений) | 0.988 | 0.984 | 0.808 [0.763, 0.852] | 0.760 |
+| joint після DETR | 0.991 | 0.970 | 0.786 [0.732, 0.841] | 0.705 |
+
+Парні різниці (той самий енкодер після мінус до fine-tuning):
+- **ImageNet:** val linear AUPRC +0.006 [0.003, 0.011]; test linear +0.021 [−0.004, 0.049] (не значуще),
+  test kNN **+0.112 [0.072, 0.148]**.
+- **joint:** val +0.003 [0.001, 0.006]; val stain-shifted **−0.014 [−0.023, −0.004]**; test linear −0.022
+  [−0.058, 0.014] (не значуще); test 10% міток **−0.131 [−0.185, −0.071]**; test kNN **−0.055 [−0.097, −0.013]**.
+- **Після fine-tuning, joint − ImageNet на test:** linear **−0.111 [−0.146, −0.075]**, kNN **−0.162
+  [−0.218, −0.097]**. До fine-tuning було −0.068 [−0.107, −0.030] і +0.005 [−0.047, 0.055].
+
+Застереження: у DETR ViT обробляє все зображення (глобальна увага по ~1900 токенах), у probe — вікно 224.
+Тож це ознаки того самого енкодера, але не ідентичні тим, які бачить DETR-декодер.
+
+### Що працює, а що ні (у межах CI; один seed DETR, один SSL-запуск)
+
+- **Двоетапний пайплайн усуває провал SSL-енкодерів на test.** Із замороженими joint / mae / con ознаками і
+  боксами baseline A або b_vit_imagenet test AP50 становить 0.52–0.61. End-to-end ViT-DETR з тими самими
+  енкодерами дає 0.25–0.34: це +0.25…+0.29 [CI ≥ +0.16]. У двоетапному пайплайні joint і ImageNet за AP50
+  не розрізняються (−0.023…+0.020, усі CI містять 0).
+- **Двоетапний пайплайн не дає значущого виграшу за AP50 над end-to-end DETR, з якого взято бокси.**
+  Точкові оцінки здебільшого вищі (до +0.078), але CI містять 0. Найкраща точкова оцінка — 0.606
+  (бокси b_vit_imagenet + mae stain) проти 0.551 у baseline A.
+- **Stain-augmented класифікатор переважно підвищує recall при val-порозі**, тобто стабілізує поріг, а не AP:
+  mae 0.129 → 0.346, joint 0.346 → 0.449 на боксах A. AP при цьому змінюється на ≤ 0.017.
+- **DETR fine-tuning не руйнує ознак**, але для joint погіршує їх перенесення на test. Після fine-tuning joint
+  гірший на stain-shifted val, при 10% міток і за kNN на test. ImageNet-енкодер після fine-tuning на test,
+  навпаки, кращий за kNN. Проте навіть дотренований joint-енкодер дає на test-кропах linear AUPRC 0.786.
+- **Де втрачається якість.** Не в локалізації: див. попередній розділ, бокси в усіх моделях хороші. І не в
+  самій SSL-репрезентації: заморожені SSL-ознаки на тих самих боксах класифікують test на рівні ImageNet. Втрата
+  відбувається в end-to-end DETR, тобто в класифікації через декодер / class head і, частково, в зміні енкодера
+  під час fine-tuning (−0.014…−0.131 за метриками вище). Розділити ці два внески точніше (наприклад, DETR-бокси +
+  дотренований енкодер у двоетапному пайплайні) цей експеримент не дозволяє.
+
 ## Крок 5б: seed-реплікації (підготовлено, не запущено)
 `configs/queues/phase4_seeds.txt`: `b_vit_{joint,imagenet}_seed{43,44}`. Вони відрізняються від батьківських конфігів
 лише `seed`: порядок і аугментації батчів, ініціалізація нових голів і проєкції, а також bootstrap-ресемпли

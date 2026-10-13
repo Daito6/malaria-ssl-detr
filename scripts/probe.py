@@ -6,6 +6,7 @@ Usage:
     python scripts/probe.py --ref random                         # random-init ViT-S/16 reference
     python scripts/probe.py --ref imagenet                       # ImageNet ViT-S/16 (timm) reference
     python scripts/probe.py --run runs/ssl_joint --eval-split test   # FINAL evaluation on test crops (no tuning)
+    python scripts/probe.py --detr-run runs/b_vit_joint           # the ViT after DETR fine-tuning (tag detr_<run>)
 
 Also runs the stain-shifted probe (same classifiers, fitted on clean train crops, evaluated on val
 crops with the fixed seeded shift of `probe.stain_shift`): `stain_shift` in the JSON, rows with
@@ -22,39 +23,16 @@ import argparse
 import json
 import logging
 import time
-from pathlib import Path
 
 import pandas as pd
-import timm
 import torch
-import yaml
 
 from malaria_ssl.ssl.data import ensure_caches
-from malaria_ssl.ssl.models import build_encoder
+from malaria_ssl.ssl.encoders import load_encoder
 from malaria_ssl.ssl.probe import Prober, results_table
 from malaria_ssl.utils.config import load_config, load_experiment, resolve_path
 
 log = logging.getLogger("probe")
-
-
-def load_encoder(args, cfg) -> tuple[torch.nn.Module, str, dict]:
-    refs = cfg["probe"]["references"]
-    if args.ref == "random":
-        torch.manual_seed(refs["random_init_seed"])
-        return build_encoder(cfg["model"]["encoder"]), "ref_random_init", {"ref": "random", "seed": refs["random_init_seed"]}
-    if args.ref == "imagenet":   # fed with its own input normalization (augreg: mean = std = 0.5)
-        pc = timm.models.get_pretrained_cfg(refs["imagenet"])
-        return (build_encoder(refs["imagenet"], pretrained=True), "ref_imagenet",
-                {"ref": "imagenet", "timm": refs["imagenet"], "input_mean": list(pc.mean), "input_std": list(pc.std)})
-    if args.run:
-        run_dir = Path(args.run)
-        run_cfg = yaml.safe_load((run_dir / "config.yaml").read_text(encoding="utf-8"))
-        path, name, tag = run_dir / "checkpoints" / "encoder_final.pt", run_cfg["model"]["encoder"], run_dir.name
-    else:
-        path, name, tag = Path(args.encoder), cfg["model"]["encoder"], Path(args.encoder).stem
-    enc = build_encoder(name)
-    enc.load_state_dict(torch.load(path, map_location="cpu", weights_only=True), strict=True)
-    return enc, args.tag or tag, {"encoder_path": str(path)}
 
 
 def main() -> None:
@@ -63,6 +41,7 @@ def main() -> None:
     src.add_argument("--run")
     src.add_argument("--encoder")
     src.add_argument("--ref", choices=["random", "imagenet"])
+    src.add_argument("--detr-run", help="vit_detr run dir: probe its ViT after DETR fine-tuning (best.pt)")
     parser.add_argument("--config", default="configs/ssl/base.yaml")
     parser.add_argument("--tag", default=None)
     parser.add_argument("--device", default="cuda")
@@ -73,7 +52,7 @@ def main() -> None:
 
     cfg = load_experiment(args.config)
     device = torch.device(args.device)
-    encoder, tag, source = load_encoder(args, cfg)
+    encoder, tag, source = load_encoder(cfg, args.ref, args.run, args.encoder, args.detr_run, args.tag)
     encoder.to(device)
     on_test = args.eval_split == "test"
     caches = ensure_caches(cfg, resolve_path, ("train", args.eval_split), allow_test=on_test)
