@@ -1,0 +1,14 @@
+# Phase 5 EXPLORATORY, ARM 1: imagenet_da_kang, adaptation fold 2 (evaluated on the crops of fold 1 only).
+# = imagenet_da_f2 with ONLY the SSL augmentation recipe changed to Kang et al., CVPR 2023 ("Benchmarking
+# Self-Supervised Learning on Diverse Pathology Datasets", arXiv 2212.04690v2, Appendix B.3): weak colour jitter
+# p 0.8 with brightness / contrast / saturation / hue 0.2 / 0.2 / 0.2 / 0.1, random grayscale p 0.2, vertical flip
+# p 0.5, no solarization. Our recipe already has jitter p 0.8 with 0.2 / 0.2 / 0.2 / 0.02, vertical flip p 0.5 and
+# no solarization, so the only changes are hue 0.02 -> 0.1 and grayscale p 0 -> 0.2 (the paper's jitter is NOT
+# weaker than ours). RandStainNA-GMM (p 0.8 in the paper) is not implemented; our HED stain jitter (sigma 0.03,
+# p 0.5) stays as the stain augmentation. Our horizontal flip / rot90 / blur / JPEG stay. Values fixed, not tuned.
+base: configs/ssl/imagenet_da_f2.yaml
+views:
+  color_jitter:
+    hue: 0.1
+  grayscale:
+    p: 0.2

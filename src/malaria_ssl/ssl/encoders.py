@@ -50,7 +50,7 @@ def init_encoder(model_cfg: dict[str, Any], imagenet_name: str, resolve) -> tupl
 
 def load_encoder(cfg: dict[str, Any], ref: str | None = None, run: str | None = None, encoder: str | None = None,
                  detr_run: str | None = None, tag: str | None = None) -> tuple[torch.nn.Module, str, dict[str, Any]]:
-    """(encoder, tag, source). Exactly one of ref (random | imagenet), run (SSL run dir), encoder (timm state
+    """(encoder, tag, source). Exactly one of ref (random | imagenet | dino), run (SSL run dir), encoder (timm state
     dict path) or detr_run (vit_detr run dir: its ViT after fine-tuning, checkpoint best.pt).
     `source` has input_mean / input_std when the encoder expects a normalization other than ImageNet's."""
     refs = cfg["probe"]["references"]
@@ -58,10 +58,11 @@ def load_encoder(cfg: dict[str, Any], ref: str | None = None, run: str | None = 
         torch.manual_seed(refs["random_init_seed"])
         return build_encoder(cfg["model"]["encoder"]), tag or "ref_random_init", {"ref": "random",
                                                                                    "seed": refs["random_init_seed"]}
-    if ref == "imagenet":   # fed with its own input normalization (augreg: mean = std = 0.5)
-        pc = timm.models.get_pretrained_cfg(refs["imagenet"])
-        return (build_encoder(refs["imagenet"], pretrained=True), tag or "ref_imagenet",
-                {"ref": "imagenet", "timm": refs["imagenet"], "input_mean": list(pc.mean), "input_std": list(pc.std)})
+    if ref in ("imagenet", "dino"):   # timm weights, fed with timm's own input normalization (pretrained_cfg;
+        name = refs[ref]                # augreg ImageNet: mean = std = 0.5)
+        pc = timm.models.get_pretrained_cfg(name)
+        return (build_encoder(name, pretrained=True), tag or f"ref_{ref}",
+                {"ref": ref, "timm": name, "input_mean": list(pc.mean), "input_std": list(pc.std)})
     if detr_run:
         return _from_detr(Path(detr_run), tag)
     if run:

@@ -226,4 +226,8 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   the folds file + that fold's JPEGs, never annotations). Folds: `make_test_folds.py` seed 42, balanced by infected
   count (60/60 images, 150/153 infected). An encoder adapted on fold F is probed only on the other fold. Smoke 89.7
   s/epoch, 10.75 GiB -> ~0.8 h per run; queue `configs/queues/phase5_da.txt` (~5.1 h, ImageNet variants first) NOT
-  launched.
+  launched. Arms appended at the END of the same queue (~8.75 h total): ARM 1 imagenet_da_kang (Kang et al. CVPR 2023
+  App. B.3 literally: hue 0.02 -> 0.1, `views.grayscale.p` 0.2; their jitter is NOT weaker than ours; RandStainNA not
+  implemented, HED stays), ARM 2 imagenet_da_seed2 (seed 43; `paired_fold_diff.py --mean`), ARM 3 DINO reference
+  (`--ref dino`, timm vit_small_patch16_224.dino, norm from pretrained_cfg = ImageNet stats; probe + two-stage
+  `--pairs`; no DETR).

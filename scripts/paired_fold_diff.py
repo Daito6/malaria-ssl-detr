@@ -16,6 +16,9 @@ For each fold the classifiers are refitted (checked against the probe json) and 
 scored on the same 1000 bootstrap resamples of that fold's images (probe seed). `avg` = mean of the two
 folds; its CI pairs resample r of fold 1 with resample r of fold 2.
 
+--mean NAME=A+B adds a derived encoder whose metric is the mean of encoders A and B (e.g. two SSL seeds), on the
+same resamples; it can be used in --pairs like any other encoder.
+
 Writes <out>_runs.csv (value + 95% CI per encoder, fold 1 / fold 2 / avg), <out>_diff.csv and <out>.json.
 """
 from __future__ import annotations
@@ -55,15 +58,24 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--enc", nargs="+", required=True, metavar="NAME=TAG1[,TAG2]")
     ap.add_argument("--pairs", nargs="+", required=True, metavar="A:B")
+    ap.add_argument("--mean", nargs="*", default=[], metavar="NAME=A+B", help="derived encoder: mean metric of A and B")
     ap.add_argument("--config", default="configs/ssl/base.yaml")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
     pcfg = load_experiment(args.config)["probe"]
     encs = parse_enc(args.enc)
+    means = {}
+    for item in args.mean:
+        name, _, parts = item.partition("=")
+        members = parts.split("+")
+        if not name or name in encs or len(members) < 2 or not set(members) <= set(encs):
+            raise SystemExit(f"bad --mean {item!r}: NAME=A+B with A, B given in --enc")
+        means[name] = members
+    names_all = [*encs, *means]
     pairs = [tuple(x.split(":")) for x in args.pairs]
-    if any(len(p) != 2 or p[0] not in encs or p[1] not in encs for p in pairs):
-        raise SystemExit("pairs must be A:B with A, B given in --enc")
+    if any(len(p) != 2 or p[0] not in names_all or p[1] not in names_all for p in pairs):
+        raise SystemExit("pairs must be A:B with A, B given in --enc or --mean")
     n_res = pcfg["bootstrap"]
 
     values, points, check, meta = {}, {}, [], {}
@@ -100,6 +112,11 @@ def main() -> None:
                 assert abs(compute_metrics(y, p, infected, names)[key] - points[(name, k, mname)]) < 1e-12
                 check.append({"encoder": name, "fold": k, "metric": mname, "refit": points[(name, k, mname)],
                               "probe_json": ref_v, "abs_dev": abs(points[(name, k, mname)] - ref_v)})
+    for name, members in means.items():   # same resamples for every member -> the mean is paired too
+        for k in FOLDS:
+            for mname, *_ in METRICS:
+                points[(name, k, mname)] = float(np.mean([points[(m, k, mname)] for m in members]))
+                values[(name, k, mname)] = np.mean([values[(m, k, mname)] for m in members], axis=0)
     check = pd.DataFrame(check)
     print("CPU refit vs probe json (max abs deviation per metric):")
     print(check.groupby("metric")["abs_dev"].max().to_string(float_format=lambda v: f"{v:.2e}"))
@@ -110,11 +127,13 @@ def main() -> None:
         return {"fold1": (p1, v1), "fold2": (p2, v2), "avg": ((p1 + p2) / 2, (v1 + v2) / 2)}
 
     runs = []
-    for name, tags in encs.items():
+    labels = {**{n: (t[1], t[2]) for n, t in encs.items()},
+              **{n: ("mean(" + "+".join(m) + ")",) * 2 for n, m in means.items()}}
+    for name, tags in labels.items():
         for mname, *_ in METRICS:
             for ev, (p, v) in series(name, mname).items():
                 lo, hi = ci(v)
-                runs.append({"encoder": name, "tag_fold1": tags[1], "tag_fold2": tags[2], "eval": ev, "metric": mname,
+                runs.append({"encoder": name, "tag_fold1": tags[0], "tag_fold2": tags[1], "eval": ev, "metric": mname,
                              "value": p, "ci_low": lo, "ci_high": hi})
     diffs = []
     for a, b in pairs:
@@ -132,7 +151,7 @@ def main() -> None:
     runs.to_csv(out.with_name(out.name + "_runs.csv"), index=False, float_format="%.4f")
     diffs.to_csv(out.with_name(out.name + "_diff.csv"), index=False, float_format="%.4f")
     out.with_suffix(".json").write_text(json.dumps(
-        {"encoders": {n: {str(k): t for k, t in v.items()} for n, v in encs.items()}, "folds": meta,
+        {"encoders": {n: {str(k): t for k, t in v.items()} for n, v in encs.items()}, "means": means, "folds": meta,
          "n_resamples": n_res, "seed": pcfg["seed"], "runs": runs.to_dict("records"), "diffs": diffs.to_dict("records"),
          "refit_check": check.to_dict("records")}, indent=2), encoding="utf-8")
     print(runs.to_string(index=False, float_format=lambda v: f"{v:.4f}"))

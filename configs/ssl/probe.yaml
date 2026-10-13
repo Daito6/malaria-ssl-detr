@@ -22,3 +22,4 @@ probe:
   references:
     random_init_seed: 42
     imagenet: vit_small_patch16_224.augreg_in21k_ft_in1k
+    dino: vit_small_patch16_224.dino   # self-supervised DINO on ImageNet (phase 5 reference); mean / std from timm

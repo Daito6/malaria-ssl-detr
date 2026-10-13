@@ -1,0 +1,5 @@
+# Phase 5 EXPLORATORY, ARM 2: imagenet_da, adaptation fold 1, second seed (evaluated on the crops of fold 2 only).
+# = imagenet_da_f1 with ONLY the seed changed: 42 -> 43 (sampling order, views / augmentations, masks, fresh decoder
+# and projector init). The ImageNet encoder init and the folds are the same.
+base: configs/ssl/imagenet_da_f1.yaml
+seed: 43

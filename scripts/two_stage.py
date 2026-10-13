@@ -16,7 +16,8 @@ evaluate: binary linear classifier (probe hyperparameters) fitted on TRAIN GT cr
 (clean + shifted train crops). Per (DETR run, encoder, training): the score variant (objectness x p(infected) or
 p(infected)) is chosen by val infected AP50, the threshold by val max F1; both are applied unchanged to test.
 Test: infected AP50 / P / R / F1 with 95% CIs and paired differences (shared resamples of test images) vs the
-end-to-end DETR (its predictions_test.json at its own val threshold) and joint - ImageNet two-stage.
+end-to-end DETR (its predictions_test.json at its own val threshold) and encoder - encoder two-stage (`--pairs`,
+default joint - ImageNet).
 """
 from __future__ import annotations
 
@@ -135,6 +136,12 @@ def cmd_evaluate(args) -> None:
     torch.manual_seed(0)
     rows, prepared = [], {}
     same_encoder = dict(x.split(":") for x in args.encoder_runs)   # tag -> its own end-to-end vit_detr run
+    if args.pairs is None:   # default (phase 4): joint - ImageNet when both are evaluated
+        pairs = [("ssl_joint", "ref_imagenet")] if {"ssl_joint", "ref_imagenet"} <= set(args.tags) else []
+    else:
+        pairs = [tuple(x.split(":")) for x in args.pairs]
+        if any(len(pr) != 2 or not set(pr) <= set(args.tags) for pr in pairs):
+            raise SystemExit("--pairs must be A:B with A, B in --tags")
     for run in dict.fromkeys([*args.runs, *same_encoder.values()]):
         run_dir = resolve_path(f"runs/{run}")
         thr_e2e = json.loads((run_dir / "thresholds.json").read_text(encoding="utf-8"))[CLS]
@@ -194,9 +201,8 @@ def cmd_evaluate(args) -> None:
                 if tag in same_encoder:   # same encoder, different use: frozen crop classifier vs inside DETR
                     add_diff((run, tag, training, "test"), (same_encoder[tag], "end_to_end", "-", "test"),
                              f"{tag} two-stage - {same_encoder[tag]} end-to-end")
-            if {"ssl_joint", "ref_imagenet"} <= set(args.tags):
-                add_diff((run, "ssl_joint", training, "test"), (run, "ref_imagenet", training, "test"),
-                         "ssl_joint - ref_imagenet (two-stage)")
+            for a, b in pairs:   # encoder - encoder, both two-stage on the same candidates
+                add_diff((run, a, training, "test"), (run, b, training, "test"), f"{a} - {b} (two-stage)")
     diffs = pd.DataFrame(diffs)
 
     out = resolve_path(args.out)
@@ -222,13 +228,15 @@ def main() -> None:
     c.add_argument("--nms-iou", type=float, default=0.5)
     f = sub.add_parser("features")
     f.add_argument("--runs", nargs="+", required=True)
-    f.add_argument("--encoders", nargs="+", required=True, help="ref:imagenet | run:<ssl run> | detr:<vit_detr run>")
+    f.add_argument("--encoders", nargs="+", required=True, help="ref:imagenet | ref:dino | run:<ssl run> | detr:<vit_detr run>")
     f.add_argument("--config", default="configs/ssl/base.yaml")
     e = sub.add_parser("evaluate")
     e.add_argument("--runs", nargs="+", required=True)
     e.add_argument("--tags", nargs="+", required=True)
     e.add_argument("--encoder-runs", nargs="*", default=[], metavar="TAG:RUN",
                    help="also compare each two-stage TAG with the end-to-end vit_detr RUN built on the same encoder")
+    e.add_argument("--pairs", nargs="*", default=None, metavar="A:B",
+                   help="two-stage encoder differences on test (default: ssl_joint:ref_imagenet if both in --tags)")
     e.add_argument("--config", default="configs/ssl/base.yaml")
     e.add_argument("--n", type=int, default=1000)
     e.add_argument("--seed", type=int, default=42)
