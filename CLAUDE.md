@@ -224,10 +224,25 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   recorded as `model.input_norm`; probe and vit_detr read it) or from ssl_joint; `_cont` = train only, `_da_f<F>` =
   train + UNLABELED images of test fold F (`target.fraction` 0.5, `MixedImageSampler`; `build_target_cache` reads only
   the folds file + that fold's JPEGs, never annotations). Folds: `make_test_folds.py` seed 42, balanced by infected
-  count (60/60 images, 150/153 infected). An encoder adapted on fold F is probed only on the other fold. Smoke 89.7
-  s/epoch, 10.75 GiB -> ~0.8 h per run; queue `configs/queues/phase5_da.txt` (~5.1 h, ImageNet variants first) NOT
-  launched. Arms appended at the END of the same queue (~8.75 h total): ARM 1 imagenet_da_kang (Kang et al. CVPR 2023
-  App. B.3 literally: hue 0.02 -> 0.1, `views.grayscale.p` 0.2; their jitter is NOT weaker than ours; RandStainNA not
-  implemented, HED stays), ARM 2 imagenet_da_seed2 (seed 43; `paired_fold_diff.py --mean`), ARM 3 DINO reference
-  (`--ref dino`, timm vit_small_patch16_224.dino, norm from pretrained_cfg = ImageNet stats; probe + two-stage
-  `--pairs`; no DETR).
+  count (60/60 images, 150/153 infected). An encoder adapted on fold F is probed only on the other fold. Queue
+  `configs/queues/phase5_da.txt` (main part + ARM 1 imagenet_da_kang, ARM 2 imagenet_da_seed2, ARM 3 DINO reference
+  `--ref dino`, timm vit_small_patch16_224.dino, ImageNet-stat norm from pretrained_cfg) DONE; results (numbers only)
+  in `reports/phase5_summary.md`. DINO fold probes + `phase5_dino_folds_*` (dino - imagenet, joint - dino) were added
+  post hoc while writing the summary. Fold-mean test AUPRC infected linear / kNN: imagenet 0.877 / 0.754,
+  imagenet_da 0.748 / 0.759, imagenet_da_2seeds 0.821 / 0.780, joint 0.811 / 0.764, joint_da 0.854 / 0.882, dino
+  0.910 / 0.925. Seed 42 vs 43 of imagenet_da differ by linear +0.146 [0.108, 0.185]. Two-stage test AP50 with DINO
+  crops: A boxes 0.690 (clean), b_vit_imagenet boxes 0.654.
+- Phase 6 (EXPLORATORY, hypothesis after phase-5 test; `reports/phase6_plan.md`): DINO ViT-S/16 inside ViT-DETR.
+  `model.vit.init: dino` (timm name `model.vit.dino` = probe.references.dino, mean / std from pretrained_cfg);
+  train_detr.py records `model.vit.input_norm` in the run config, rebuilds check it. Stage 1 (seed 42):
+  `b_vit_dino_full` (= b_vit_imagenet but init) and `b_vit_dino_frozen` (= b_vit_imagenet_frozen but init); compared
+  with existing seed-42 runs, none retrained. `scripts/box_vs_cls.py`: class-agnostic AP50 / recall of the two-stage
+  candidates vs infected AP50. Queue `configs/queues/phase6_dino_detr.txt` STAGE 1 DONE 2026-10-14 (b_vit_dino_full was
+  stopped by low system RAM after 18/40 epochs and resumed with `--resume` at epoch 18); numbers only in
+  `reports/phase6_summary.md`. best.pt is chosen by clean val AP@[.5:.95] of both classes (trainer, as since phase 2),
+  NOT by val infected AP50 as the plan text says. Test infected AP50 dino_full 0.614, dino_frozen 0.621; paired:
+  dino_full - imagenet +0.087 [0.018, 0.153], dino_full - A +0.063 [-0.008, 0.141] (recall -0.092 [-0.153, -0.030]),
+  dino_frozen - imagenet_frozen +0.316 [0.252, 0.369]. Two-stage DINO on A boxes 0.690 - dino_full end-to-end +0.075
+  [-0.007, 0.146]. Stage 2 (seeds 43, 44 for dino_full, imagenet, A; needs `paired_detr_diff.py --mean`) criterion
+  (dino_full test AP50 > 0.5276 and > 0.5213; fixed before running, reads test) is met: 0.6143. Stage 2 NOT launched,
+  awaits a user decision.
