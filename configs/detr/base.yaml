@@ -35,8 +35,9 @@ model:
   auxiliary_loss: true
   vit:                                # vit_detr only: timm ViT backbone + COCO-pretrained DETR transformer
     arch: vit_small_patch16_224
-    init: random                      # random | imagenet | path to a timm state dict (runs/ssl_*/checkpoints/encoder_final.pt)
+    init: random                      # random | imagenet | dino | path to a timm state dict (runs/ssl_*/checkpoints/encoder_final.pt)
     imagenet: vit_small_patch16_224.augreg_in21k_ft_in1k   # its own input mean/std (0.5) are applied
+    dino: vit_small_patch16_224.dino  # self-supervised DINO (= probe.references.dino); its own mean/std (ImageNet stats)
     stride: 16                        # 16 | 32 (2x2 space-to-depth before the 1x1 input projection)
     drop_path_rate: 0.0
     freeze: false                     # true: ViT is a fixed feature extractor (no grad, eval mode); the rest trains
