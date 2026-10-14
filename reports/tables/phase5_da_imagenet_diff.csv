@@ -1,0 +1,13 @@
+a,b,eval,metric,value_a,value_b,diff,ci_low,ci_high,frac_le_0,excludes_0
+imagenet_da,imagenet,fold1,linear_auprc,0.8213,0.8989,-0.0776,-0.1536,-0.0006,0.9760,True
+imagenet_da,imagenet,fold2,linear_auprc,0.6747,0.8549,-0.1801,-0.2680,-0.0874,1.0000,True
+imagenet_da,imagenet,avg,linear_auprc,0.7480,0.8769,-0.1289,-0.1759,-0.0788,1.0000,True
+imagenet_da,imagenet,fold1,knn_auprc,0.6823,0.7458,-0.0635,-0.1634,0.0428,0.8810,False
+imagenet_da,imagenet,fold2,knn_auprc,0.8357,0.7628,0.0729,-0.0059,0.1453,0.0300,False
+imagenet_da,imagenet,avg,knn_auprc,0.7590,0.7543,0.0047,-0.0589,0.0723,0.4440,False
+imagenet_da,imagenet_cont,fold1,linear_auprc,0.8213,0.9266,-0.1053,-0.1667,-0.0482,0.9990,True
+imagenet_da,imagenet_cont,fold2,linear_auprc,0.6747,0.8861,-0.2113,-0.2875,-0.1299,1.0000,True
+imagenet_da,imagenet_cont,avg,linear_auprc,0.7480,0.9063,-0.1583,-0.2052,-0.1092,1.0000,True
+imagenet_da,imagenet_cont,fold1,knn_auprc,0.6823,0.8287,-0.1464,-0.2505,-0.0467,0.9990,True
+imagenet_da,imagenet_cont,fold2,knn_auprc,0.8357,0.8034,0.0322,-0.0500,0.1092,0.2140,False
+imagenet_da,imagenet_cont,avg,knn_auprc,0.7590,0.8161,-0.0571,-0.1203,0.0092,0.9440,False

@@ -1,0 +1,11 @@
+a,b,metric,value_a,value_b,diff,ci_low,ci_high,frac_le_0,excludes_0
+ssl_joint,ref_dino,auprc_clean,0.9877,0.9879,-0.0002,-0.0069,0.0063,0.5690,False
+ssl_joint,ref_dino,auprc_stain,0.9837,0.9856,-0.0019,-0.0110,0.0067,0.6580,False
+ssl_joint,ref_dino,auprc_10pct,0.9723,0.9865,-0.0142,-0.0317,-0.0007,0.9810,True
+ssl_joint,ref_dino,macro_f1,0.7244,0.7433,-0.0189,-0.0785,0.0366,0.7460,False
+ssl_joint,ref_dino,knn_balanced_acc,0.7814,0.7360,0.0453,-0.0134,0.1015,0.0680,False
+ref_dino,ref_imagenet,auprc_clean,0.9879,0.9889,-0.0010,-0.0099,0.0070,0.5580,False
+ref_dino,ref_imagenet,auprc_stain,0.9856,0.9849,0.0006,-0.0081,0.0096,0.4510,False
+ref_dino,ref_imagenet,auprc_10pct,0.9865,0.9751,0.0114,0.0033,0.0205,0.0050,True
+ref_dino,ref_imagenet,macro_f1,0.7433,0.7175,0.0257,-0.0200,0.0672,0.1120,False
+ref_dino,ref_imagenet,knn_balanced_acc,0.7360,0.6765,0.0595,-0.0002,0.1192,0.0280,False

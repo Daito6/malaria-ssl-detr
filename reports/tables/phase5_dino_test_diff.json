@@ -1,0 +1,252 @@
+{
+  "rows": [
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "auprc_clean",
+      "value_a": 0.8081784573401875,
+      "value_b": 0.9111285825668444,
+      "diff": -0.10295012522665692,
+      "ci_low": -0.13687796434559368,
+      "ci_high": -0.06860494602483183,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "auprc_10pct",
+      "value_a": 0.772325613242305,
+      "value_b": 0.9261911523475416,
+      "diff": -0.1538655391052366,
+      "ci_low": -0.18627885643074352,
+      "ci_high": -0.11845429791154358,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "macro_f1",
+      "value_a": 0.3481897650749127,
+      "value_b": 0.42908883045456864,
+      "diff": -0.08089906537965591,
+      "ci_low": -0.13116038706315097,
+      "ci_high": -0.034585669320558336,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.33811609506224893,
+      "value_b": 0.4193352364198518,
+      "diff": -0.08121914135760289,
+      "ci_low": -0.11996890172440673,
+      "ci_high": -0.03013871067221009,
+      "frac_le_0": 0.994,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "knn_auprc",
+      "value_a": 0.7597653844073204,
+      "value_b": 0.9246013272267193,
+      "diff": -0.16483594281939884,
+      "ci_low": -0.21116124545931325,
+      "ci_high": -0.11861262922283357,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "auprc_clean",
+      "value_a": 0.9111285825668444,
+      "value_b": 0.8757767096483501,
+      "diff": 0.03535187291849429,
+      "ci_low": 0.005079003845752395,
+      "ci_high": 0.06722328418833784,
+      "frac_le_0": 0.011,
+      "excludes_0": true
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "auprc_10pct",
+      "value_a": 0.9261911523475416,
+      "value_b": 0.8588486395687779,
+      "diff": 0.06734251277876369,
+      "ci_low": 0.04490530880077194,
+      "ci_high": 0.0910374377684933,
+      "frac_le_0": 0.0,
+      "excludes_0": true
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "macro_f1",
+      "value_a": 0.42908883045456864,
+      "value_b": 0.4104037238729238,
+      "diff": 0.01868510658164485,
+      "ci_low": -0.0213541874258063,
+      "ci_high": 0.06826369970149157,
+      "frac_le_0": 0.199,
+      "excludes_0": false
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.4193352364198518,
+      "value_b": 0.3697067007836239,
+      "diff": 0.04962853563622793,
+      "ci_low": 0.030977024349565313,
+      "ci_high": 0.0707448910219375,
+      "frac_le_0": 0.0,
+      "excludes_0": true
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "knn_auprc",
+      "value_a": 0.9246013272267193,
+      "value_b": 0.7543246733558376,
+      "diff": 0.17027665387088164,
+      "ci_low": 0.1294873761527443,
+      "ci_high": 0.21185030731653196,
+      "frac_le_0": 0.0,
+      "excludes_0": true
+    }
+  ],
+  "per_seed_diff": {
+    "ssl_joint - ref_dino: auprc_10pct": [
+      -0.15144089078536171,
+      -0.14037864253652654,
+      -0.11666283860240423,
+      -0.08898377630233434,
+      -0.2718615472995556
+    ],
+    "ref_dino - ref_imagenet: auprc_10pct": [
+      0.07672509640416691,
+      0.08976798022526455,
+      0.10452994485581535,
+      0.02109052198897754,
+      0.04459902041959296
+    ]
+  },
+  "refit_check": [
+    {
+      "encoder": "ssl_joint",
+      "metric": "auprc_clean",
+      "refit": 0.8081784573401875,
+      "probe_json": 0.8080589619711289,
+      "abs_dev": 0.00011949536905853098
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "auprc_10pct",
+      "refit": 0.772325613242305,
+      "probe_json": 0.7723378273378557,
+      "abs_dev": 1.2214095550744375e-05
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "macro_f1",
+      "refit": 0.3481897650749127,
+      "probe_json": 0.3481897650749127,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "knn_balanced_acc",
+      "refit": 0.33811609506224893,
+      "probe_json": 0.33811609506224893,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "knn_auprc",
+      "refit": 0.7597653844073204,
+      "probe_json": 0.7597653844073204,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "auprc_clean",
+      "refit": 0.9111285825668444,
+      "probe_json": 0.9108816498941095,
+      "abs_dev": 0.0002469326727349008
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "auprc_10pct",
+      "refit": 0.9261911523475416,
+      "probe_json": 0.9261896244360273,
+      "abs_dev": 1.5279115143096433e-06
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "macro_f1",
+      "refit": 0.42908883045456864,
+      "probe_json": 0.4286854041158974,
+      "abs_dev": 0.0004034263386712422
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "knn_balanced_acc",
+      "refit": 0.4193352364198518,
+      "probe_json": 0.4193352364198518,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "knn_auprc",
+      "refit": 0.9246013272267193,
+      "probe_json": 0.9247489374755731,
+      "abs_dev": 0.00014761024885379115
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "auprc_clean",
+      "refit": 0.8757767096483501,
+      "probe_json": 0.8758158878271254,
+      "abs_dev": 3.917817877530094e-05
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "auprc_10pct",
+      "refit": 0.8588486395687779,
+      "probe_json": 0.858865599891042,
+      "abs_dev": 1.6960322264170102e-05
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "macro_f1",
+      "refit": 0.4104037238729238,
+      "probe_json": 0.4104037238729238,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "knn_balanced_acc",
+      "refit": 0.3697067007836239,
+      "probe_json": 0.3697067007836239,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "knn_auprc",
+      "refit": 0.7543246733558376,
+      "probe_json": 0.7548404255913692,
+      "abs_dev": 0.0005157522355315747
+    }
+  ],
+  "n_resamples": 1000,
+  "seed": 0,
+  "split": "test",
+  "n_images": 120,
+  "n_crops": 2303
+}
