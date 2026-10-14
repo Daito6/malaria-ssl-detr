@@ -1,6 +1,7 @@
 # Phase 6 EXPLORATORY (hypothesis formed AFTER seeing the phase-5 test results): does the DINO ViT-S/16
 # (timm vit_small_patch16_224.dino, the best frozen features in phase 5) help inside the end-to-end ViT-DETR?
-# b_vit_imagenet (phase-4 main recipe: full fine-tuning, seed 42, 40 epochs, best.pt by clean val infected AP50)
+# b_vit_imagenet (phase-4 main recipe: full fine-tuning, seed 42, 40 epochs, best.pt by clean val
+# AP@[.5:.95] of both classes, the same rule for every run)
 # with only model.vit.init changed: imagenet -> dino. The input normalization comes from DINO's timm
 # pretrained_cfg (ImageNet mean / std) and is recorded by train_detr.py as model.vit.input_norm in the run config.
 base: configs/experiments/b_vit_imagenet.yaml
