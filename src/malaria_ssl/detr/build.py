@@ -137,6 +137,7 @@ class ViTBackbone(nn.Module):
             raise ValueError(f"stride must be {self.patch} or {2 * self.patch}, got {stride}")
         self.stride = stride
         in_mean, in_std = torch.as_tensor(IMAGENET_MEAN), torch.as_tensor(IMAGENET_STD)
+        self.input_norm = {"mean": [float(v) for v in enc_mean], "std": [float(v) for v in enc_std]}
         enc_mean, enc_std = torch.as_tensor(enc_mean, dtype=torch.float32), torch.as_tensor(enc_std, dtype=torch.float32)
         # x_enc = (x * in_std + in_mean - enc_mean) / enc_std
         self.register_buffer("scale", (in_std / enc_std).view(1, 3, 1, 1), persistent=False)
@@ -175,7 +176,8 @@ class ViTBackbone(nn.Module):
 
 
 def build_vit_backbone(vit_cfg: dict[str, Any]) -> ViTBackbone:
-    """`vit_cfg.init`: random | imagenet | path to a timm state dict (e.g. an SSL encoder_final.pt)."""
+    """`vit_cfg.init`: random | imagenet | dino | path to a timm state dict (e.g. an SSL encoder_final.pt).
+    imagenet / dino: the timm weights named by `vit_cfg[init]`, fed with their own pretrained_cfg mean / std."""
     import timm
 
     from malaria_ssl.ssl.models import build_encoder
@@ -184,9 +186,9 @@ def build_vit_backbone(vit_cfg: dict[str, Any]) -> ViTBackbone:
     mean, std = IMAGENET_MEAN, IMAGENET_STD  # random init and our SSL encoders use the DETR normalization
     if init == "random":
         enc = build_encoder(vit_cfg["arch"], drop_path_rate=dpr)
-    elif init == "imagenet":
-        enc = build_encoder(vit_cfg["imagenet"], drop_path_rate=dpr, pretrained=True)
-        pc = timm.models.get_pretrained_cfg(vit_cfg["imagenet"])
+    elif init in ("imagenet", "dino"):
+        enc = build_encoder(vit_cfg[init], drop_path_rate=dpr, pretrained=True)
+        pc = timm.models.get_pretrained_cfg(vit_cfg[init])
         mean, std = pc.mean, pc.std
     else:
         from malaria_ssl.ssl.encoders import encoder_input_norm
@@ -196,7 +198,17 @@ def build_vit_backbone(vit_cfg: dict[str, Any]) -> ViTBackbone:
         mean, std = encoder_input_norm(resolve_path(init))   # the SSL run's input norm (ImageNet unless recorded)
     log.info("ViT backbone %s (init %s), input mean %s std %s, stride %d",
              vit_cfg["arch"], init, tuple(float(v) for v in mean), tuple(float(v) for v in std), vit_cfg["stride"])
-    return ViTBackbone(enc, mean, std, vit_cfg["stride"])
+    bb = ViTBackbone(enc, mean, std, vit_cfg["stride"])
+    recorded = vit_cfg.get("input_norm")   # written by train_detr.py; a rebuilt run must see the same normalization
+    if recorded is not None and recorded != bb.input_norm:
+        raise ValueError(f"recorded model.vit.input_norm {recorded} != derived {bb.input_norm}")
+    return bb
+
+
+def vit_input_norm(model: nn.Module) -> dict[str, list[float]] | None:
+    """Input mean / std of the ViT backbone of a vit_detr model (None for other models)."""
+    bb = next((m for m in model.modules() if isinstance(m, ViTBackbone)), None)
+    return None if bb is None else bb.input_norm
 
 
 def _set_head(hf_model: DetrForObjectDetection, class_names: list[str]) -> None:

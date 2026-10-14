@@ -333,3 +333,39 @@ def test_phase4_aug_configs_differ_only_as_declared():
         c = flat(load_experiment(f"configs/experiments/b_vit_{enc}_aug.yaml"))
         diff = {k: (ref.get(k), c.get(k)) for k in set(c) | set(ref) if ref.get(k) != c.get(k)}
         assert diff == expected, (enc, diff)
+
+
+def test_dino_init_matches_the_probe_reference():
+    from malaria_ssl.ssl.encoders import load_encoder
+
+    ssl_cfg = load_experiment("configs/ssl/base.yaml")
+    assert CFG["model"]["vit"]["dino"] == ssl_cfg["probe"]["references"]["dino"]
+    ref, _, source = load_encoder(ssl_cfg, ref="dino")
+    bb = build_vit_backbone(_model_cfg(init="dino")["vit"])
+    ref_sd, sd = ref.state_dict(), bb.encoder.state_dict()
+    assert ref_sd.keys() == sd.keys()
+    for k, v in ref_sd.items():
+        assert torch.equal(sd[k], v), k                                  # bit-identical weights
+    assert bb.input_norm == {"mean": source["input_mean"], "std": source["input_std"]}
+    # effective normalization: x_enc = (x * in_std + in_mean - mean) / std, x ImageNet-normalized
+    std = torch.as_tensor(IMAGENET_STD) / bb.scale.flatten()
+    mean = torch.as_tensor(IMAGENET_MEAN) - bb.shift.flatten() * std
+    assert torch.allclose(mean, torch.as_tensor(source["input_mean"]), atol=1e-6)
+    assert torch.allclose(std, torch.as_tensor(source["input_std"]), atol=1e-6)
+
+
+def test_recorded_input_norm_is_checked_on_rebuild():
+    vit = _model_cfg(init="random")["vit"]
+    norm = {"mean": [float(v) for v in IMAGENET_MEAN], "std": [float(v) for v in IMAGENET_STD]}
+    assert build_vit_backbone(vit | {"input_norm": norm}).input_norm == norm
+    with pytest.raises(ValueError):
+        build_vit_backbone(vit | {"input_norm": {"mean": [0.5] * 3, "std": [0.5] * 3}})
+
+
+def test_vit_input_norm_of_a_model(vit_model):
+    from malaria_ssl.detr.build import vit_input_norm
+
+    assert vit_input_norm(vit_model) == {"mean": [float(v) for v in IMAGENET_MEAN],
+                                         "std": [float(v) for v in IMAGENET_STD]}
+    assert vit_input_norm(torch.nn.Linear(2, 2)) is None
+

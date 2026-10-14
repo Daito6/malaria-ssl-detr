@@ -13,6 +13,7 @@ from pathlib import Path
 
 import yaml
 
+from malaria_ssl.detr.build import vit_input_norm
 from malaria_ssl.detr.trainer import Trainer
 from malaria_ssl.utils.config import apply_overrides, load_experiment, resolve_path
 
@@ -40,6 +41,9 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s",
                         handlers=[logging.StreamHandler(), logging.FileHandler(run_dir / "train.log", encoding="utf-8")])
     trainer = Trainer(cfg, run_dir)
+    norm = vit_input_norm(trainer.model)
+    if norm is not None:   # recorded in runs/<name>/config.yaml by setup(); checked on every rebuild
+        cfg["model"]["vit"]["input_norm"] = norm
     trainer.setup(resume=args.resume)
     trainer.fit()
 
