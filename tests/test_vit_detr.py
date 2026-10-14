@@ -369,3 +369,16 @@ def test_vit_input_norm_of_a_model(vit_model):
                                          "std": [float(v) for v in IMAGENET_STD]}
     assert vit_input_norm(torch.nn.Linear(2, 2)) is None
 
+
+def test_phase6_dino_configs_differ_only_in_init():
+    def flat(d, p=""):
+        out = {}
+        for k, v in d.items():
+            out.update(flat(v, f"{p}{k}.")) if isinstance(v, dict) else out.__setitem__(f"{p}{k}", v)
+        return out
+
+    for dino, imagenet in (("b_vit_dino_full", "b_vit_imagenet"), ("b_vit_dino_frozen", "b_vit_imagenet_frozen")):
+        ref = flat(load_experiment(f"configs/experiments/{imagenet}.yaml"))
+        c = flat(load_experiment(f"configs/experiments/{dino}.yaml"))
+        diff = {k: (ref.get(k), c.get(k)) for k in set(c) | set(ref) if ref.get(k) != c.get(k)}
+        assert diff == {"model.vit.init": ("imagenet", "dino")}, (dino, diff)

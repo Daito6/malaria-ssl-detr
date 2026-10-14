@@ -1,0 +1,6 @@
+# Phase 6 EXPLORATORY: b_vit_imagenet_frozen (phase-4 freeze scheme: model.vit.freeze true, ViT no grad, eval
+# mode; seed 42, 40 epochs) with only model.vit.init changed: imagenet -> dino (see b_vit_dino_full.yaml).
+base: configs/experiments/b_vit_imagenet_frozen.yaml
+model:
+  vit:
+    init: dino
