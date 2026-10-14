@@ -1,0 +1,17 @@
+a,b,metric,diff,low,high,share_le_0,n
+b_vit_dino_full,b_vit_imagenet,test_AP50_infected,0.0867,0.0184,0.1529,0.0060,1000
+b_vit_dino_full,b_vit_imagenet,test_precision_infected,0.0491,-0.0571,0.1642,0.1760,1000
+b_vit_dino_full,b_vit_imagenet,test_recall_infected,0.0627,0.0168,0.1164,0.0040,1000
+b_vit_dino_full,b_vit_imagenet,test_f1_infected,0.0801,0.0211,0.1465,0.0030,1000
+b_vit_dino_full,a_coco_detr_binary,test_AP50_infected,0.0631,-0.0080,0.1412,0.0490,1000
+b_vit_dino_full,a_coco_detr_binary,test_precision_infected,0.0422,-0.0342,0.1212,0.1510,1000
+b_vit_dino_full,a_coco_detr_binary,test_recall_infected,-0.0924,-0.1526,-0.0299,1.0000,1000
+b_vit_dino_full,a_coco_detr_binary,test_f1_infected,-0.0905,-0.1561,-0.0211,0.9940,1000
+b_vit_dino_full,b_vit_joint,test_AP50_infected,0.2849,0.2194,0.3487,0.0000,1000
+b_vit_dino_full,b_vit_joint,test_precision_infected,0.0661,-0.0180,0.1614,0.0840,1000
+b_vit_dino_full,b_vit_joint,test_recall_infected,0.0726,0.0250,0.1262,0.0030,1000
+b_vit_dino_full,b_vit_joint,test_f1_infected,0.0940,0.0361,0.1561,0.0020,1000
+b_vit_dino_frozen,b_vit_imagenet_frozen,test_AP50_infected,0.3155,0.2519,0.3686,0.0000,1000
+b_vit_dino_frozen,b_vit_imagenet_frozen,test_precision_infected,0.1131,-0.0056,0.2360,0.0300,1000
+b_vit_dino_frozen,b_vit_imagenet_frozen,test_recall_infected,0.2409,0.1839,0.3055,0.0000,1000
+b_vit_dino_frozen,b_vit_imagenet_frozen,test_f1_infected,0.3109,0.2406,0.3794,0.0000,1000

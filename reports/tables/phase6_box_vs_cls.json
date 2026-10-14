@@ -1,0 +1,488 @@
+{
+  "class": "infected",
+  "iou": 0.5,
+  "n_resamples": 1000,
+  "seed": 42,
+  "rows": [
+    {
+      "run": "a_coco_detr_binary",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.935035703920097,
+      "ci_low": 0.9135104872721787,
+      "ci_high": 0.9560022796041499,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9438812748357798,
+      "ci_low": 0.921390553968701,
+      "ci_high": 0.9669349376431134,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9832214765100671,
+      "ci_low": 0.9685314685314685,
+      "ci_high": 0.9964422209413062,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7776694450286268,
+      "ci_low": 0.7230768977950205,
+      "ci_high": 0.8297682952140045,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9338276354652231,
+      "ci_low": 0.9126887788652028,
+      "ci_high": 0.9544783339675479,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9447733354959046,
+      "ci_low": 0.9244330750598664,
+      "ci_high": 0.9654196170871178,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9765100671140939,
+      "ci_low": 0.9605690407750452,
+      "ci_high": 0.9919748762491828,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7691344094821082,
+      "ci_low": 0.7175357710504536,
+      "ci_high": 0.8327218547590683,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_joint",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9437192509998488,
+      "ci_low": 0.9235686547988853,
+      "ci_high": 0.956391552745871,
+      "checkpoint_epoch": 31,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_joint",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9514232422350174,
+      "ci_low": 0.9340161246533418,
+      "ci_high": 0.9699248705904907,
+      "checkpoint_epoch": 31,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_joint",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9563758389261745,
+      "ci_low": 0.9326923076923077,
+      "ci_high": 0.9788774563548959,
+      "checkpoint_epoch": 31,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_joint",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7735654551471363,
+      "ci_low": 0.71866544417031,
+      "ci_high": 0.8252989591477105,
+      "checkpoint_epoch": 31,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet_frozen",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9155899568832929,
+      "ci_low": 0.892146420881489,
+      "ci_high": 0.9377590136532356,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet_frozen",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9337442218798151,
+      "ci_low": 0.910908865538383,
+      "ci_high": 0.9571196977084349,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet_frozen",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9798657718120806,
+      "ci_low": 0.9633316326530613,
+      "ci_high": 0.9937514512383901,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet_frozen",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7541688857410211,
+      "ci_low": 0.6986468792693644,
+      "ci_high": 0.8135989629408289,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9452443272582592,
+      "ci_low": 0.9248743879944775,
+      "ci_high": 0.965156090721097,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9542616170626875,
+      "ci_low": 0.9371580855747048,
+      "ci_high": 0.9726979646120588,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9865771812080537,
+      "ci_low": 0.9714285714285714,
+      "ci_high": 0.9969045010716837,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.8271742654317676,
+      "ci_low": 0.7798490866252545,
+      "ci_high": 0.8780194524296391,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_frozen",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.922873152881224,
+      "ci_low": 0.9014442386104877,
+      "ci_high": 0.951541888932142,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_frozen",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9386100072986782,
+      "ci_low": 0.9166578370806695,
+      "ci_high": 0.9614187886821383,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_frozen",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9832214765100671,
+      "ci_low": 0.968048558204309,
+      "ci_high": 0.9964419098877054,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_frozen",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7721744313108925,
+      "ci_low": 0.7209423674530017,
+      "ci_high": 0.8337407108500818,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9722080267704639,
+      "ci_low": 0.9617298055026646,
+      "ci_high": 0.980399898797519,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9836065573770492,
+      "ci_low": 0.9751942002834338,
+      "ci_high": 0.9904214805116682,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9834983498349835,
+      "ci_low": 0.9645135460911491,
+      "ci_high": 0.9968051118210862,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.5512502672213583,
+      "ci_low": 0.4857599364100366,
+      "ci_high": 0.6212842765111022,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.953711128498204,
+      "ci_low": 0.9419564142945275,
+      "ci_high": 0.9657390810557841,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9746493155315193,
+      "ci_low": 0.9642674146646156,
+      "ci_high": 0.9839808531754245,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9834983498349835,
+      "ci_low": 0.9642828059562587,
+      "ci_high": 1.0,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.527649873746214,
+      "ci_low": 0.46917158259752034,
+      "ci_high": 0.5964704627868097,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_joint",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.93824096865476,
+      "ci_low": 0.9183747851742271,
+      "ci_high": 0.9533345376848511,
+      "checkpoint_epoch": 31,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_joint",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.962818996112895,
+      "ci_low": 0.946552667513972,
+      "ci_high": 0.9772949673999886,
+      "checkpoint_epoch": 31,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_joint",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.976897689768977,
+      "ci_low": 0.9580577084206116,
+      "ci_high": 0.9934431586842387,
+      "checkpoint_epoch": 31,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_joint",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.32938864912625865,
+      "ci_low": 0.2755241916696677,
+      "ci_high": 0.3971974433318893,
+      "checkpoint_epoch": 31,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet_frozen",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9071142191305084,
+      "ci_low": 0.8929274923348937,
+      "ci_high": 0.9252946560028639,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet_frozen",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9486226128105459,
+      "ci_low": 0.9369608199863018,
+      "ci_high": 0.9610241150067482,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet_frozen",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9075907590759076,
+      "ci_low": 0.8571312238250348,
+      "ci_high": 0.953916827852998,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_imagenet_frozen",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.30574788398423197,
+      "ci_low": 0.2493538765496017,
+      "ci_high": 0.3855438511718186,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9662208140781684,
+      "ci_low": 0.958958793088455,
+      "ci_high": 0.9753886657620215,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.985972621260774,
+      "ci_low": 0.9800626391572744,
+      "ci_high": 0.9911178298862611,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9801980198019802,
+      "ci_low": 0.9576532843774819,
+      "ci_high": 0.996805618946194,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.614324976489645,
+      "ci_low": 0.5600429004831154,
+      "ci_high": 0.6811615413322171,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_frozen",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9542196977347128,
+      "ci_low": 0.948574813915116,
+      "ci_high": 0.9664043208769245,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_frozen",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9790434341727227,
+      "ci_low": 0.9706042095804244,
+      "ci_high": 0.9872401156319895,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_frozen",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9735973597359736,
+      "ci_low": 0.9514523704450889,
+      "ci_high": 0.9907142110961272,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_frozen",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.6212132303995037,
+      "ci_low": 0.5591340246948547,
+      "ci_high": 0.6880715095953253,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    }
+  ]
+}
