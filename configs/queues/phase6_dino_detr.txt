@@ -3,7 +3,7 @@
 #   b_vit_dino_full    = b_vit_imagenet         with model.vit.init imagenet -> dino (phase-4 main recipe, full FT)
 #   b_vit_dino_frozen  = b_vit_imagenet_frozen  with model.vit.init imagenet -> dino (phase-4 freeze scheme)
 # (verified by tests/test_vit_detr.py::test_phase6_dino_configs_differ_only_in_init). 40 epochs, best.pt by clean
-# val infected AP50 (as every run); thresholds = val max F1, applied unchanged to test. Nothing is tuned on test.
+# val AP@[.5:.95] of both classes (the same rule for every run); thresholds = val max F1, applied unchanged to test. Nothing is tuned on test.
 # Comparison runs (seed 42) are NOT retrained: a_coco_detr_binary, b_vit_imagenet, b_vit_joint, b_vit_imagenet_frozen;
 # only their missing evaluation inputs (stain-shifted val, two-stage candidates) are added.
 #
