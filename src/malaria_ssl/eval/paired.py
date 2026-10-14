@@ -43,6 +43,14 @@ def bootstrap_table(runs: dict[str, dict[str, Any]], samples: list[list[int]]) -
     return {name: np.array([[score(r, ids)[m] for m in METRICS] for ids in samples]) for name, r in runs.items()}
 
 
+def mean_of_runs(points: dict[str, dict[str, float]], boots: dict[str, np.ndarray],
+                 members: list[str]) -> tuple[dict[str, float], np.ndarray]:
+    """Derived run whose metrics are the mean of `members` (e.g. training seeds): the point is the mean of their
+    points, each resample the mean of their values on that SAME resample, so differences stay paired."""
+    point = {m: float(np.mean([points[r][m] for r in members])) for m in METRICS}
+    return point, np.mean([boots[r] for r in members], axis=0)
+
+
 def summarize_diff(point_a: float, point_b: float, boot_a: np.ndarray, boot_b: np.ndarray) -> dict[str, float]:
     """Point difference, 95% percentile CI and the share of resamples with difference <= 0."""
     d = boot_a - boot_b

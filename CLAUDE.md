@@ -69,7 +69,7 @@ python scripts/train_detr.py --config configs/experiments/<exp>.yaml [--resume] 
 python scripts/evaluate.py runs/<name> --split val --bootstrap   # val first: picks F1 thresholds
 python scripts/evaluate.py runs/<name> --split test --bootstrap  # reuses val thresholds
 python scripts/compare_detr_runs.py --runs <names...> --split val [--select] --out reports/tables/<name>.csv
-python scripts/paired_detr_diff.py --runs <binary runs...> --pairs A:B ... --out reports/tables/<prefix>  # CPU, test
+python scripts/paired_detr_diff.py --runs <binary runs...> --pairs A:B ... [--mean NAME=R1+R2+...] --out reports/tables/<prefix>  # CPU, test
 python scripts/evaluate.py runs/<name> --split val --long-side N --bootstrap   # scale diagnostic, val thresholds, *_lsN
 python scripts/evaluate.py runs/<name> --split val --stain-shift --bootstrap   # synthetic stain-shifted val (VAL ONLY), *_stain
 python scripts/scale_diagnostic.py --runs <names...> --long-sides 640 840 1016 --out reports/tables/<prefix>  # CPU
