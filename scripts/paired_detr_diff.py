@@ -10,6 +10,9 @@ Usage:
         --out reports/tables/phase4_main
 Writes <out>_runs.csv (AP50 CIs from evaluate.py; test P/R/F1 CIs from the shared resamples here),
 <out>_diff.csv and <out>.json.
+--mean NAME=R1+R2[+R3...] adds a derived run (e.g. the mean of training seeds) usable in --pairs: its point is the
+mean of the members' points and each resample the mean of their values on that same resample (members keep their
+own val thresholds). It appears only in <out>_diff.csv and in <out>.json ("means"), not in <out>_runs.csv.
 """
 from __future__ import annotations
 
@@ -20,7 +23,8 @@ import numpy as np
 import pandas as pd
 
 from malaria_ssl.data.detection import load_split_coco
-from malaria_ssl.eval.paired import METRICS, bootstrap_table, ci, prepare_run, resamples, score, summarize_diff
+from malaria_ssl.eval.paired import (METRICS, bootstrap_table, ci, mean_of_runs, prepare_run, resamples, score,
+                                     summarize_diff)
 from malaria_ssl.utils.config import load_config, resolve_path
 
 CLS = "infected"
@@ -68,11 +72,23 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", nargs="+", required=True)
     ap.add_argument("--pairs", nargs="*", default=[], metavar="A:B")
+    ap.add_argument("--mean", nargs="*", default=[], metavar="NAME=R1+R2", help="derived run: mean metric of R1, R2, ...")
     ap.add_argument("--n", type=int, default=1000, help="bootstrap resamples of test images")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--data-config", default="configs/data.yaml")
     ap.add_argument("--out", required=True, help="output prefix")
     args = ap.parse_args()
+
+    means = {}
+    for item in args.mean:
+        name, _, parts = item.partition("=")
+        members = parts.split("+")
+        if not name or name in args.runs or name in means or len(members) < 2 or not set(members) <= set(args.runs):
+            raise SystemExit(f"bad --mean {item!r}: NAME=R1+R2[+...] with every Ri given in --runs")
+        means[name] = members
+    pairs = [tuple(x.split(":")) for x in args.pairs]
+    if any(len(p) != 2 or not {*p} <= {*args.runs, *means} for p in pairs):
+        raise SystemExit("pairs must be A:B with A, B given in --runs or --mean")
 
     gt = load_split_coco("test", "binary", load_config(resolve_path(args.data_config)), resolve_path)
     cat = {c["name"]: c["id"] for c in gt["categories"]}[CLS]
@@ -88,9 +104,10 @@ def main() -> None:
     points = {name: score(r, img_ids) for name, r in runs.items()}
 
     table = pd.DataFrame([run_row(name, boots[name], points[name]) for name in args.runs])
+    for name, members in means.items():  # after the per-run table: derived runs are not runs
+        points[name], boots[name] = mean_of_runs(points, boots, members)
     diffs = []
-    for pair in args.pairs:
-        a, b = pair.split(":")
+    for a, b in pairs:
         for j, m in enumerate(METRICS):
             diffs.append({"a": a, "b": b, "metric": f"test_{m}_{CLS}",
                           **summarize_diff(points[a][m], points[b][m], boots[a][:, j], boots[b][:, j])})
@@ -101,7 +118,8 @@ def main() -> None:
     diff.to_csv(f"{out}_diff.csv", index=False, float_format="%.4f")
     meta = {"split": "test", "class": CLS, "n_images": len(img_ids), "n_gt": int(len(
         [a for a in gt["annotations"] if a["category_id"] == cat])), "n_resamples": args.n, "seed": args.seed,
-            "runs": table.to_dict("records"), "diffs": diffs}
+            "runs": table.to_dict("records"), "means": means,
+            "mean_points": {n: points[n] for n in means}, "diffs": diffs}
     (out.parent / f"{out.name}.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     with pd.option_context("display.width", 250, "display.max_columns", 50):
         print(table.T.to_string(float_format=lambda v: f"{v:.4f}"))
