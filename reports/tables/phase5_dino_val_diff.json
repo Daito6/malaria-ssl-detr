@@ -1,0 +1,252 @@
+{
+  "rows": [
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "auprc_clean",
+      "value_a": 0.9877344634063046,
+      "value_b": 0.9878865619593824,
+      "diff": -0.0001520985530778507,
+      "ci_low": -0.0068829824650694675,
+      "ci_high": 0.006279354162596429,
+      "frac_le_0": 0.569,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "auprc_stain",
+      "value_a": 0.9836824440349309,
+      "value_b": 0.985552434804632,
+      "diff": -0.0018699907697010687,
+      "ci_low": -0.011010847719176455,
+      "ci_high": 0.006685572750662217,
+      "frac_le_0": 0.658,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "auprc_10pct",
+      "value_a": 0.9722870755946774,
+      "value_b": 0.9864891923820756,
+      "diff": -0.014202116787398134,
+      "ci_low": -0.03169709585559492,
+      "ci_high": -0.0007342363206586545,
+      "frac_le_0": 0.981,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "macro_f1",
+      "value_a": 0.7244248344004233,
+      "value_b": 0.7432822608549955,
+      "diff": -0.018857426454572224,
+      "ci_low": -0.07846238646972001,
+      "ci_high": 0.03661976577377852,
+      "frac_le_0": 0.746,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_joint",
+      "b": "ref_dino",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.7813870548219287,
+      "value_b": 0.7360383486728024,
+      "diff": 0.04534870614912634,
+      "ci_low": -0.01340049313074949,
+      "ci_high": 0.10148399713736292,
+      "frac_le_0": 0.068,
+      "excludes_0": false
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "auprc_clean",
+      "value_a": 0.9878865619593824,
+      "value_b": 0.988887010211891,
+      "diff": -0.0010004482525085567,
+      "ci_low": -0.009930213642935306,
+      "ci_high": 0.007014797118240853,
+      "frac_le_0": 0.558,
+      "excludes_0": false
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "auprc_stain",
+      "value_a": 0.985552434804632,
+      "value_b": 0.9849429962488159,
+      "diff": 0.0006094385558160775,
+      "ci_low": -0.008097869908220756,
+      "ci_high": 0.009601900744746823,
+      "frac_le_0": 0.451,
+      "excludes_0": false
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "auprc_10pct",
+      "value_a": 0.9864891923820756,
+      "value_b": 0.9751384408046487,
+      "diff": 0.01135075157742682,
+      "ci_low": 0.00326784762678759,
+      "ci_high": 0.020549093332800018,
+      "frac_le_0": 0.005,
+      "excludes_0": true
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "macro_f1",
+      "value_a": 0.7432822608549955,
+      "value_b": 0.7175347116438369,
+      "diff": 0.025747549211158627,
+      "ci_low": -0.0199522895857602,
+      "ci_high": 0.06721117684798471,
+      "frac_le_0": 0.112,
+      "excludes_0": false
+    },
+    {
+      "a": "ref_dino",
+      "b": "ref_imagenet",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.7360383486728024,
+      "value_b": 0.6765434507136187,
+      "diff": 0.059494897959183723,
+      "ci_low": -0.00022581402351585353,
+      "ci_high": 0.11924151296102903,
+      "frac_le_0": 0.028,
+      "excludes_0": false
+    }
+  ],
+  "per_seed_diff": {
+    "ssl_joint - ref_dino: auprc_10pct": [
+      -0.011359708625575116,
+      -0.012166045574441564,
+      -0.012399145171411607,
+      -0.02259072024196096,
+      -0.01249496432360142
+    ],
+    "ref_dino - ref_imagenet: auprc_10pct": [
+      0.017065096722923667,
+      0.010215987052884623,
+      0.011219566473933296,
+      0.012164752959371694,
+      0.00608835467802038
+    ]
+  },
+  "refit_check": [
+    {
+      "encoder": "ssl_joint",
+      "metric": "auprc_clean",
+      "refit": 0.9877344634063046,
+      "probe_json": 0.9876910935623414,
+      "abs_dev": 4.336984396313692e-05
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "auprc_stain",
+      "refit": 0.9836824440349309,
+      "probe_json": 0.9836726011509798,
+      "abs_dev": 9.842883951116654e-06
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "auprc_10pct",
+      "refit": 0.9722870755946774,
+      "probe_json": 0.9722266087981281,
+      "abs_dev": 6.0466796549363266e-05
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "macro_f1",
+      "refit": 0.7244248344004233,
+      "probe_json": 0.7280040211324074,
+      "abs_dev": 0.0035791867319840964
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "knn_balanced_acc",
+      "refit": 0.7813870548219287,
+      "probe_json": 0.7813870548219287,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "auprc_clean",
+      "refit": 0.9878865619593824,
+      "probe_json": 0.987827406943798,
+      "abs_dev": 5.915501558440006e-05
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "auprc_stain",
+      "refit": 0.985552434804632,
+      "probe_json": 0.9854774906821543,
+      "abs_dev": 7.494412247766036e-05
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "auprc_10pct",
+      "refit": 0.9864891923820756,
+      "probe_json": 0.9864865953265559,
+      "abs_dev": 2.5970555196375145e-06
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "macro_f1",
+      "refit": 0.7432822608549955,
+      "probe_json": 0.7445342099942552,
+      "abs_dev": 0.0012519491392597448
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "knn_balanced_acc",
+      "refit": 0.7360383486728024,
+      "probe_json": 0.7360383486728024,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "auprc_clean",
+      "refit": 0.988887010211891,
+      "probe_json": 0.9888511317087765,
+      "abs_dev": 3.5878503114483706e-05
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "auprc_stain",
+      "refit": 0.9849429962488159,
+      "probe_json": 0.9849393944494238,
+      "abs_dev": 3.60179939207228e-06
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "auprc_10pct",
+      "refit": 0.9751384408046487,
+      "probe_json": 0.9751414959293887,
+      "abs_dev": 3.055124739970161e-06
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "macro_f1",
+      "refit": 0.7175347116438369,
+      "probe_json": 0.7175347116438369,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "knn_balanced_acc",
+      "refit": 0.6765434507136187,
+      "probe_json": 0.6765434507136187,
+      "abs_dev": 0.0
+    }
+  ],
+  "n_resamples": 1000,
+  "seed": 0,
+  "split": "val",
+  "n_images": 181,
+  "n_crops": 2312
+}

@@ -1,0 +1,708 @@
+{
+  "encoders": {
+    "imagenet": {
+      "1": "ref_imagenet",
+      "2": "ref_imagenet"
+    },
+    "imagenet_cont": {
+      "1": "ssl_imagenet_cont",
+      "2": "ssl_imagenet_cont"
+    },
+    "imagenet_da": {
+      "1": "ssl_imagenet_da_f2",
+      "2": "ssl_imagenet_da_f1"
+    },
+    "imagenet_da_seed2": {
+      "1": "ssl_imagenet_da_seed2_f2",
+      "2": "ssl_imagenet_da_seed2_f1"
+    }
+  },
+  "means": {
+    "imagenet_da_2seeds": [
+      "imagenet_da",
+      "imagenet_da_seed2"
+    ]
+  },
+  "folds": {
+    "1": {
+      "n_images": 60,
+      "n_crops": 1149,
+      "n_infected_crops": 150
+    },
+    "2": {
+      "n_images": 60,
+      "n_crops": 1154,
+      "n_infected_crops": 153
+    }
+  },
+  "n_resamples": 1000,
+  "seed": 0,
+  "runs": [
+    {
+      "encoder": "imagenet",
+      "tag_fold1": "ref_imagenet",
+      "tag_fold2": "ref_imagenet",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.8988574979955405,
+      "ci_low": 0.8458778536801326,
+      "ci_high": 0.947058815254718
+    },
+    {
+      "encoder": "imagenet",
+      "tag_fold1": "ref_imagenet",
+      "tag_fold2": "ref_imagenet",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.8548812180806209,
+      "ci_low": 0.7977747959503295,
+      "ci_high": 0.9144897913019338
+    },
+    {
+      "encoder": "imagenet",
+      "tag_fold1": "ref_imagenet",
+      "tag_fold2": "ref_imagenet",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.8768693580380806,
+      "ci_low": 0.8382418802630479,
+      "ci_high": 0.9171622112311655
+    },
+    {
+      "encoder": "imagenet",
+      "tag_fold1": "ref_imagenet",
+      "tag_fold2": "ref_imagenet",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.7458088112607228,
+      "ci_low": 0.6725800889204773,
+      "ci_high": 0.8201721423687236
+    },
+    {
+      "encoder": "imagenet",
+      "tag_fold1": "ref_imagenet",
+      "tag_fold2": "ref_imagenet",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.7627751757284201,
+      "ci_low": 0.6908793803760223,
+      "ci_high": 0.8362737128141031
+    },
+    {
+      "encoder": "imagenet",
+      "tag_fold1": "ref_imagenet",
+      "tag_fold2": "ref_imagenet",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.7542919934945715,
+      "ci_low": 0.7012657219438404,
+      "ci_high": 0.8125743228684769
+    },
+    {
+      "encoder": "imagenet_cont",
+      "tag_fold1": "ssl_imagenet_cont",
+      "tag_fold2": "ssl_imagenet_cont",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.9266009747028008,
+      "ci_low": 0.8846331208355385,
+      "ci_high": 0.963307166846042
+    },
+    {
+      "encoder": "imagenet_cont",
+      "tag_fold1": "ssl_imagenet_cont",
+      "tag_fold2": "ssl_imagenet_cont",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.8860553708751308,
+      "ci_low": 0.8312861009836653,
+      "ci_high": 0.939947010776145
+    },
+    {
+      "encoder": "imagenet_cont",
+      "tag_fold1": "ssl_imagenet_cont",
+      "tag_fold2": "ssl_imagenet_cont",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.9063281727889658,
+      "ci_low": 0.874938011334362,
+      "ci_high": 0.9379867955958818
+    },
+    {
+      "encoder": "imagenet_cont",
+      "tag_fold1": "ssl_imagenet_cont",
+      "tag_fold2": "ssl_imagenet_cont",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.8287481204080354,
+      "ci_low": 0.7542323836478344,
+      "ci_high": 0.8977563763519956
+    },
+    {
+      "encoder": "imagenet_cont",
+      "tag_fold1": "ssl_imagenet_cont",
+      "tag_fold2": "ssl_imagenet_cont",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.8034499233844035,
+      "ci_low": 0.7284910874913949,
+      "ci_high": 0.8859189825350696
+    },
+    {
+      "encoder": "imagenet_cont",
+      "tag_fold1": "ssl_imagenet_cont",
+      "tag_fold2": "ssl_imagenet_cont",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.8160990218962194,
+      "ci_low": 0.7653032031066372,
+      "ci_high": 0.8707242883543053
+    },
+    {
+      "encoder": "imagenet_da",
+      "tag_fold1": "ssl_imagenet_da_f2",
+      "tag_fold2": "ssl_imagenet_da_f1",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.8212551055061933,
+      "ci_low": 0.7582698308009007,
+      "ci_high": 0.8826955375030254
+    },
+    {
+      "encoder": "imagenet_da",
+      "tag_fold1": "ssl_imagenet_da_f2",
+      "tag_fold2": "ssl_imagenet_da_f1",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.6747436654440636,
+      "ci_low": 0.5832907385441878,
+      "ci_high": 0.7735644226207159
+    },
+    {
+      "encoder": "imagenet_da",
+      "tag_fold1": "ssl_imagenet_da_f2",
+      "tag_fold2": "ssl_imagenet_da_f1",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.7479993854751285,
+      "ci_low": 0.6993075820222192,
+      "ci_high": 0.8024390095490317
+    },
+    {
+      "encoder": "imagenet_da",
+      "tag_fold1": "ssl_imagenet_da_f2",
+      "tag_fold2": "ssl_imagenet_da_f1",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.6823311202390226,
+      "ci_low": 0.5823945099144252,
+      "ci_high": 0.792411436996202
+    },
+    {
+      "encoder": "imagenet_da",
+      "tag_fold1": "ssl_imagenet_da_f2",
+      "tag_fold2": "ssl_imagenet_da_f1",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.8356816565984819,
+      "ci_low": 0.7687150769952437,
+      "ci_high": 0.9010256650689248
+    },
+    {
+      "encoder": "imagenet_da",
+      "tag_fold1": "ssl_imagenet_da_f2",
+      "tag_fold2": "ssl_imagenet_da_f1",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.7590063884187523,
+      "ci_low": 0.7006467146493502,
+      "ci_high": 0.824831730731195
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "tag_fold1": "ssl_imagenet_da_seed2_f2",
+      "tag_fold2": "ssl_imagenet_da_seed2_f1",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.8893075069553581,
+      "ci_low": 0.8384336336775949,
+      "ci_high": 0.9386475397547246
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "tag_fold1": "ssl_imagenet_da_seed2_f2",
+      "tag_fold2": "ssl_imagenet_da_seed2_f1",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.8982843355057922,
+      "ci_low": 0.8460565784039796,
+      "ci_high": 0.9438930893455852
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "tag_fold1": "ssl_imagenet_da_seed2_f2",
+      "tag_fold2": "ssl_imagenet_da_seed2_f1",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.8937959212305752,
+      "ci_low": 0.8593599287219161,
+      "ci_high": 0.927597726132317
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "tag_fold1": "ssl_imagenet_da_seed2_f2",
+      "tag_fold2": "ssl_imagenet_da_seed2_f1",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.8037131147415261,
+      "ci_low": 0.7037618505519034,
+      "ci_high": 0.8959298826096329
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "tag_fold1": "ssl_imagenet_da_seed2_f2",
+      "tag_fold2": "ssl_imagenet_da_seed2_f1",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.7975485206563967,
+      "ci_low": 0.6948059997625557,
+      "ci_high": 0.8970973813538866
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "tag_fold1": "ssl_imagenet_da_seed2_f2",
+      "tag_fold2": "ssl_imagenet_da_seed2_f1",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.8006308176989614,
+      "ci_low": 0.7346072378800409,
+      "ci_high": 0.8694265355349196
+    },
+    {
+      "encoder": "imagenet_da_2seeds",
+      "tag_fold1": "mean(imagenet_da+imagenet_da_seed2)",
+      "tag_fold2": "mean(imagenet_da+imagenet_da_seed2)",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.8552813062307757,
+      "ci_low": 0.8034950683850685,
+      "ci_high": 0.9057426897445026
+    },
+    {
+      "encoder": "imagenet_da_2seeds",
+      "tag_fold1": "mean(imagenet_da+imagenet_da_seed2)",
+      "tag_fold2": "mean(imagenet_da+imagenet_da_seed2)",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.7865140004749279,
+      "ci_low": 0.7178414095332728,
+      "ci_high": 0.8536380507291351
+    },
+    {
+      "encoder": "imagenet_da_2seeds",
+      "tag_fold1": "mean(imagenet_da+imagenet_da_seed2)",
+      "tag_fold2": "mean(imagenet_da+imagenet_da_seed2)",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.8208976533528518,
+      "ci_low": 0.7837416018400634,
+      "ci_high": 0.8622710732951412
+    },
+    {
+      "encoder": "imagenet_da_2seeds",
+      "tag_fold1": "mean(imagenet_da+imagenet_da_seed2)",
+      "tag_fold2": "mean(imagenet_da+imagenet_da_seed2)",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.7430221174902744,
+      "ci_low": 0.6510260364236515,
+      "ci_high": 0.8353680532334317
+    },
+    {
+      "encoder": "imagenet_da_2seeds",
+      "tag_fold1": "mean(imagenet_da+imagenet_da_seed2)",
+      "tag_fold2": "mean(imagenet_da+imagenet_da_seed2)",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.8166150886274393,
+      "ci_low": 0.7464197033595645,
+      "ci_high": 0.8882236840543204
+    },
+    {
+      "encoder": "imagenet_da_2seeds",
+      "tag_fold1": "mean(imagenet_da+imagenet_da_seed2)",
+      "tag_fold2": "mean(imagenet_da+imagenet_da_seed2)",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.7798186030588568,
+      "ci_low": 0.72608157544225,
+      "ci_high": 0.8377950969936259
+    }
+  ],
+  "diffs": [
+    {
+      "a": "imagenet_da_seed2",
+      "b": "imagenet_da",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value_a": 0.8893075069553581,
+      "value_b": 0.8212551055061933,
+      "diff": 0.0680524014491648,
+      "ci_low": 0.023029583368425095,
+      "ci_high": 0.12147327749097557,
+      "frac_le_0": 0.002,
+      "excludes_0": true
+    },
+    {
+      "a": "imagenet_da_seed2",
+      "b": "imagenet_da",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value_a": 0.8982843355057922,
+      "value_b": 0.6747436654440636,
+      "diff": 0.22354067006172862,
+      "ci_low": 0.14630450753207658,
+      "ci_high": 0.2939335079119592,
+      "frac_le_0": 0.0,
+      "excludes_0": true
+    },
+    {
+      "a": "imagenet_da_seed2",
+      "b": "imagenet_da",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value_a": 0.8937959212305752,
+      "value_b": 0.7479993854751285,
+      "diff": 0.1457965357554467,
+      "ci_low": 0.10822313611568954,
+      "ci_high": 0.18529102168175002,
+      "frac_le_0": 0.0,
+      "excludes_0": true
+    },
+    {
+      "a": "imagenet_da_seed2",
+      "b": "imagenet_da",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value_a": 0.8037131147415261,
+      "value_b": 0.6823311202390226,
+      "diff": 0.12138199450250342,
+      "ci_low": 0.03989987999719008,
+      "ci_high": 0.2152518940634919,
+      "frac_le_0": 0.002,
+      "excludes_0": true
+    },
+    {
+      "a": "imagenet_da_seed2",
+      "b": "imagenet_da",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value_a": 0.7975485206563967,
+      "value_b": 0.8356816565984819,
+      "diff": -0.03813313594208523,
+      "ci_low": -0.13287849257465087,
+      "ci_high": 0.05641007396104255,
+      "frac_le_0": 0.773,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_seed2",
+      "b": "imagenet_da",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value_a": 0.8006308176989614,
+      "value_b": 0.7590063884187523,
+      "diff": 0.04162442928020904,
+      "ci_low": -0.015747001451050516,
+      "ci_high": 0.10706687668789404,
+      "frac_le_0": 0.095,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value_a": 0.8552813062307757,
+      "value_b": 0.8988574979955405,
+      "diff": -0.04357619176476479,
+      "ci_low": -0.11257425586947047,
+      "ci_high": 0.02734425838925841,
+      "frac_le_0": 0.899,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value_a": 0.7865140004749279,
+      "value_b": 0.8548812180806209,
+      "diff": -0.06836721760569298,
+      "ci_low": -0.142106303134685,
+      "ci_high": 0.0013864246696900441,
+      "frac_le_0": 0.971,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value_a": 0.8208976533528518,
+      "value_b": 0.8768693580380806,
+      "diff": -0.05597170468522883,
+      "ci_low": -0.09512530995457975,
+      "ci_high": -0.015014587358245665,
+      "frac_le_0": 0.999,
+      "excludes_0": true
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value_a": 0.7430221174902744,
+      "value_b": 0.7458088112607228,
+      "diff": -0.0027866937704484895,
+      "ci_low": -0.09842676022558945,
+      "ci_high": 0.10016328449175953,
+      "frac_le_0": 0.511,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value_a": 0.8166150886274393,
+      "value_b": 0.7627751757284201,
+      "diff": 0.05383991289901913,
+      "ci_low": -0.02363873004644816,
+      "ci_high": 0.12308981910652751,
+      "frac_le_0": 0.088,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value_a": 0.7798186030588568,
+      "value_b": 0.7542919934945715,
+      "diff": 0.025526609564285208,
+      "ci_low": -0.033282175850229974,
+      "ci_high": 0.08535435890298904,
+      "frac_le_0": 0.188,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet_cont",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value_a": 0.8552813062307757,
+      "value_b": 0.9266009747028008,
+      "diff": -0.07131966847202509,
+      "ci_low": -0.12290383906707843,
+      "ci_high": -0.020990920167359955,
+      "frac_le_0": 0.999,
+      "excludes_0": true
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet_cont",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value_a": 0.7865140004749279,
+      "value_b": 0.8860553708751308,
+      "diff": -0.09954137040020283,
+      "ci_low": -0.15608201259524293,
+      "ci_high": -0.03951613163583428,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet_cont",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value_a": 0.8208976533528518,
+      "value_b": 0.9063281727889658,
+      "diff": -0.08543051943611402,
+      "ci_low": -0.12469559934743106,
+      "ci_high": -0.045845116196526876,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet_cont",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value_a": 0.7430221174902744,
+      "value_b": 0.8287481204080354,
+      "diff": -0.085726002917761,
+      "ci_low": -0.18740057152708367,
+      "ci_high": 0.010565392251963356,
+      "frac_le_0": 0.955,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet_cont",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value_a": 0.8166150886274393,
+      "value_b": 0.8034499233844035,
+      "diff": 0.013165165243035792,
+      "ci_low": -0.07086834948526397,
+      "ci_high": 0.09326095730950369,
+      "frac_le_0": 0.363,
+      "excludes_0": false
+    },
+    {
+      "a": "imagenet_da_2seeds",
+      "b": "imagenet_cont",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value_a": 0.7798186030588568,
+      "value_b": 0.8160990218962194,
+      "diff": -0.03628041883736266,
+      "ci_low": -0.10012413071144398,
+      "ci_high": 0.030662901800626592,
+      "frac_le_0": 0.838,
+      "excludes_0": false
+    }
+  ],
+  "refit_check": [
+    {
+      "encoder": "imagenet",
+      "fold": 1,
+      "metric": "linear_auprc",
+      "refit": 0.8988574979955405,
+      "probe_json": 0.8987732167518822,
+      "abs_dev": 8.428124365833511e-05
+    },
+    {
+      "encoder": "imagenet",
+      "fold": 1,
+      "metric": "knn_auprc",
+      "refit": 0.7458088112607228,
+      "probe_json": 0.7470262898230289,
+      "abs_dev": 0.0012174785623060291
+    },
+    {
+      "encoder": "imagenet_cont",
+      "fold": 1,
+      "metric": "linear_auprc",
+      "refit": 0.9266009747028008,
+      "probe_json": 0.9265819511543654,
+      "abs_dev": 1.9023548435415094e-05
+    },
+    {
+      "encoder": "imagenet_cont",
+      "fold": 1,
+      "metric": "knn_auprc",
+      "refit": 0.8287481204080354,
+      "probe_json": 0.8281965152985844,
+      "abs_dev": 0.0005516051094509589
+    },
+    {
+      "encoder": "imagenet_da",
+      "fold": 1,
+      "metric": "linear_auprc",
+      "refit": 0.8212551055061933,
+      "probe_json": 0.8211675635895261,
+      "abs_dev": 8.754191666715538e-05
+    },
+    {
+      "encoder": "imagenet_da",
+      "fold": 1,
+      "metric": "knn_auprc",
+      "refit": 0.6823311202390226,
+      "probe_json": 0.6747197810775228,
+      "abs_dev": 0.007611339161499808
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "fold": 1,
+      "metric": "linear_auprc",
+      "refit": 0.8893075069553581,
+      "probe_json": 0.8890732228580002,
+      "abs_dev": 0.00023428409735792854
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "fold": 1,
+      "metric": "knn_auprc",
+      "refit": 0.8037131147415261,
+      "probe_json": 0.8002595207009915,
+      "abs_dev": 0.00345359404053458
+    },
+    {
+      "encoder": "imagenet",
+      "fold": 2,
+      "metric": "linear_auprc",
+      "refit": 0.8548812180806209,
+      "probe_json": 0.8549080740158731,
+      "abs_dev": 2.6855935252201313e-05
+    },
+    {
+      "encoder": "imagenet",
+      "fold": 2,
+      "metric": "knn_auprc",
+      "refit": 0.7627751757284201,
+      "probe_json": 0.7627751757284201,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "imagenet_cont",
+      "fold": 2,
+      "metric": "linear_auprc",
+      "refit": 0.8860553708751308,
+      "probe_json": 0.8860579932593887,
+      "abs_dev": 2.622384257966459e-06
+    },
+    {
+      "encoder": "imagenet_cont",
+      "fold": 2,
+      "metric": "knn_auprc",
+      "refit": 0.8034499233844035,
+      "probe_json": 0.8034499233844035,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "imagenet_da",
+      "fold": 2,
+      "metric": "linear_auprc",
+      "refit": 0.6747436654440636,
+      "probe_json": 0.6755505717690411,
+      "abs_dev": 0.0008069063249774855
+    },
+    {
+      "encoder": "imagenet_da",
+      "fold": 2,
+      "metric": "knn_auprc",
+      "refit": 0.8356816565984819,
+      "probe_json": 0.8355654045640712,
+      "abs_dev": 0.00011625203441067988
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "fold": 2,
+      "metric": "linear_auprc",
+      "refit": 0.8982843355057922,
+      "probe_json": 0.8979793202881431,
+      "abs_dev": 0.0003050152176491405
+    },
+    {
+      "encoder": "imagenet_da_seed2",
+      "fold": 2,
+      "metric": "knn_auprc",
+      "refit": 0.7975485206563967,
+      "probe_json": 0.7996465968842251,
+      "abs_dev": 0.002098076227828427
+    }
+  ]
+}
