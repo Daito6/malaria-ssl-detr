@@ -1,0 +1,63 @@
+# Phase 6, STAGE 2, EXPLORATORY (reports/phase6_plan.md): DETR training seeds 43 and 44 for b_vit_dino_full,
+# b_vit_imagenet and a_coco_detr_binary (seed 42 = the stage-1 / phase-4 / phase-2 runs, NOT retrained).
+# The stage-2 criterion (fixed before stage 1) was met on test: dino_full 0.6143 > 0.5276 and > 0.5213. The decision to
+# replicate therefore depends on test; nothing in the recipe, thresholds or checkpoint rule changes.
+# Every seed config differs from its parent ONLY in `seed` (b_vit_imagenet_seed{43,44} exist since phase 4;
+# b_vit_dino_full_seed{43,44}, a_coco_detr_binary_seed{43,44} are new). best.pt = clean val AP@[.5:.95] (trainer,
+# as for every run); thresholds = val max F1, applied unchanged to test.
+# Per run: train -> evaluate val -> val --stain-shift -> test -> diagnose_shift -> two_stage candidates (same as stage 1).
+# Ordered by seed so that a stopped queue leaves complete seed triplets.
+#
+# Estimate (measured): ViT-DETR full train 66-67 min (b_vit_imagenet; b_vit_dino_full ~69.5 min incl. the restart),
+# baseline A train ~43 min (a_coco_detr_multiclass 43.2 min), evaluate val / stain / test 1.1 / 1.0 / 0.9 min,
+# diagnose 0.1 min, candidates 1.7 min -> ViT run ~72 min x 4, A run ~48 min x 2, CPU tables ~3 min
+#   -> ~387 min (~6.5 h).
+# The paired step uses `paired_detr_diff.py --mean` (mean of the three seeds on the same resamples; tests/test_paired.py).
+# Run:  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase6_stage2.txt
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+b_vit_dino_full_seed43      | python scripts/train_detr.py --config configs/experiments/b_vit_dino_full_seed43.yaml
+b_vit_dino_full_seed43      | python scripts/evaluate.py runs/b_vit_dino_full_seed43 --split val --bootstrap
+b_vit_dino_full_seed43      | python scripts/evaluate.py runs/b_vit_dino_full_seed43 --split val --stain-shift --bootstrap
+b_vit_dino_full_seed43      | python scripts/evaluate.py runs/b_vit_dino_full_seed43 --split test --bootstrap
+b_vit_dino_full_seed43      | python scripts/diagnose_shift.py runs/b_vit_dino_full_seed43
+b_vit_dino_full_seed43      | python scripts/two_stage.py candidates --run runs/b_vit_dino_full_seed43
+
+b_vit_imagenet_seed43       | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_seed43.yaml
+b_vit_imagenet_seed43       | python scripts/evaluate.py runs/b_vit_imagenet_seed43 --split val --bootstrap
+b_vit_imagenet_seed43       | python scripts/evaluate.py runs/b_vit_imagenet_seed43 --split val --stain-shift --bootstrap
+b_vit_imagenet_seed43       | python scripts/evaluate.py runs/b_vit_imagenet_seed43 --split test --bootstrap
+b_vit_imagenet_seed43       | python scripts/diagnose_shift.py runs/b_vit_imagenet_seed43
+b_vit_imagenet_seed43       | python scripts/two_stage.py candidates --run runs/b_vit_imagenet_seed43
+
+a_coco_detr_binary_seed43   | python scripts/train_detr.py --config configs/experiments/a_coco_detr_binary_seed43.yaml
+a_coco_detr_binary_seed43   | python scripts/evaluate.py runs/a_coco_detr_binary_seed43 --split val --bootstrap
+a_coco_detr_binary_seed43   | python scripts/evaluate.py runs/a_coco_detr_binary_seed43 --split val --stain-shift --bootstrap
+a_coco_detr_binary_seed43   | python scripts/evaluate.py runs/a_coco_detr_binary_seed43 --split test --bootstrap
+a_coco_detr_binary_seed43   | python scripts/diagnose_shift.py runs/a_coco_detr_binary_seed43
+a_coco_detr_binary_seed43   | python scripts/two_stage.py candidates --run runs/a_coco_detr_binary_seed43
+
+b_vit_dino_full_seed44      | python scripts/train_detr.py --config configs/experiments/b_vit_dino_full_seed44.yaml
+b_vit_dino_full_seed44      | python scripts/evaluate.py runs/b_vit_dino_full_seed44 --split val --bootstrap
+b_vit_dino_full_seed44      | python scripts/evaluate.py runs/b_vit_dino_full_seed44 --split val --stain-shift --bootstrap
+b_vit_dino_full_seed44      | python scripts/evaluate.py runs/b_vit_dino_full_seed44 --split test --bootstrap
+b_vit_dino_full_seed44      | python scripts/diagnose_shift.py runs/b_vit_dino_full_seed44
+b_vit_dino_full_seed44      | python scripts/two_stage.py candidates --run runs/b_vit_dino_full_seed44
+
+b_vit_imagenet_seed44       | python scripts/train_detr.py --config configs/experiments/b_vit_imagenet_seed44.yaml
+b_vit_imagenet_seed44       | python scripts/evaluate.py runs/b_vit_imagenet_seed44 --split val --bootstrap
+b_vit_imagenet_seed44       | python scripts/evaluate.py runs/b_vit_imagenet_seed44 --split val --stain-shift --bootstrap
+b_vit_imagenet_seed44       | python scripts/evaluate.py runs/b_vit_imagenet_seed44 --split test --bootstrap
+b_vit_imagenet_seed44       | python scripts/diagnose_shift.py runs/b_vit_imagenet_seed44
+b_vit_imagenet_seed44       | python scripts/two_stage.py candidates --run runs/b_vit_imagenet_seed44
+
+a_coco_detr_binary_seed44   | python scripts/train_detr.py --config configs/experiments/a_coco_detr_binary_seed44.yaml
+a_coco_detr_binary_seed44   | python scripts/evaluate.py runs/a_coco_detr_binary_seed44 --split val --bootstrap
+a_coco_detr_binary_seed44   | python scripts/evaluate.py runs/a_coco_detr_binary_seed44 --split val --stain-shift --bootstrap
+a_coco_detr_binary_seed44   | python scripts/evaluate.py runs/a_coco_detr_binary_seed44 --split test --bootstrap
+a_coco_detr_binary_seed44   | python scripts/diagnose_shift.py runs/a_coco_detr_binary_seed44
+a_coco_detr_binary_seed44   | python scripts/two_stage.py candidates --run runs/a_coco_detr_binary_seed44
+
+# CPU tables (declared in reports/phase6_plan.md): per-seed pairs + the mean of the three seeds on the same resamples
+phase6_stage2_eval          | python scripts/paired_detr_diff.py --runs a_coco_detr_binary b_vit_imagenet b_vit_dino_full a_coco_detr_binary_seed43 b_vit_imagenet_seed43 b_vit_dino_full_seed43 a_coco_detr_binary_seed44 b_vit_imagenet_seed44 b_vit_dino_full_seed44 --mean dino_full_3s=b_vit_dino_full+b_vit_dino_full_seed43+b_vit_dino_full_seed44 imagenet_full_3s=b_vit_imagenet+b_vit_imagenet_seed43+b_vit_imagenet_seed44 a_3s=a_coco_detr_binary+a_coco_detr_binary_seed43+a_coco_detr_binary_seed44 --pairs b_vit_dino_full:b_vit_imagenet b_vit_dino_full:a_coco_detr_binary b_vit_dino_full_seed43:b_vit_imagenet_seed43 b_vit_dino_full_seed43:a_coco_detr_binary_seed43 b_vit_dino_full_seed44:b_vit_imagenet_seed44 b_vit_dino_full_seed44:a_coco_detr_binary_seed44 dino_full_3s:imagenet_full_3s dino_full_3s:a_3s --out reports/tables/phase6_stage2
+phase6_stage2_eval          | python scripts/box_vs_cls.py --runs a_coco_detr_binary b_vit_imagenet b_vit_dino_full a_coco_detr_binary_seed43 b_vit_imagenet_seed43 b_vit_dino_full_seed43 a_coco_detr_binary_seed44 b_vit_imagenet_seed44 b_vit_dino_full_seed44 --out reports/tables/phase6_stage2_box_vs_cls

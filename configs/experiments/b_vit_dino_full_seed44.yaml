@@ -1,0 +1,5 @@
+# Phase 6 stage 2 seed replicate (EXPLORATORY; reports/phase6_plan.md): b_vit_dino_full with DETR training seed 44
+# (default 42). Only the seed changes (data order/augmentation, init of the new heads and input projection, and the
+# evaluate.py bootstrap resamples). The DINO ViT init is the same timm checkpoint.
+base: configs/experiments/b_vit_dino_full.yaml
+seed: 44

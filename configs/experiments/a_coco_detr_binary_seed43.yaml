@@ -1,0 +1,5 @@
+# Phase 6 stage 2 seed replicate (EXPLORATORY; reports/phase6_plan.md): baseline A (a_coco_detr_binary) with DETR
+# training seed 43 (default 42). Only the seed changes (data order/augmentation, init of the new class head, and the
+# evaluate.py bootstrap resamples). The COCO DETR-R50 init is the same checkpoint.
+base: configs/experiments/a_coco_detr_binary.yaml
+seed: 43
