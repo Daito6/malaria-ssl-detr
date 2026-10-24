@@ -51,6 +51,41 @@ def mean_of_runs(points: dict[str, dict[str, float]], boots: dict[str, np.ndarra
     return point, np.mean([boots[r] for r in members], axis=0)
 
 
+def fold_merge(by_fold: dict[int, dict[str, Any]], image_fold: dict[int, int]) -> dict[str, Any]:
+    """Cross-fold run (phase 7): every image of fold k is scored with `by_fold[k]`, a run prepared on the whole split
+    (each image keeps that run's own detections and its own val threshold). Matching is per image (COCOeval
+    evalImgs and match_per_class), so the merge is exact. P / R / F1: each image's matches are cut at its run's
+    threshold here, and the merged run is scored at -inf (prf_at only keeps scores >= thr)."""
+    runs = list(by_fold.values())
+    cat = runs[0]["cat"]
+    if any(r["cat"] != cat or not np.array_equal(r["rec_thrs"], runs[0]["rec_thrs"]) for r in runs):
+        raise ValueError("fold_merge: runs must share the class and the recall thresholds")
+    ids = set(runs[0]["matches"])
+    if set(image_fold) != ids or set(image_fold.values()) != set(by_fold):
+        raise ValueError("fold_merge: the folds must cover exactly the split's images, one run per fold")
+    per_img, matches = {}, {}
+    for i in sorted(ids):
+        r = by_fold[image_fold[i]]
+        per_img[i] = r["per_img"][cat][i]
+        m = r["matches"][i]
+        keep = m["scores"] >= r["thr"]
+        matches[i] = {"scores": m["scores"][keep], "tp": m["tp"][keep], "n_gt": m["n_gt"]}
+    return {"per_img": {cat: per_img}, "rec_thrs": runs[0]["rec_thrs"], "matches": matches, "thr": -np.inf,
+            "cat": cat}
+
+
+def parse_fold_merges(items: list[str]) -> dict[str, tuple[str, str]]:
+    """--fold-merge NAME=R_F1+R_F2 -> {NAME: (R_F1, R_F2)}; R_Fk = the member whose encoder saw test fold k."""
+    out = {}
+    for item in items:
+        name, _, rhs = item.partition("=")
+        members = rhs.split("+")
+        if not name or name in out or len(members) != 2 or members[0] == members[1]:
+            raise SystemExit(f"bad --fold-merge {item!r}: NAME=R_F1+R_F2 (R_Fk saw test fold k)")
+        out[name] = (members[0], members[1])
+    return out
+
+
 def summarize_diff(point_a: float, point_b: float, boot_a: np.ndarray, boot_b: np.ndarray) -> dict[str, float]:
     """Point difference, 95% percentile CI and the share of resamples with difference <= 0."""
     d = boot_a - boot_b

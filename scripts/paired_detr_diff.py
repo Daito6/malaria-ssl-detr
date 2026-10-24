@@ -13,6 +13,11 @@ Writes <out>_runs.csv (AP50 CIs from evaluate.py; test P/R/F1 CIs from the share
 --mean NAME=R1+R2[+R3...] adds a derived run (e.g. the mean of training seeds) usable in --pairs: its point is the
 mean of the members' points and each resample the mean of their values on that same resample (members keep their
 own val thresholds). It appears only in <out>_diff.csv and in <out>.json ("means"), not in <out>_runs.csv.
+--fold-merge NAME=R_F1+R_F2 (phase 7 cross-fold scheme): R_Fk is a vit_detr run whose SSL encoder saw the unlabeled
+images of test fold k (checked against target.fold of the SSL run config). NAME scores the fold-1 images with R_F2
+and the fold-2 images with R_F1, each at its own val threshold, so no test image is scored by a model whose encoder
+saw it. R_Fk must NOT be in --runs (their whole-test numbers include the seen fold). NAME is usable in --pairs and
+--mean; its point and CIs are in <out>.json ("fold_merges").
 """
 from __future__ import annotations
 
@@ -21,13 +26,32 @@ import json
 
 import numpy as np
 import pandas as pd
+import yaml
 
 from malaria_ssl.data.detection import load_split_coco
-from malaria_ssl.eval.paired import (METRICS, bootstrap_table, ci, mean_of_runs, prepare_run, resamples, score,
-                                     summarize_diff)
+from malaria_ssl.eval.paired import (METRICS, bootstrap_table, ci, fold_merge, mean_of_runs, parse_fold_merges,
+                                     prepare_run, resamples, score, summarize_diff)
+from malaria_ssl.ssl.data import load_image_folds
+from malaria_ssl.ssl.encoders import ssl_run_target_fold
 from malaria_ssl.utils.config import load_config, resolve_path
 
 CLS = "infected"
+
+
+def detr_encoder_fold(name: str) -> int | None:
+    """Test fold seen by the SSL encoder a vit_detr run was initialised from (None: no target domain)."""
+    cfg = yaml.safe_load((resolve_path(f"runs/{name}") / "config.yaml").read_text(encoding="utf-8"))
+    init = ((cfg.get("model") or {}).get("vit") or {}).get("init")
+    if init is None or init in ("random", "imagenet", "dino"):
+        raise SystemExit(f"--fold-merge member {name}: model.vit.init is {init!r}, not an SSL encoder file")
+    return ssl_run_target_fold(resolve_path(init).parent.parent)
+
+
+def load_run(gt: dict, cat: int, name: str) -> dict:
+    run_dir = resolve_path(f"runs/{name}")
+    dets = json.loads((run_dir / "predictions_test.json").read_text(encoding="utf-8"))
+    thr = json.loads((run_dir / "thresholds.json").read_text(encoding="utf-8"))[CLS]
+    return prepare_run(gt, dets, cat, thr)
 
 
 def run_row(name: str, boot: np.ndarray, point: dict[str, float]) -> dict:
@@ -73,37 +97,54 @@ def main() -> None:
     ap.add_argument("--runs", nargs="+", required=True)
     ap.add_argument("--pairs", nargs="*", default=[], metavar="A:B")
     ap.add_argument("--mean", nargs="*", default=[], metavar="NAME=R1+R2", help="derived run: mean metric of R1, R2, ...")
+    ap.add_argument("--fold-merge", nargs="*", default=[], metavar="NAME=R_F1+R_F2",
+                    help="cross-fold run: fold-1 images from R_F2, fold-2 images from R_F1 (R_Fk's encoder saw fold k)")
+    ap.add_argument("--folds", default="data/splits/test_folds.json")
     ap.add_argument("--n", type=int, default=1000, help="bootstrap resamples of test images")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--data-config", default="configs/data.yaml")
     ap.add_argument("--out", required=True, help="output prefix")
     args = ap.parse_args()
 
+    merges = parse_fold_merges(args.fold_merge)
+    if any(n in args.runs for n in merges) or {r for m in merges.values() for r in m} & set(args.runs):
+        raise SystemExit("--fold-merge: NAME must be new and its members must not be in --runs")
     means = {}
     for item in args.mean:
         name, _, parts = item.partition("=")
         members = parts.split("+")
-        if not name or name in args.runs or name in means or len(members) < 2 or not set(members) <= set(args.runs):
-            raise SystemExit(f"bad --mean {item!r}: NAME=R1+R2[+...] with every Ri given in --runs")
+        if (not name or name in args.runs or name in merges or name in means or len(members) < 2
+                or not set(members) <= {*args.runs, *merges}):
+            raise SystemExit(f"bad --mean {item!r}: NAME=R1+R2[+...] with every Ri given in --runs or --fold-merge")
         means[name] = members
     pairs = [tuple(x.split(":")) for x in args.pairs]
-    if any(len(p) != 2 or not {*p} <= {*args.runs, *means} for p in pairs):
-        raise SystemExit("pairs must be A:B with A, B given in --runs or --mean")
+    if any(len(p) != 2 or not {*p} <= {*args.runs, *merges, *means} for p in pairs):
+        raise SystemExit("pairs must be A:B with A, B given in --runs, --fold-merge or --mean")
 
     gt = load_split_coco("test", "binary", load_config(resolve_path(args.data_config)), resolve_path)
     cat = {c["name"]: c["id"] for c in gt["categories"]}[CLS]
-    runs = {}
-    for name in args.runs:
-        run_dir = resolve_path(f"runs/{name}")
-        dets = json.loads((run_dir / "predictions_test.json").read_text(encoding="utf-8"))
-        thr = json.loads((run_dir / "thresholds.json").read_text(encoding="utf-8"))[CLS]
-        runs[name] = prepare_run(gt, dets, cat, thr)
+    runs = {name: load_run(gt, cat, name) for name in args.runs}
+    image_fold = load_image_folds(resolve_path(args.folds)) if merges else {}
+    for name, members in merges.items():
+        for k, member in enumerate(members, start=1):
+            if detr_encoder_fold(member) != k:
+                raise SystemExit(f"--fold-merge {name}: the encoder of {member} saw fold "
+                                 f"{detr_encoder_fold(member)}, expected {k}")
+        r_f1, r_f2 = (load_run(gt, cat, m) for m in members)
+        runs[name] = fold_merge({1: r_f2, 2: r_f1}, image_fold)   # each fold scored by the encoder that did not see it
     img_ids = [im["id"] for im in gt["images"]]
     samples = resamples(img_ids, args.n, args.seed)
     boots = bootstrap_table(runs, samples)
     points = {name: score(r, img_ids) for name, r in runs.items()}
 
     table = pd.DataFrame([run_row(name, boots[name], points[name]) for name in args.runs])
+    merge_rows = []
+    for name, (r_f1, r_f2) in merges.items():
+        row = {"run": name, "fold1_from": r_f2, "fold2_from": r_f1}
+        for j, m in enumerate(METRICS):
+            row[f"test_{m}_{CLS}"] = points[name][m]
+            row[f"test_{m}_{CLS}_lo"], row[f"test_{m}_{CLS}_hi"] = ci(boots[name][:, j])
+        merge_rows.append(row)
     for name, members in means.items():  # after the per-run table: derived runs are not runs
         points[name], boots[name] = mean_of_runs(points, boots, members)
     diffs = []
@@ -118,11 +159,13 @@ def main() -> None:
     diff.to_csv(f"{out}_diff.csv", index=False, float_format="%.4f")
     meta = {"split": "test", "class": CLS, "n_images": len(img_ids), "n_gt": int(len(
         [a for a in gt["annotations"] if a["category_id"] == cat])), "n_resamples": args.n, "seed": args.seed,
-            "runs": table.to_dict("records"), "means": means,
+            "runs": table.to_dict("records"), "fold_merges": merge_rows, "means": means,
             "mean_points": {n: points[n] for n in means}, "diffs": diffs}
     (out.parent / f"{out.name}.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     with pd.option_context("display.width", 250, "display.max_columns", 50):
         print(table.T.to_string(float_format=lambda v: f"{v:.4f}"))
+        if merge_rows:
+            print(pd.DataFrame(merge_rows).T.to_string(float_format=lambda v: f"{v:.4f}"))
         print(diff.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
     print(f"wrote {out}_runs.csv, {out}_diff.csv, {out}.json")
 

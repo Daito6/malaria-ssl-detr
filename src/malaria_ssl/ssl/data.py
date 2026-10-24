@@ -33,7 +33,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, Sampler
 
-from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD, HEDJitter, load_split_coco, read_rgb
+from malaria_ssl.data.detection import (IMAGENET_MEAN, IMAGENET_STD, HEDJitter, load_split_coco, read_rgb,
+                                        stain_shift_transforms)
 from malaria_ssl.utils.config import load_config
 
 log = logging.getLogger(__name__)
@@ -94,23 +95,29 @@ def ensure_caches(cfg: dict[str, Any], resolve, splits: tuple[str, ...] = ("trai
 # --------------------------------------------------------------------------- views
 
 def sample_windows(rng: np.random.Generator, hc: int, wc: int, cache_long: int,
-                   vcfg: dict[str, Any]) -> tuple[float, np.ndarray, np.ndarray]:
-    """Training long side, anchor and two crop windows (x0, y0, x1, y1) in cache pixels."""
+                   vcfg: dict[str, Any], center: np.ndarray | None = None) -> tuple[float, np.ndarray, np.ndarray]:
+    """Training long side, anchor and two crop windows (x0, y0, x1, y1) in cache pixels.
+    `center` (x, y): the anchor is centred there (clamped inside the image) instead of uniform; the same random
+    numbers are drawn either way, so the crop draws stay aligned."""
     lo, hi, step = vcfg["train_long_side"]
     L = float(rng.choice(np.arange(lo, hi + 1, step)))
     a = min(vcfg["anchor"] * cache_long / L, hc, wc)
     ax, ay = rng.uniform(0, wc - a), rng.uniform(0, hc - a)
+    if center is not None:
+        ax, ay = min(max(center[0] - a / 2, 0.0), wc - a), min(max(center[1] - a / 2, 0.0), hc - a)
     anchor = np.array([ax, ay, ax + a, ay + a])
-    s_lo, s_hi = vcfg["crop_scale"]
-    log_r = np.log(vcfg["crop_ratio"])
-    crops = np.zeros((2, 4))
-    for k in range(2):
-        area = rng.uniform(s_lo, s_hi) * a * a
-        r = math.exp(rng.uniform(*log_r))
-        w, h = min(math.sqrt(area * r), a), min(math.sqrt(area / r), a)
-        x0, y0 = ax + rng.uniform(0, a - w), ay + rng.uniform(0, a - h)
-        crops[k] = (x0, y0, x0 + w, y0 + h)
+    crops = np.stack([random_resized_window(rng, anchor, vcfg["crop_scale"], vcfg["crop_ratio"]) for _ in range(2)])
     return L, anchor, crops
+
+
+def random_resized_window(rng: np.random.Generator, anchor: np.ndarray, scale, ratio) -> np.ndarray:
+    """A window inside the square anchor: area fraction in `scale`, log-uniform aspect ratio in `ratio`."""
+    ax, ay, a = anchor[0], anchor[1], anchor[2] - anchor[0]
+    area = rng.uniform(*scale) * a * a
+    r = math.exp(rng.uniform(*np.log(ratio)))
+    w, h = min(math.sqrt(area * r), a), min(math.sqrt(area / r), a)
+    x0, y0 = ax + rng.uniform(0, a - w), ay + rng.uniform(0, a - h)
+    return np.array([x0, y0, x0 + w, y0 + h])
 
 
 def read_crop(img: np.ndarray, box: np.ndarray, out_size: int) -> np.ndarray:
@@ -149,20 +156,38 @@ def normalize(img: np.ndarray, mean=IMAGENET_MEAN, std=IMAGENET_STD) -> torch.Te
     return torch.from_numpy(((img.astype(np.float32) / 255.0 - mean) / std).transpose(2, 0, 1).copy())
 
 
+def build_twin_transform(tcfg: dict[str, Any]) -> A.Compose:
+    """Stain-consistency twin: resolution change (down / up resample, factor in `resolution`), then the probe's
+    stain-shift family (HED, colour jitter, blur, JPEG), each with p = 1. No geometry: tokens stay aligned."""
+    return A.Compose([A.Downscale(scale_range=tuple(tcfg["resolution"]), p=1.0), *stain_shift_transforms(tcfg)])
+
+
 class TwoViewDataset(Dataset):
     """`ds[(image_index, sample_seed)]` -> (view1, view2, crop windows (2, 4) in cache pixels).
 
     The cache memmap is opened lazily in each worker. `augment=False` keeps the crops but skips
     the per-view augmentations (used for MAE overfitting / fixed monitoring crops).
+
+    Phase 7 extras (all drawn from a second generator seeded by (sample seed, 1), so view 1 / view 2 are the same
+    with or without them); when any is on, a 4th item {"local": (n, 3, s, s), "twin": (3, S, S)} is returned:
+      local_cfg {n, scale, ratio, out_size}: n local crops inside the anchor (DINO multi-crop);
+      twin_cfg (stain_consistency block): view 1 after `build_twin_transform`;
+      cell_boxes (per cache row, (k, 4) x0 y0 x1 y1 in cache px) + cell_fraction: with that probability the
+      anchor is centred on a uniformly drawn box of the image (cell-centred views).
     """
 
     def __init__(self, npy_path: Path, vcfg: dict[str, Any], augment: bool = True, image_ids: list[int] | None = None,
-                 input_norm: tuple[Any, Any] | None = None):
+                 input_norm: tuple[Any, Any] | None = None, local_cfg: dict[str, Any] | None = None,
+                 twin_cfg: dict[str, Any] | None = None, cell_boxes: list[np.ndarray] | None = None,
+                 cell_fraction: float = 0.0):
         self.npy_path = Path(npy_path)
         self.vcfg = vcfg
         self.augment = augment
         self.norm = input_norm or (IMAGENET_MEAN, IMAGENET_STD)   # the encoder's input (mean, std)
         self.transform = build_view_transform(vcfg) if augment else None
+        self.local_cfg = local_cfg if local_cfg and local_cfg["n"] > 0 else None
+        self.twin = build_twin_transform(twin_cfg) if twin_cfg else None
+        self.cell_boxes, self.cell_fraction = cell_boxes, cell_fraction
         shape = np.load(self.npy_path, mmap_mode="r").shape
         self.n, self.hc, self.wc = shape[0], shape[1], shape[2]
         self.cache_long = max(self.hc, self.wc)
@@ -181,20 +206,46 @@ class TwoViewDataset(Dataset):
             self._arr = np.load(self.npy_path, mmap_mode="r")
         return self._arr
 
+    @property
+    def has_extras(self) -> bool:
+        return self.local_cfg is not None or self.twin is not None
+
     def __getitem__(self, key: tuple[int, int]):
         idx, seed = key
         rng = np.random.default_rng(seed)
-        _, _, crops = sample_windows(rng, self.hc, self.wc, self.cache_long, self.vcfg)
+        rng_x = np.random.default_rng([seed, 1])   # extras only
+        row = self.indices[idx]
+        center = None
+        if self.cell_boxes is not None and len(self.cell_boxes[row]) and rng_x.random() < self.cell_fraction:
+            b = self.cell_boxes[row][rng_x.integers(len(self.cell_boxes[row]))]
+            center = np.array([(b[0] + b[2]) / 2, (b[1] + b[3]) / 2])
+        _, anchor, crops = sample_windows(rng, self.hc, self.wc, self.cache_long, self.vcfg, center)
         view_seeds = rng.integers(0, 2**31 - 1, size=2)
-        img = self.arr[self.indices[idx]]
-        views = []
+        img = self.arr[row]
+        views, raw = [], []
         for k in range(2):
             v = read_crop(img, crops[k], self.vcfg["out_size"])
             if self.transform is not None:
                 self.transform.set_random_seed(int(view_seeds[k]))
                 v = self.transform(image=v)["image"]
+            raw.append(v)
             views.append(normalize(v, *self.norm))
-        return views[0], views[1], torch.from_numpy(crops).float()
+        if not self.has_extras:
+            return views[0], views[1], torch.from_numpy(crops).float()
+        extras = {}
+        if self.local_cfg is not None:
+            lc, local = self.local_cfg, []
+            for _ in range(lc["n"]):
+                v = read_crop(img, random_resized_window(rng_x, anchor, lc["scale"], lc["ratio"]), lc["out_size"])
+                if self.transform is not None:
+                    self.transform.set_random_seed(int(rng_x.integers(0, 2**31 - 1)))
+                    v = self.transform(image=v)["image"]
+                local.append(normalize(v, *self.norm))
+            extras["local"] = torch.stack(local)
+        if self.twin is not None:
+            self.twin.set_random_seed(int(rng_x.integers(0, 2**31 - 1)))
+            extras["twin"] = normalize(self.twin(image=raw[0])["image"], *self.norm)
+        return views[0], views[1], torch.from_numpy(crops).float(), extras
 
 
 class MixedTwoViewDataset(Dataset):
@@ -286,6 +337,18 @@ def load_fold_images(folds_path: Path, fold: int) -> list[dict[str, Any]]:
     return sorted(folds[str(fold)], key=lambda im: im["id"])
 
 
+def load_image_folds(folds_path: Path) -> dict[int, int]:
+    """{image id: fold} of the folds file (each test image in exactly one fold)."""
+    folds = json.loads(Path(folds_path).read_text(encoding="utf-8"))["folds"]
+    out: dict[int, int] = {}
+    for f, ims in folds.items():
+        for im in ims:
+            if im["id"] in out:
+                raise ValueError(f"image {im['id']} is in folds {out[im['id']]} and {f}")
+            out[im["id"]] = int(f)
+    return out
+
+
 def build_target_cache(folds_path: Path, fold: int, raw_images: Path, cache_cfg: dict[str, Any],
                        resolve) -> tuple[Path, Path]:
     """Unlabeled target-domain cache of ONE fold: decodes only the image files listed for that fold in
@@ -316,6 +379,21 @@ def build_target_cache(folds_path: Path, fold: int, raw_images: Path, cache_cfg:
     idx_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
     log.info("built %s (%s)", npy, index["shape"])
     return npy, idx_path
+
+
+def load_cell_boxes(candidates_path: Path, cache_index: dict[str, Any], min_objectness: float) -> list[np.ndarray]:
+    """Class-agnostic detector candidates (two_stage.py candidates: image_id, COCO bbox in original px, objectness;
+    no class scores, no labels) -> per cache row, (k, 4) x0 y0 x1 y1 boxes in cache px with objectness >=
+    `min_objectness`. Candidates of images that are not in the cache (e.g. the other test fold) are dropped."""
+    cands = json.loads(Path(candidates_path).read_text(encoding="utf-8"))["candidates"]
+    row_of = {im["id"]: i for i, im in enumerate(cache_index["images"])}
+    s = cache_index["scale"]
+    boxes: list[list[list[float]]] = [[] for _ in cache_index["images"]]
+    for c in cands:
+        if c["objectness"] >= min_objectness and c["image_id"] in row_of:
+            x, y, w, h = c["bbox"]
+            boxes[row_of[c["image_id"]]].append([x * s, y * s, (x + w) * s, (y + h) * s])
+    return [np.asarray(b, np.float32).reshape(-1, 4) for b in boxes]
 
 
 def box_iou(a: np.ndarray, b: np.ndarray) -> float:
