@@ -9,11 +9,22 @@
   (2018) uncertainty weighting: L = sum_i exp(-s_i) * L_i + s_i with learnable s_i = log(sigma_i^2).
 A branch whose lambda is 0 is not computed at all.
 
+Phase 7 (SSL v2) optional branches, each switched on by its own config block (None = off):
+- `dino` (self-distillation, Caron et al. 2021): EMA teacher (encoder + head) of the student; student views =
+  the two global views + `local_crops.n` small local crops, teacher views = the two global views; DINO head on the
+  mean of the patch tokens (the feature the probe / DETR use), prototypes L2-normalised (norm_last_layer);
+  cross-entropy between the sharpened, centred teacher softmax and the student softmax over all pairs of different
+  views. During `head_warmup_epochs` the DINO loss does not reach the student encoder (fresh random head).
+  The teacher encoder is the exported encoder.
+- `stain_consistency`: view 1 under a strong stain / resolution / JPEG shift (`twin`, same geometry);
+  loss = mean over patches of 1 - cos(twin token, stop-grad clean token).
+
 Only the encoder is exported (`encoder_state_dict`); it is a plain timm VisionTransformer state
 dict (num_classes=0) that loads with strict=True into `build_encoder`.
 """
 from __future__ import annotations
 
+import copy
 from functools import partial
 from typing import Any
 
@@ -45,6 +56,44 @@ def sincos_pos_embed(dim: int, gh: int, gw: int) -> torch.Tensor:
     return torch.from_numpy(emb).float()
 
 
+class DINOHead(nn.Module):
+    """DINO projection head: MLP (GELU) -> L2-normalised bottleneck -> cosine to L2-normalised prototypes."""
+
+    def __init__(self, dim: int, hidden: int, bottleneck: int, n_prototypes: int, n_layers: int = 3):
+        super().__init__()
+        layers: list[nn.Module] = [nn.Linear(dim, hidden), nn.GELU()]
+        for _ in range(n_layers - 2):
+            layers += [nn.Linear(hidden, hidden), nn.GELU()]
+        layers.append(nn.Linear(hidden, bottleneck))
+        self.mlp = nn.Sequential(*layers)
+        for m in self.mlp:
+            if isinstance(m, nn.Linear):
+                nn.init.trunc_normal_(m.weight, std=0.02)
+                nn.init.zeros_(m.bias)
+        self.prototypes = nn.Parameter(torch.empty(n_prototypes, bottleneck))
+        nn.init.trunc_normal_(self.prototypes, std=0.02)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        z = F.normalize(self.mlp(x).float(), dim=-1)
+        return z @ F.normalize(self.prototypes.float(), dim=-1).t()
+
+
+def dino_loss(student: list[torch.Tensor], teacher_probs: list[torch.Tensor], student_temp: float) -> torch.Tensor:
+    """Mean over (teacher view i, student view v != i) of CE(teacher_probs[i], softmax(student[v] / T_s)).
+    The first len(teacher_probs) student views are the same global views as the teacher's."""
+    terms = []
+    for i, q in enumerate(teacher_probs):
+        for v, s in enumerate(student):
+            if v != i:
+                terms.append(torch.sum(-q * F.log_softmax(s.float() / student_temp, dim=-1), dim=-1).mean())
+    return torch.stack(terms).mean()
+
+
+def stain_consistency_loss(twin_tokens: torch.Tensor, clean_tokens: torch.Tensor) -> torch.Tensor:
+    """Mean over patches of 1 - cos(twin token, stop-grad clean token); tokens (B, N, C) of the same geometry."""
+    return (1 - F.cosine_similarity(twin_tokens.float(), clean_tokens.detach().float(), dim=-1)).mean()
+
+
 def info_nce(z1: torch.Tensor, z2: torch.Tensor, temperature: float) -> torch.Tensor:
     """Symmetric NT-Xent: positives are (i, i+B); all other 2B-2 samples are negatives."""
     b = z1.shape[0]
@@ -65,14 +114,18 @@ class SSLModel(nn.Module):
         dim = encoder.embed_dim
         lc = cfg["loss"]
         self.lambda_mae, self.lambda_con = float(lc["lambda_mae"]), float(lc["lambda_con"])
-        if self.lambda_mae < 0 or self.lambda_con < 0 or self.lambda_mae + self.lambda_con == 0:
-            raise ValueError("lambdas must be >= 0 and not both 0")
+        self.dino_cfg, self.stain_cfg = cfg.get("dino"), cfg.get("stain_consistency")
+        self.lambda_dino = float(self.dino_cfg["lambda"]) if self.dino_cfg else 0.0
+        self.lambda_stain = float(self.stain_cfg["lambda"]) if self.stain_cfg else 0.0
+        lams = (self.lambda_mae, self.lambda_con, self.lambda_dino, self.lambda_stain)
+        if min(lams) < 0 or sum(lams) == 0:
+            raise ValueError("lambdas must be >= 0 and not all 0")
         self.weighting = lc["loss_weighting"]
         if self.weighting not in WEIGHTINGS:
             raise ValueError(f"loss_weighting must be one of {WEIGHTINGS}")
         if self.weighting == "uncertainty":
-            if not (self.use_mae and self.use_con):
-                raise ValueError("uncertainty weighting needs both branches (lambdas > 0)")
+            if not (self.use_mae and self.use_con) or self.use_dino or self.use_stain:
+                raise ValueError("uncertainty weighting needs exactly the MAE and InfoNCE branches")
             self.log_vars = nn.Parameter(torch.zeros(2))  # [mae, con]
         self.mask_ratio = cfg["mae"]["mask_ratio"]
         self.temperature = cfg["contrastive"]["temperature"]
@@ -91,6 +144,15 @@ class SSLModel(nn.Module):
             c = cfg["contrastive"]
             self.projector = nn.Sequential(nn.Linear(dim, c["proj_hidden"]), nn.BatchNorm1d(c["proj_hidden"]),
                                            nn.GELU(), nn.Linear(c["proj_hidden"], c["proj_dim"]))
+        self.dino_backbone_grad = True   # False during the DINO head warm-up (set by the trainer)
+        if self.use_dino:
+            d = self.dino_cfg
+            self.dino_head = DINOHead(dim, d["head_hidden"], d["head_bottleneck"], d["n_prototypes"])
+            self.teacher_encoder = copy.deepcopy(encoder)
+            self.teacher_head = copy.deepcopy(self.dino_head)
+            for p in (*self.teacher_encoder.parameters(), *self.teacher_head.parameters()):
+                p.requires_grad = False
+            self.register_buffer("center", torch.zeros(1, d["n_prototypes"]))
 
     @property
     def use_mae(self) -> bool:
@@ -100,10 +162,22 @@ class SSLModel(nn.Module):
     def use_con(self) -> bool:
         return self.lambda_con > 0
 
+    @property
+    def use_dino(self) -> bool:
+        return self.lambda_dino > 0
+
+    @property
+    def use_stain(self) -> bool:
+        return self.lambda_stain > 0
+
     # -- encoder -------------------------------------------------------------------------
     def encode_full(self, x: torch.Tensor) -> torch.Tensor:
         """Mean of the final-normed patch tokens (cls excluded), (B, dim)."""
-        return self.encoder.forward_features(x)[:, self.prefix:].mean(1)
+        return self.encode_tokens(x).mean(1)
+
+    def encode_tokens(self, x: torch.Tensor, encoder: nn.Module | None = None) -> torch.Tensor:
+        """Final-normed patch tokens (cls excluded), (B, N, dim)."""
+        return (encoder or self.encoder).forward_features(x)[:, self.prefix:]
 
     def encode_masked(self, x: torch.Tensor, mask_ratio: float, noise: torch.Tensor | None = None):
         """Encode only a random subset of patches. mask: (B, N), 1 = masked (removed)."""
@@ -189,35 +263,89 @@ class SSLModel(nn.Module):
         if self.weighting == "uncertainty":
             w = torch.exp(-self.log_vars.detach()).tolist()
             return {"w_mae": w[0], "w_con": w[1]}
-        return {"w_mae": self.lambda_mae, "w_con": self.lambda_con}
+        w = {"w_mae": self.lambda_mae, "w_con": self.lambda_con}
+        if self.use_dino:
+            w["w_dino"] = self.lambda_dino
+        if self.use_stain:
+            w["w_stain"] = self.lambda_stain
+        return w
 
-    def forward(self, v1: torch.Tensor, v2: torch.Tensor, noise: torch.Tensor | None = None) -> dict[str, Any]:
+    def dino_branch(self, f1: torch.Tensor, f2: torch.Tensor, v1: torch.Tensor, v2: torch.Tensor,
+                    local: torch.Tensor | None, out: dict[str, Any]) -> torch.Tensor:
+        """DINO loss from the student's pooled global features f1, f2 (+ local crops (B, n, 3, h, w))."""
+        d = self.dino_cfg
+        feats = [f1, f2]
+        if local is not None and local.shape[1] > 0:
+            b, n = local.shape[:2]
+            fl = self.encode_tokens(local.flatten(0, 1)).mean(1)
+            feats += list(fl.view(b, n, -1).transpose(0, 1))
+        if not self.dino_backbone_grad:
+            feats = [f.detach() for f in feats]
+        student = [self.dino_head(f) for f in feats]
+        with torch.no_grad():
+            t = [self.teacher_head(self.encode_tokens(v, self.teacher_encoder).mean(1)) for v in (v1, v2)]
+            probs = [F.softmax((x - self.center) / d["teacher_temp"], dim=-1) for x in t]
+            if self.training:
+                batch_center = torch.cat(t).mean(0, keepdim=True)
+                self.center.mul_(d["center_momentum"]).add_(batch_center, alpha=1 - d["center_momentum"])
+            p = torch.cat(probs)
+            out["dino_teacher_entropy"] = -(p * p.clamp_min(1e-12).log()).sum(-1).mean()
+            pm = p.mean(0)
+            out["dino_teacher_mean_entropy"] = -(pm * pm.clamp_min(1e-12).log()).sum()
+        return dino_loss(student, probs, d["student_temp"])
+
+    def forward(self, v1: torch.Tensor, v2: torch.Tensor, noise: torch.Tensor | None = None,
+                local: torch.Tensor | None = None, twin: torch.Tensor | None = None) -> dict[str, Any]:
         out: dict[str, Any] = {}
         losses = {}
         if self.use_mae:
             losses["mae"] = self.mae_forward(v1, noise)["loss"]
-        if self.use_con:
-            h1, h2 = self.encode_full(v1), self.encode_full(v2)
-            z1, z2 = self.projector(h1), self.projector(h2)
-            losses["con"] = info_nce(z1, z2, self.temperature)
-            out.update(h1=h1.detach(), h2=h2.detach(), z1=z1.detach(), z2=z2.detach())
+        if self.use_con or self.use_dino or self.use_stain:
+            tok1 = self.encode_tokens(v1)
+            h1, h2 = tok1.mean(1), self.encode_full(v2)
+            if self.use_con:
+                z1, z2 = self.projector(h1), self.projector(h2)
+                losses["con"] = info_nce(z1, z2, self.temperature)
+                out.update(z1=z1.detach(), z2=z2.detach())
+            if self.use_dino:
+                losses["dino"] = self.dino_branch(h1, h2, v1, v2, local, out)
+            if self.use_stain:
+                if twin is None:
+                    raise ValueError("stain consistency needs the twin view")
+                losses["stain"] = stain_consistency_loss(self.encode_tokens(twin), tok1)
+            out.update(h1=h1.detach(), h2=h2.detach())
         if self.weighting == "uncertainty":
             s = self.log_vars
             total = torch.exp(-s[0]) * losses["mae"] + s[0] + torch.exp(-s[1]) * losses["con"] + s[1]
         else:
-            total = sum(lam * losses[k] for k, lam in (("mae", self.lambda_mae), ("con", self.lambda_con)) if k in losses)
+            lams = {"mae": self.lambda_mae, "con": self.lambda_con, "dino": self.lambda_dino, "stain": self.lambda_stain}
+            total = sum(lams[k] * v for k, v in losses.items())
         out["loss"] = total
-        out["loss_mae"] = losses.get("mae")
-        out["loss_con"] = losses.get("con")
+        for k in ("mae", "con", "dino", "stain"):
+            out[f"loss_{k}"] = losses.get(k)
         return out
 
-    def encoder_state_dict(self) -> dict[str, torch.Tensor]:
-        return {k: v.detach().cpu().clone() for k, v in self.encoder.state_dict().items()}
+    @torch.no_grad()
+    def update_teacher(self, momentum: float) -> None:
+        """EMA of the student encoder + DINO head into the teacher (no-op without the DINO branch)."""
+        if not self.use_dino:
+            return
+        for src, dst in ((self.encoder, self.teacher_encoder), (self.dino_head, self.teacher_head)):
+            for ps, pt in zip(src.parameters(), dst.parameters()):
+                pt.mul_(momentum).add_(ps.detach(), alpha=1 - momentum)
+
+    def export_encoder(self) -> nn.Module:
+        """The encoder that is exported / probed: the EMA teacher with the DINO branch, else the student."""
+        return self.teacher_encoder if self.use_dino else self.encoder
+
+    def encoder_state_dict(self, student: bool = False) -> dict[str, torch.Tensor]:
+        enc = self.encoder if student else self.export_encoder()
+        return {k: v.detach().cpu().clone() for k, v in enc.state_dict().items()}
 
 
 def param_groups(model: nn.Module, weight_decay: float) -> list[dict[str, Any]]:
     """AdamW groups: no weight decay on biases, norms, tokens, position embeddings, log-variances."""
-    no_decay_names = ("pos_embed", "cls_token", "mask_token", "log_vars")
+    no_decay_names = ("pos_embed", "cls_token", "mask_token", "log_vars", "prototypes")
     decay, no_decay = [], []
     for name, p in model.named_parameters():
         if not p.requires_grad:

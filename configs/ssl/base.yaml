@@ -8,6 +8,10 @@ model:
   drop_path_rate: 0.0                # (the encoder's input norm is recorded as model.input_norm in the run config)
 
 target: null                         # phase 5: {folds_file, fold, fraction} adds unlabeled target-fold images
+# phase 7 (SSL v2) components, each one block, null = off (configs/ssl/v2_*.yaml):
+dino: null                           # (a) DINO self-distillation: EMA teacher + local crops
+stain_consistency: null              # (b) same view under a strong stain / resolution / JPEG shift
+cells: null                          # (c) anchors centred on class-agnostic detector candidates
 
 mae:
   mask_ratio: 0.75
@@ -45,7 +49,9 @@ train:
   num_workers: 6
   persistent_workers: true
   amp_dtype: bfloat16
-  max_steps: null                    # debug: stop after this many optimizer steps
+  grad_checkpointing: false          # timm activation checkpointing of the student blocks (memory only; same
+                                     # math with drop_path 0)
+  max_steps: null                   # debug: stop after this many optimizer steps
   overfit_crops: null                # debug: train on N fixed train crops without augmentation
 
 monitor:

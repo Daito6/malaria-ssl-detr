@@ -15,6 +15,12 @@ No gradient accumulation: it would shrink the set of in-batch negatives of InfoN
 `model.init` (random | imagenet | encoder state dict) selects the start point; the encoder's input
 normalization is recorded as `model.input_norm` in config.yaml. `target` (folds file + fold + fraction)
 adds the unlabeled images of one target fold: a draw comes from them with probability `fraction`.
+
+Phase 7 (SSL v2) blocks, each None = off: `dino` (EMA teacher self-distillation + local crops; teacher momentum
+cosine from `ema_momentum` to 1; DINO loss reaches the encoder after `head_warmup_epochs`; encoder_final.pt is the
+teacher, encoder_student_final.pt the student), `stain_consistency` (stain-shifted twin of view 1), `cells`
+(anchors centred on the class-agnostic candidates of `candidates_run` with probability `fraction`, on the train
+images and, with `target`, on that test fold's images: candidates_test.json has image ids, boxes and objectness only).
 """
 from __future__ import annotations
 
@@ -35,7 +41,7 @@ from torch.utils.data import DataLoader, Sampler
 
 from malaria_ssl.data.detection import IMAGENET_MEAN, IMAGENET_STD, seed_worker
 from malaria_ssl.ssl.data import (MixedImageSampler, MixedTwoViewDataset, RandomImageSampler, TwoViewDataset,
-                                   build_target_cache, ensure_caches)
+                                   build_target_cache, ensure_caches, load_cell_boxes)
 from malaria_ssl.ssl.encoders import init_encoder, is_imagenet_norm
 from malaria_ssl.ssl.models import SSLModel, info_nce, param_groups
 from malaria_ssl.ssl.probe import Prober
@@ -123,19 +129,31 @@ class SSLTrainer:
         set_seed(cfg["seed"])
         self.caches = caches or ensure_caches(cfg, resolve_path)
         tr, mon = cfg["train"], cfg["monitor"]
-        encoder, norm = init_encoder(cfg["model"], cfg["probe"]["references"]["imagenet"], resolve_path)
+        encoder, norm = init_encoder(cfg["model"], cfg["probe"]["references"]["imagenet"], resolve_path,
+                                     dino_name=cfg["probe"]["references"].get("dino"))
         cfg["model"]["input_norm"] = norm
         self.norm = (norm["mean"], norm["std"])
         self.model = SSLModel(encoder, cfg).to(self.device)
+        if tr.get("grad_checkpointing"):   # student forward_features only; memory, not results (no drop_path)
+            self.model.encoder.set_grad_checkpointing(True)
         self.amp = AMP_DTYPES[tr["amp_dtype"]] if self.device.type == "cuda" else None
+        # phase 7 extras of the training views (None = off): DINO local crops, stain twin, cell-centred anchors
+        extras = {"local_cfg": cfg["dino"]["local_crops"] if cfg.get("dino") else None,
+                  "twin_cfg": cfg.get("stain_consistency")}
+        cells = cfg.get("cells")
 
         n_over = tr.get("overfit_crops")
         if n_over:
-            self.train_ds = TwoViewDataset(self.caches["train"], cfg["views"], augment=False, input_norm=self.norm)
+            self.train_ds = TwoViewDataset(self.caches["train"], cfg["views"], augment=False, input_norm=self.norm,
+                                           **extras)
             self.overfit_keys = list(RandomImageSampler(len(self.train_ds), n_over, cfg["seed"]))
             mon_ds, mon_keys = self.train_ds, self.overfit_keys[: mon["val_pairs"]]
         else:
-            self.train_ds = TwoViewDataset(self.caches["train"], cfg["views"], augment=True, input_norm=self.norm)
+            if cells:
+                extras.update(cell_boxes=self.cell_boxes(cells, "train", self.caches["train"]),
+                              cell_fraction=cells["fraction"])
+            self.train_ds = TwoViewDataset(self.caches["train"], cfg["views"], augment=True, input_norm=self.norm,
+                                           **extras)
             self.overfit_keys = None
             mon_ds = TwoViewDataset(self.caches["val"], cfg["views"], augment=True, input_norm=self.norm)
             mon_keys = list(RandomImageSampler(len(mon_ds), mon["val_pairs"], mon["monitor_seed"]))
@@ -148,7 +166,9 @@ class SSLTrainer:
                 raw_images = resolve_path(load_config(resolve_path(cfg["data_config"]))["paths"]["raw_root"]) / "images"
                 npy = build_target_cache(resolve_path(t["folds_file"]), t["fold"], raw_images, cfg["cache"],
                                          resolve_path)[0]
-            self.target_ds = TwoViewDataset(npy, cfg["views"], augment=True, input_norm=self.norm)
+            if cells:   # the same detector's class-agnostic candidates on the test images, this fold's rows only
+                extras["cell_boxes"] = self.cell_boxes(cells, "test", npy)
+            self.target_ds = TwoViewDataset(npy, cfg["views"], augment=True, input_norm=self.norm, **extras)
             self.train_ds = MixedTwoViewDataset([self.train_ds, self.target_ds])
             tkeys = list(RandomImageSampler(len(self.target_ds), mon["recon_crops"], mon["monitor_seed"]))
             self.target_v1 = collect(self.target_ds, tkeys)[0]
@@ -166,6 +186,18 @@ class SSLTrainer:
         self.global_step = 0     # optimizer steps done
 
     # -- setup ---------------------------------------------------------------------------
+    @staticmethod
+    def cell_boxes(cells: dict[str, Any], split: str, npy: Path) -> list[np.ndarray]:
+        """Per cache row, the detector's class-agnostic candidate boxes (`cells.candidates_run`/candidates_<split>.json,
+        objectness >= `cells.min_objectness`) of the images in that cache (its <name>_index.json)."""
+        index = json.loads(npy.with_name(f"{npy.stem.rsplit('_', 1)[0]}_index.json").read_text(encoding="utf-8"))
+        boxes = load_cell_boxes(resolve_path(cells["candidates_run"]) / f"candidates_{split}.json", index,
+                                cells["min_objectness"])
+        n = [len(b) for b in boxes]
+        log.info("cells %s: %d boxes on %d/%d images (median %d per image)", npy.stem, sum(n),
+                 sum(k > 0 for k in n), len(n), int(np.median(n)))
+        return boxes
+
     def probe_batch(self) -> dict[str, Any]:
         """Largest candidate batch (pairs) whose fwd+bwd peak memory fits the budget."""
         tr = self.cfg["train"]
@@ -175,13 +207,19 @@ class SSLTrainer:
         results, chosen = {}, None
         for b in sorted(tr["batch_candidates"], reverse=True):
             v1 = v2 = out = None
+            ex = {}
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats(self.device)
             try:
                 v1 = torch.randn(b, 3, size, size, device=self.device)
                 v2 = torch.randn(b, 3, size, size, device=self.device)
+                if self.model.use_dino:
+                    lc = self.cfg["dino"]["local_crops"]
+                    ex["local"] = torch.randn(b, lc["n"], 3, lc["out_size"], lc["out_size"], device=self.device)
+                if self.model.use_stain:
+                    ex["twin"] = torch.randn_like(v1)
                 with torch.autocast("cuda", dtype=self.amp, enabled=self.amp is not None):
-                    out = self.model(v1, v2)
+                    out = self.model(v1, v2, **ex)
                 out["loss"].backward()
                 peak = torch.cuda.max_memory_allocated(self.device)
                 results[b] = round(peak / 2**30, 2)
@@ -190,7 +228,7 @@ class SSLTrainer:
                 results[b], ok = "OOM", False
             finally:
                 self.model.zero_grad(set_to_none=True)
-                del v1, v2, out
+                del v1, v2, out, ex
                 torch.cuda.empty_cache()
             if ok:
                 chosen = b
@@ -272,12 +310,16 @@ class SSLTrainer:
         cuda = self.device.type == "cuda"
         if cuda:
             torch.cuda.reset_peak_memory_stats(self.device)
+        dino = self.cfg.get("dino")
+        if self.model.use_dino:   # fresh head: DINO gradients reach the encoder only after the warm-up epochs
+            self.model.dino_backbone_grad = self.epoch >= dino["head_warmup_epochs"]
         t0 = time.time()
-        for v1, v2, _ in self.loader:
-            v1 = v1.to(self.device, non_blocking=True)
-            v2 = v2.to(self.device, non_blocking=True)
+        for batch in self.loader:
+            v1 = batch[0].to(self.device, non_blocking=True)
+            v2 = batch[1].to(self.device, non_blocking=True)
+            ex = {k: v.to(self.device, non_blocking=True) for k, v in batch[3].items()} if len(batch) > 3 else {}
             with torch.autocast(self.device.type, dtype=self.amp, enabled=self.amp is not None):
-                out = self.model(v1, v2)
+                out = self.model(v1, v2, **ex)
             loss = out["loss"]
             if not torch.isfinite(loss):
                 raise FloatingPointError(f"non-finite loss at epoch {self.epoch}, step {self.global_step}")
@@ -286,12 +328,17 @@ class SSLTrainer:
             gn = torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg["optim"]["grad_clip"])
             self.optimizer.step()
             self.scheduler.step()
+            if self.model.use_dino:   # teacher EMA, momentum cosine from ema_momentum to 1 (DINO)
+                total = self.steps_per_epoch * self.cfg["train"]["epochs"]
+                m0 = dino["ema_momentum"]
+                self.model.update_teacher(1 - (1 - m0) * 0.5 * (1 + math.cos(math.pi * self.global_step / total)))
             self.global_step += 1
             n += 1
             grad_norms.append(gn.item())
             parts = {"loss": loss.item()}
-            for k in ("loss_mae", "loss_con"):
-                if out[k] is not None:
+            for k in ("loss_mae", "loss_con", "loss_dino", "loss_stain", "dino_teacher_entropy",
+                      "dino_teacher_mean_entropy"):
+                if out.get(k) is not None:
                     parts[k] = out[k].item()
             for k, v in parts.items():
                 sums[k] += v
@@ -319,7 +366,7 @@ class SSLTrainer:
         m.eval()
         b = self.cfg["train"]["batch"]
         out: dict[str, float] = {}
-        mae, con, h1s, h2s, z1s, z2s = [], [], [], [], [], []
+        mae, con, h1s, h2s, z1s, z2s, t1s, t2s = [], [], [], [], [], [], [], []
         with torch.autocast(self.device.type, dtype=self.amp, enabled=self.amp is not None):
             for s in range(0, len(self.mon_v1), b):
                 v1 = self.mon_v1[s:s + b].to(self.device).float()
@@ -328,6 +375,9 @@ class SSLTrainer:
                     mae.append((m.mae_forward(v1, self.mon_noise[s:s + b].to(self.device))["loss"].item(), len(v1)))
                 h1, h2 = m.encode_full(v1).float(), m.encode_full(v2).float()
                 h1s.append(h1), h2s.append(h2)
+                if m.use_dino:   # the exported (teacher) encoder
+                    t1s.append(m.encode_tokens(v1, m.teacher_encoder).mean(1).float())
+                    t2s.append(m.encode_tokens(v2, m.teacher_encoder).mean(1).float())
                 if m.use_con:
                     z1, z2 = m.projector(h1), m.projector(h2)
                     z1s.append(z1.float()), z2s.append(z2.float())
@@ -348,12 +398,14 @@ class SSLTrainer:
         out.update({f"rep/{k}": v for k, v in collapse_stats(torch.cat(h1s), torch.cat(h2s)).items()})
         if z1s:
             out.update({f"proj/{k}": v for k, v in collapse_stats(torch.cat(z1s), torch.cat(z2s)).items()})
+        if t1s:
+            out.update({f"teacher_rep/{k}": v for k, v in collapse_stats(torch.cat(t1s), torch.cat(t2s)).items()})
         m.train()
         return out
 
     def light_probe(self) -> dict[str, float]:
         norm = None if is_imagenet_norm(*self.norm) else self.norm
-        res = self.prober.evaluate(self.model.encoder, full=False, input_norm=norm)
+        res = self.prober.evaluate(self.model.export_encoder(), full=False, input_norm=norm)
         self.model.train()
         return {f"probe/{meth}/{k}": e["metrics"][k] for meth, e in res["methods"].items() for k in PROBE_METRICS}
 
@@ -388,7 +440,10 @@ class SSLTrainer:
             if last:
                 break
         if self.epoch >= tr["epochs"] or (max_steps and self.global_step >= max_steps):
-            self.save_encoder("encoder_final.pt")
+            self.save_encoder("encoder_final.pt")   # the EMA teacher when the DINO branch is on
+            if self.model.use_dino:
+                save_checkpoint_plain(self.run_dir / "checkpoints" / "encoder_student_final.pt",
+                                      self.model.encoder_state_dict(student=True))
         self.tb.close()
 
 

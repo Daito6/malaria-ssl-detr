@@ -30,16 +30,31 @@ def encoder_input_norm(path: Path) -> tuple[list[float], list[float]]:
     return [float(v) for v in norm["mean"]], [float(v) for v in norm["std"]]
 
 
-def init_encoder(model_cfg: dict[str, Any], imagenet_name: str, resolve) -> tuple[torch.nn.Module, dict[str, Any]]:
+def ssl_run_target_fold(run_dir: Path) -> int | None:
+    """Test fold whose unlabeled images the SSL run trained on (`target.fold` of runs/<run>/config.yaml), None if
+    the run had no target domain. Raises if the run config is missing (the fold cannot be checked)."""
+    run_cfg = Path(run_dir) / "config.yaml"
+    if not run_cfg.exists():
+        raise FileNotFoundError(f"{run_cfg}: no SSL run config, cannot tell which test fold the encoder saw")
+    target = yaml.safe_load(run_cfg.read_text(encoding="utf-8")).get("target")
+    return None if not target else int(target["fold"])
+
+
+def init_encoder(model_cfg: dict[str, Any], imagenet_name: str, resolve,
+                 dino_name: str | None = None) -> tuple[torch.nn.Module, dict[str, Any]]:
     """SSL encoder and its input normalization. `model_cfg.init`: random (default) | imagenet (timm
-    `imagenet_name`, its own mean / std) | path to a timm state dict (continued pretraining; the
-    normalization of the run that produced it). Returns (encoder, {"mean": [...], "std": [...]})."""
+    `imagenet_name`, its own mean / std) | dino (timm `dino_name`, its own mean / std; phase 7) | path to a timm
+    state dict (continued pretraining; the normalization of the run that produced it).
+    Returns (encoder, {"mean": [...], "std": [...]})."""
     init, name, dpr = model_cfg.get("init", "random"), model_cfg["encoder"], model_cfg["drop_path_rate"]
     if init == "random":
         enc, mean, std = build_encoder(name, dpr), IMAGENET_MEAN, IMAGENET_STD
-    elif init == "imagenet":
-        enc = build_encoder(imagenet_name, dpr, pretrained=True)
-        pc = timm.models.get_pretrained_cfg(imagenet_name)
+    elif init in ("imagenet", "dino"):
+        timm_name = imagenet_name if init == "imagenet" else dino_name
+        if timm_name is None:
+            raise ValueError("init: dino needs probe.references.dino")
+        enc = build_encoder(timm_name, dpr, pretrained=True)
+        pc = timm.models.get_pretrained_cfg(timm_name)
         mean, std = pc.mean, pc.std
     else:
         enc = build_encoder(name, dpr)
