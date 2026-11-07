@@ -1,0 +1,5 @@
+# Phase 7 EXPLORATORY, SSL seed check: ssl_v2_b with ONLY the seed changed: 42 -> 43 (sampling order, views /
+# augmentations, MAE masks, stain twins, fresh decoder / projector; the DINO init weights are the same). Added after
+# the phase-7 test results (post hoc): is the two-stage gain of ssl_v2_b over ssl_v2_cont / ref_dino seed-stable?
+base: configs/ssl/v2_b.yaml
+seed: 43

@@ -1,0 +1,39 @@
+# Phase 7 EXPLORATORY: SSL v2 STEP 2 = full 30-epoch runs + probes (reports/phase7_plan.md, sections 8-9). No DETR here.
+# Start only after the user approved the screening result. Started by the user in PowerShell outside Claude Code:
+#   conda activate medthesis
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase7_full.txt
+#
+# Who runs (rule of section 8, screening VAL probes only, reports/tables/phase7_screening_val_diff.csv):
+#   always: ssl_v2_cont (control), ssl_v2_full_f1 + ssl_v2_full_f2 (criteria 1-2)
+#   a, b: no collapse and >= 1 of auprc_clean / auprc_stain / auprc_10pct with point diff vs cont >= 0 -> run
+#   c: all three diffs vs cont < 0 -> NOT run
+# Order: the runs the criteria depend on first (cont, full_f1, full_f2), then a, b. One heavy job at a time.
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+ssl_v2_cont     | python scripts/pretrain.py --config configs/ssl/v2_cont.yaml --name ssl_v2_cont
+ssl_v2_full_f1  | python scripts/pretrain.py --config configs/ssl/v2_full_f1.yaml --name ssl_v2_full_f1
+ssl_v2_full_f2  | python scripts/pretrain.py --config configs/ssl/v2_full_f2.yaml --name ssl_v2_full_f2
+ssl_v2_a        | python scripts/pretrain.py --config configs/ssl/v2_a.yaml --name ssl_v2_a
+ssl_v2_b        | python scripts/pretrain.py --config configs/ssl/v2_b.yaml --name ssl_v2_b
+
+# ---- VAL probes (clean + stain-shifted + low-label): the basis of the DETR selection
+ssl_v2_cont     | python scripts/probe.py --run runs/ssl_v2_cont
+ssl_v2_full_f1  | python scripts/probe.py --run runs/ssl_v2_full_f1
+ssl_v2_full_f2  | python scripts/probe.py --run runs/ssl_v2_full_f2
+ssl_v2_a        | python scripts/probe.py --run runs/ssl_v2_a
+ssl_v2_b        | python scripts/probe.py --run runs/ssl_v2_b
+
+# ---- held-out test folds (phase 5 protocol; criterion 1). An encoder that saw fold F is probed only on the other fold.
+# References ref_dino / ref_imagenet / ssl_joint fold probes already exist (phase 5).
+ssl_v2_cont     | python scripts/probe.py --run runs/ssl_v2_cont --eval-split test --eval-fold 1
+ssl_v2_cont     | python scripts/probe.py --run runs/ssl_v2_cont --eval-split test --eval-fold 2
+ssl_v2_full_f2  | python scripts/probe.py --run runs/ssl_v2_full_f2 --eval-split test --eval-fold 1
+ssl_v2_full_f1  | python scripts/probe.py --run runs/ssl_v2_full_f1 --eval-split test --eval-fold 2
+ssl_v2_a        | python scripts/probe.py --run runs/ssl_v2_a --eval-split test --eval-fold 1
+ssl_v2_a        | python scripts/probe.py --run runs/ssl_v2_a --eval-split test --eval-fold 2
+ssl_v2_b        | python scripts/probe.py --run runs/ssl_v2_b --eval-split test --eval-fold 1
+ssl_v2_b        | python scripts/probe.py --run runs/ssl_v2_b --eval-split test --eval-fold 2
+
+# ---- paired bootstrap (CPU, saved features), pairs of section 8
+phase7_full     | python scripts/paired_probe_diff.py --pairs ssl_v2_a:ssl_v2_cont ssl_v2_b:ssl_v2_cont ssl_v2_full_f1:ssl_v2_cont ssl_v2_full_f2:ssl_v2_cont ssl_v2_full_f1:ref_dino ssl_v2_full_f2:ref_dino ssl_v2_full_f1:ref_imagenet ssl_v2_full_f2:ref_imagenet ssl_v2_full_f1:ssl_joint ssl_v2_full_f2:ssl_joint --out reports/tables/phase7_full_val_diff
+phase7_full     | python scripts/paired_fold_diff.py --enc cont=ssl_v2_cont a=ssl_v2_a b=ssl_v2_b full=ssl_v2_full_f2,ssl_v2_full_f1 dino=ref_dino imagenet=ref_imagenet joint=ssl_joint --pairs a:cont b:cont full:cont full:dino full:imagenet full:joint --out reports/tables/phase7_full_folds

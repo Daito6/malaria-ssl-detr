@@ -1,0 +1,11 @@
+# Phase 7 EXPLORATORY, step 3 (reports/phase7_plan.md, sections 8-9): ViT-DETR with the SSL v2 encoder chosen on VAL
+# only (selection rule of section 8: val stain-shifted linear AUPRC -> 10%-label linear AUPRC -> clean linear AUPRC,
+# ties inside the leader's interval; candidates cont, a, b, full_f1, full_f2 -> ssl_v2_b). Test folds were not used.
+# Recipe = b_vit_dino_full (seed 42, full fine-tuning, 40 epochs, best.pt by clean val AP@[.5:.95] of both classes);
+# only model.vit.init changes: the DINO timm weights -> the ssl_v2_b encoder (DINO init + MAE + InfoNCE + stain
+# consistency, 30 epochs, train images only). Its input normalization (ImageNet mean / std, as DINO) is read from the
+# SSL run config by encoder_input_norm and recorded by train_detr.py as model.vit.input_norm.
+base: configs/experiments/b_vit_dino_full.yaml
+model:
+  vit:
+    init: runs/ssl_v2_b/checkpoints/encoder_final.pt

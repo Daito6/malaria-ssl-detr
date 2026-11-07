@@ -1,0 +1,26 @@
+# Phase 7 EXPLORATORY: ssl_v2_a = ssl_v2_cont + (a) DINO self-distillation (the `dino` block only).
+# Student = the trained encoder, teacher = its EMA (encoder + head; teacher is exported as encoder_final.pt).
+# Values = DINO defaults for ViT-S/16 (Caron et al. 2021, github.com/facebookresearch/dino main_dino.py) except where
+# noted; fixed in advance, not tuned:
+#   head 384 -> 2048 -> 2048 -> 256, L2-normalised prototypes (norm_last_layer); n_prototypes 8192 (DINO 65536:
+#     fresh head, 6000 steps instead of ~125k);
+#   student T 0.1, teacher T 0.04 (no teacher-T warm-up: continued training), centre momentum 0.9;
+#   EMA momentum 0.996 -> 1 (cosine over all steps);
+#   head on the mean of the patch tokens (the probe / DETR feature; DINO uses the cls token);
+#   head_warmup_epochs 1: the fresh random head trains on detached features in epoch 0, so its noisy targets do not
+#     reach the pretrained encoder (DINO instead freezes the last layer in epoch 0);
+#   local crops: 6 x 96 px, area 0.05-0.4 of the 260 px anchor (DINO: 0.05-0.4 of the image; ViT-S default 8-10
+#     crops: 6 to fit the batch of 128 pairs), same per-view augmentations as the global views;
+#   lambda 1.0 (MAE 1.0, InfoNCE 0.2 unchanged).
+base: configs/ssl/v2_cont.yaml
+dino:
+  lambda: 1.0
+  head_hidden: 2048
+  head_bottleneck: 256
+  n_prototypes: 8192
+  student_temp: 0.1
+  teacher_temp: 0.04
+  center_momentum: 0.9
+  ema_momentum: 0.996
+  head_warmup_epochs: 1
+  local_crops: {n: 6, scale: [0.05, 0.4], ratio: [0.75, 1.3333], out_size: 96}

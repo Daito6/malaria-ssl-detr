@@ -1,0 +1,36 @@
+# Phase 7 EXPLORATORY, POST HOC (added after the phase-7 test results, reports/phase7_summary.md): second SSL seed (43)
+# for ssl_v2_b and the control ssl_v2_cont; same configs, only `seed` differs (configs/ssl/v2_{b,cont}_seed43.yaml).
+# Question: is the two-stage gain of ssl_v2_b (b - cont +0.04, b - ref_dino +0.07 on every box seed) seed-stable?
+# No DETR here. Nothing is selected on test; the fold probes and the two-stage test numbers are evaluation only.
+# Started by the user in PowerShell outside Claude Code:
+#   conda activate medthesis
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/phase7_seed2.txt
+#
+# Estimate (measured in phase 7): ssl_v2_b ~163 s / epoch incl. monitor -> ~82 min; ssl_v2_cont 55 min; probes
+# (val 0.8 + 2 folds x 0.5) ~4 min; paired probe / fold diffs ~2 min; two-stage features ~3.1 min per encoder -> ~7 min;
+# two-stage evaluate (5 encoders x 3 box seeds) ~10 min; folds diagnostic ~3 min -> ~2.7 h.
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log and --resume)
+
+ssl_v2_b_seed43     | python scripts/pretrain.py --config configs/ssl/v2_b_seed43.yaml --name ssl_v2_b_seed43
+ssl_v2_cont_seed43  | python scripts/pretrain.py --config configs/ssl/v2_cont_seed43.yaml --name ssl_v2_cont_seed43
+
+# ---- VAL probes (clean + stain-shifted + low-label)
+ssl_v2_b_seed43     | python scripts/probe.py --run runs/ssl_v2_b_seed43
+ssl_v2_cont_seed43  | python scripts/probe.py --run runs/ssl_v2_cont_seed43
+
+# ---- held-out test folds (phase 5 protocol; neither encoder saw test images, so both folds)
+ssl_v2_b_seed43     | python scripts/probe.py --run runs/ssl_v2_b_seed43 --eval-split test --eval-fold 1
+ssl_v2_b_seed43     | python scripts/probe.py --run runs/ssl_v2_b_seed43 --eval-split test --eval-fold 2
+ssl_v2_cont_seed43  | python scripts/probe.py --run runs/ssl_v2_cont_seed43 --eval-split test --eval-fold 1
+ssl_v2_cont_seed43  | python scripts/probe.py --run runs/ssl_v2_cont_seed43 --eval-split test --eval-fold 2
+
+# ---- paired probe bootstrap (CPU, saved features): b2 - cont2, b2 - ref_dino, b1 - b2
+phase7_seed2        | python scripts/paired_probe_diff.py --pairs ssl_v2_b_seed43:ssl_v2_cont_seed43 ssl_v2_b_seed43:ref_dino ssl_v2_b:ssl_v2_b_seed43 --out reports/tables/phase7_seed2_val_diff
+phase7_seed2        | python scripts/paired_fold_diff.py --enc b=ssl_v2_b b2=ssl_v2_b_seed43 cont2=ssl_v2_cont_seed43 dino=ref_dino --pairs b2:cont2 b2:dino b:b2 --out reports/tables/phase7_seed2_folds
+
+# ---- two-stage: A boxes (3 seeds) + frozen crop classifier (features on GPU; ssl_v2_b / ssl_v2_cont / ref_dino exist)
+phase7_seed2        | python scripts/two_stage.py features --runs a_coco_detr_binary a_coco_detr_binary_seed43 a_coco_detr_binary_seed44 --encoders run:runs/ssl_v2_b_seed43 run:runs/ssl_v2_cont_seed43
+
+# ---- CPU: per box seed and the mean of the 3 box seeds (encoder pairs on shared resamples), then per-fold diagnostic
+phase7_seed2        | python scripts/two_stage.py evaluate --runs a_coco_detr_binary a_coco_detr_binary_seed43 a_coco_detr_binary_seed44 --tags ssl_v2_b ssl_v2_b_seed43 ssl_v2_cont ssl_v2_cont_seed43 ref_dino --pairs ssl_v2_b_seed43:ssl_v2_cont_seed43 ssl_v2_b_seed43:ref_dino ssl_v2_b:ssl_v2_b_seed43 ssl_v2_b:ssl_v2_cont ssl_v2_b:ref_dino --mean a_3s=a_coco_detr_binary+a_coco_detr_binary_seed43+a_coco_detr_binary_seed44 --out reports/tables/phase7_two_stage_seed2
+phase7_seed2        | python scripts/two_stage.py folds --runs a_coco_detr_binary a_coco_detr_binary_seed43 a_coco_detr_binary_seed44 --tags ssl_v2_b ssl_v2_b_seed43 ssl_v2_cont ssl_v2_cont_seed43 ref_dino --out reports/tables/phase7_seed2_two_stage_folds
