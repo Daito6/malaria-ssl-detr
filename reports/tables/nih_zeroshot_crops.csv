@@ -1,0 +1,61 @@
+subset,n_images,n_patients,method,protocol,metric,value,ci_low,ci_high
+all,965,193,ref_imagenet,classifier on GT crops,auprc,0.4889,0.4268,0.5454
+all,965,193,ref_imagenet,classifier on GT crops,ece,0.0246,0.0185,0.0312
+all,965,193,ref_dino,classifier on GT crops,auprc,0.4809,0.4144,0.5418
+all,965,193,ref_dino,classifier on GT crops,ece,0.0232,0.0175,0.0298
+all,965,193,ssl_v2_b,classifier on GT crops,auprc,0.5871,0.5325,0.6362
+all,965,193,ssl_v2_b,classifier on GT crops,ece,0.0147,0.0094,0.0209
+all,965,193,ssl_v2_b_seed43,classifier on GT crops,auprc,0.6079,0.5554,0.6537
+all,965,193,ssl_v2_b_seed43,classifier on GT crops,ece,0.0094,0.0056,0.0147
+all,965,193,ssl_v2_cont,classifier on GT crops,auprc,0.5436,0.4918,0.5904
+all,965,193,ssl_v2_cont,classifier on GT crops,ece,0.0246,0.0181,0.0318
+all,965,193,ssl_v2_cont_seed43,classifier on GT crops,auprc,0.5345,0.4783,0.5867
+all,965,193,ssl_v2_cont_seed43,classifier on GT crops,ece,0.0232,0.0173,0.0301
+all,965,193,e2e_a_coco_detr_binary,"best-IoU detection, 0 if none",auprc,0.4258,0.3797,0.4672
+all,965,193,e2e_a_coco_detr_binary,"best-IoU detection, 0 if none",ece,0.0360,0.0277,0.0451
+all,965,193,e2e_a_coco_detr_binary_seed43,"best-IoU detection, 0 if none",auprc,0.4150,0.3620,0.4629
+all,965,193,e2e_a_coco_detr_binary_seed43,"best-IoU detection, 0 if none",ece,0.0366,0.0282,0.0456
+all,965,193,e2e_a_coco_detr_binary_seed44,"best-IoU detection, 0 if none",auprc,0.3903,0.3384,0.4382
+all,965,193,e2e_a_coco_detr_binary_seed44,"best-IoU detection, 0 if none",ece,0.0374,0.0288,0.0466
+all,965,193,e2e_a_3s,"best-IoU detection, 0 if none",auprc,0.4104,0.3601,0.4537
+all,965,193,e2e_a_3s,"best-IoU detection, 0 if none",ece,0.0367,0.0283,0.0457
+polys,165,33,ref_imagenet,classifier on GT crops,auprc,0.5342,0.3318,0.6445
+polys,165,33,ref_imagenet,classifier on GT crops,ece,0.0160,0.0075,0.0319
+polys,165,33,ref_dino,classifier on GT crops,auprc,0.4478,0.2743,0.5823
+polys,165,33,ref_dino,classifier on GT crops,ece,0.0169,0.0101,0.0324
+polys,165,33,ssl_v2_b,classifier on GT crops,auprc,0.5580,0.3995,0.6578
+polys,165,33,ssl_v2_b,classifier on GT crops,ece,0.0088,0.0029,0.0284
+polys,165,33,ssl_v2_b_seed43,classifier on GT crops,auprc,0.5548,0.3690,0.6761
+polys,165,33,ssl_v2_b_seed43,classifier on GT crops,ece,0.0058,0.0028,0.0224
+polys,165,33,ssl_v2_cont,classifier on GT crops,auprc,0.4734,0.3315,0.5721
+polys,165,33,ssl_v2_cont,classifier on GT crops,ece,0.0218,0.0063,0.0462
+polys,165,33,ssl_v2_cont_seed43,classifier on GT crops,auprc,0.4803,0.3324,0.5865
+polys,165,33,ssl_v2_cont_seed43,classifier on GT crops,ece,0.0189,0.0052,0.0414
+polys,165,33,e2e_a_coco_detr_binary,"best-IoU detection, 0 if none",auprc,0.3870,0.2350,0.4976
+polys,165,33,e2e_a_coco_detr_binary,"best-IoU detection, 0 if none",ece,0.0292,0.0099,0.0572
+polys,165,33,e2e_a_coco_detr_binary_seed43,"best-IoU detection, 0 if none",auprc,0.4102,0.2205,0.5393
+polys,165,33,e2e_a_coco_detr_binary_seed43,"best-IoU detection, 0 if none",ece,0.0297,0.0102,0.0581
+polys,165,33,e2e_a_coco_detr_binary_seed44,"best-IoU detection, 0 if none",auprc,0.3644,0.2171,0.4756
+polys,165,33,e2e_a_coco_detr_binary_seed44,"best-IoU detection, 0 if none",ece,0.0305,0.0102,0.0598
+polys,165,33,e2e_a_3s,"best-IoU detection, 0 if none",auprc,0.3872,0.2342,0.5043
+polys,165,33,e2e_a_3s,"best-IoU detection, 0 if none",ece,0.0298,0.0100,0.0584
+points,800,160,ref_imagenet,classifier on GT crops,auprc,0.4836,0.4209,0.5459
+points,800,160,ref_imagenet,classifier on GT crops,ece,0.0264,0.0199,0.0342
+points,800,160,ref_dino,classifier on GT crops,auprc,0.4931,0.4232,0.5592
+points,800,160,ref_dino,classifier on GT crops,ece,0.0248,0.0184,0.0326
+points,800,160,ssl_v2_b,classifier on GT crops,auprc,0.5938,0.5287,0.6510
+points,800,160,ssl_v2_b,classifier on GT crops,ece,0.0160,0.0106,0.0226
+points,800,160,ssl_v2_b_seed43,classifier on GT crops,auprc,0.6169,0.5543,0.6694
+points,800,160,ssl_v2_b_seed43,classifier on GT crops,ece,0.0102,0.0059,0.0161
+points,800,160,ssl_v2_cont,classifier on GT crops,auprc,0.5553,0.4950,0.6082
+points,800,160,ssl_v2_cont,classifier on GT crops,ece,0.0252,0.0188,0.0328
+points,800,160,ssl_v2_cont_seed43,classifier on GT crops,auprc,0.5448,0.4809,0.6020
+points,800,160,ssl_v2_cont_seed43,classifier on GT crops,ece,0.0242,0.0180,0.0317
+points,800,160,e2e_a_coco_detr_binary,"best-IoU detection, 0 if none",auprc,0.4355,0.3863,0.4766
+points,800,160,e2e_a_coco_detr_binary,"best-IoU detection, 0 if none",ece,0.0375,0.0288,0.0471
+points,800,160,e2e_a_coco_detr_binary_seed43,"best-IoU detection, 0 if none",auprc,0.4177,0.3622,0.4699
+points,800,160,e2e_a_coco_detr_binary_seed43,"best-IoU detection, 0 if none",ece,0.0380,0.0292,0.0478
+points,800,160,e2e_a_coco_detr_binary_seed44,"best-IoU detection, 0 if none",auprc,0.3963,0.3428,0.4469
+points,800,160,e2e_a_coco_detr_binary_seed44,"best-IoU detection, 0 if none",ece,0.0388,0.0297,0.0487
+points,800,160,e2e_a_3s,"best-IoU detection, 0 if none",auprc,0.4165,0.3652,0.4629
+points,800,160,e2e_a_3s,"best-IoU detection, 0 if none",ece,0.0381,0.0292,0.0479

@@ -1,0 +1,24 @@
+{
+  "run": "b_vit_dino_full_seed44",
+  "class": "infected",
+  "val_threshold": 0.8797027468681335,
+  "iou": 0.5,
+  "val": {
+    "n_gt": 298,
+    "median_score": 0.9684630036354065,
+    "frac_ge_val_threshold": 0.9228187919463087,
+    "frac_no_target_detection": 0.026845637583892617,
+    "frac_other_class_scores_higher": 0.013422818791946308,
+    "frac_no_detection_any_class": 0.013422818791946308,
+    "frac_target_scores_highest": 0.9731543624161074
+  },
+  "test": {
+    "n_gt": 303,
+    "median_score": 0.7448624968528748,
+    "frac_ge_val_threshold": 0.3795379537953795,
+    "frac_no_target_detection": 0.2508250825082508,
+    "frac_other_class_scores_higher": 0.4521452145214521,
+    "frac_no_detection_any_class": 0.013201320132013201,
+    "frac_target_scores_highest": 0.5346534653465347
+  }
+}

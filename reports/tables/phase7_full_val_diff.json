@@ -1,0 +1,963 @@
+{
+  "rows": [
+    {
+      "a": "ssl_v2_a",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_clean",
+      "value_a": 0.9937255467820258,
+      "value_b": 0.9929845448277883,
+      "diff": 0.0007410019542375412,
+      "ci_low": -0.0014924500775578358,
+      "ci_high": 0.0034660714603102047,
+      "frac_le_0": 0.266,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_a",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_stain",
+      "value_a": 0.9925308332721094,
+      "value_b": 0.9911918842234838,
+      "diff": 0.0013389490486256372,
+      "ci_low": -0.0010799764103266746,
+      "ci_high": 0.004472363665223342,
+      "frac_le_0": 0.15,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_a",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_10pct",
+      "value_a": 0.9804171155124564,
+      "value_b": 0.9849488825747683,
+      "diff": -0.004531767062311953,
+      "ci_low": -0.012399920741042745,
+      "ci_high": 0.0010376876580201837,
+      "frac_le_0": 0.931,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_a",
+      "b": "ssl_v2_cont",
+      "metric": "macro_f1",
+      "value_a": 0.7637826629726056,
+      "value_b": 0.7523077234647495,
+      "diff": 0.011474939507856052,
+      "ci_low": -0.027531384586469816,
+      "ci_high": 0.05065005348287988,
+      "frac_le_0": 0.29,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_a",
+      "b": "ssl_v2_cont",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.7247838468720822,
+      "value_b": 0.7372249899959985,
+      "diff": -0.01244114312391631,
+      "ci_low": -0.06132220906542345,
+      "ci_high": 0.03506655039739513,
+      "frac_le_0": 0.694,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_b",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_clean",
+      "value_a": 0.9956907091793321,
+      "value_b": 0.9929845448277883,
+      "diff": 0.002706164351543805,
+      "ci_low": 0.0008107264243149448,
+      "ci_high": 0.005407735180140377,
+      "frac_le_0": 0.0,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_b",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_stain",
+      "value_a": 0.9949012457502225,
+      "value_b": 0.9911918842234838,
+      "diff": 0.0037093615267387303,
+      "ci_low": 0.0006201719224666502,
+      "ci_high": 0.007719450149537773,
+      "frac_le_0": 0.008,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_b",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_10pct",
+      "value_a": 0.9833210076761633,
+      "value_b": 0.9849488825747683,
+      "diff": -0.0016278748986050529,
+      "ci_low": -0.004840478954758046,
+      "ci_high": 0.0014307105063589177,
+      "frac_le_0": 0.844,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_b",
+      "b": "ssl_v2_cont",
+      "metric": "macro_f1",
+      "value_a": 0.7681317244846656,
+      "value_b": 0.7523077234647495,
+      "diff": 0.0158240010199161,
+      "ci_low": -0.017029174672413997,
+      "ci_high": 0.048229469048236835,
+      "frac_le_0": 0.172,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_b",
+      "b": "ssl_v2_cont",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.6943964585834334,
+      "value_b": 0.7372249899959985,
+      "diff": -0.04282853141256515,
+      "ci_low": -0.10123082373553208,
+      "ci_high": 0.008205884441597828,
+      "frac_le_0": 0.943,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_clean",
+      "value_a": 0.9866733722180598,
+      "value_b": 0.9929845448277883,
+      "diff": -0.006311172609728466,
+      "ci_low": -0.015105185641880367,
+      "ci_high": -0.0007782988744097278,
+      "frac_le_0": 0.992,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_stain",
+      "value_a": 0.981932106208864,
+      "value_b": 0.9911918842234838,
+      "diff": -0.009259778014619857,
+      "ci_low": -0.025833736912545546,
+      "ci_high": -0.00015197630946530157,
+      "frac_le_0": 0.977,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_10pct",
+      "value_a": 0.9806079674583362,
+      "value_b": 0.9849488825747683,
+      "diff": -0.004340915116432087,
+      "ci_low": -0.011743328037697448,
+      "ci_high": 0.0026476760483073124,
+      "frac_le_0": 0.88,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_v2_cont",
+      "metric": "macro_f1",
+      "value_a": 0.7670764692074349,
+      "value_b": 0.7523077234647495,
+      "diff": 0.014768745742685385,
+      "ci_low": -0.01968668687340273,
+      "ci_high": 0.0497606418605892,
+      "frac_le_0": 0.212,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_v2_cont",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.658124949979992,
+      "value_b": 0.7372249899959985,
+      "diff": -0.07910004001600646,
+      "ci_low": -0.14458781203689508,
+      "ci_high": -0.015376390449633008,
+      "frac_le_0": 0.992,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_clean",
+      "value_a": 0.984271246859749,
+      "value_b": 0.9929845448277883,
+      "diff": -0.008713297968039324,
+      "ci_low": -0.02027015084820728,
+      "ci_high": 0.00021437559940047982,
+      "frac_le_0": 0.972,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_stain",
+      "value_a": 0.9814819478241704,
+      "value_b": 0.9911918842234838,
+      "diff": -0.00970993639931339,
+      "ci_low": -0.027344809699569258,
+      "ci_high": 0.001202816502990549,
+      "frac_le_0": 0.947,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_v2_cont",
+      "metric": "auprc_10pct",
+      "value_a": 0.9820020083605436,
+      "value_b": 0.9849488825747683,
+      "diff": -0.0029468742142246818,
+      "ci_low": -0.01157822983053479,
+      "ci_high": 0.004344614876145144,
+      "frac_le_0": 0.744,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_v2_cont",
+      "metric": "macro_f1",
+      "value_a": 0.7450996425033138,
+      "value_b": 0.7523077234647495,
+      "diff": -0.007208080961435659,
+      "ci_low": -0.05586737698671143,
+      "ci_high": 0.036134493669781,
+      "frac_le_0": 0.605,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_v2_cont",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.6580661597972522,
+      "value_b": 0.7372249899959985,
+      "diff": -0.07915883019874626,
+      "ci_low": -0.13984087529560194,
+      "ci_high": -0.017505173112769175,
+      "frac_le_0": 0.998,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_dino",
+      "metric": "auprc_clean",
+      "value_a": 0.9866733722180598,
+      "value_b": 0.9878865619593824,
+      "diff": -0.0012131897413225623,
+      "ci_low": -0.010520252911173108,
+      "ci_high": 0.005234787305560632,
+      "frac_le_0": 0.621,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_dino",
+      "metric": "auprc_stain",
+      "value_a": 0.981932106208864,
+      "value_b": 0.985552434804632,
+      "diff": -0.0036203285957679965,
+      "ci_low": -0.0186802521894159,
+      "ci_high": 0.006698671137350179,
+      "frac_le_0": 0.715,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_dino",
+      "metric": "auprc_10pct",
+      "value_a": 0.9806079674583362,
+      "value_b": 0.9864891923820756,
+      "diff": -0.0058812249237393255,
+      "ci_low": -0.01827526782037609,
+      "ci_high": 0.002312407208229015,
+      "frac_le_0": 0.878,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_dino",
+      "metric": "macro_f1",
+      "value_a": 0.7670764692074349,
+      "value_b": 0.7432822608549955,
+      "diff": 0.023794208352439394,
+      "ci_low": -0.023134102752299286,
+      "ci_high": 0.0739084964670371,
+      "frac_le_0": 0.167,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_dino",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.658124949979992,
+      "value_b": 0.7360383486728024,
+      "diff": -0.07791339869281033,
+      "ci_low": -0.1500877251882181,
+      "ci_high": -0.008835281195175881,
+      "frac_le_0": 0.985,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_dino",
+      "metric": "auprc_clean",
+      "value_a": 0.984271246859749,
+      "value_b": 0.9878865619593824,
+      "diff": -0.0036153150996334205,
+      "ci_low": -0.013191824584870554,
+      "ci_high": 0.002580760561095638,
+      "frac_le_0": 0.782,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_dino",
+      "metric": "auprc_stain",
+      "value_a": 0.9814819478241704,
+      "value_b": 0.985552434804632,
+      "diff": -0.00407048698046153,
+      "ci_low": -0.022525798278932488,
+      "ci_high": 0.009089428325310832,
+      "frac_le_0": 0.621,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_dino",
+      "metric": "auprc_10pct",
+      "value_a": 0.9820020083605436,
+      "value_b": 0.9864891923820756,
+      "diff": -0.00448718402153192,
+      "ci_low": -0.01240640998905131,
+      "ci_high": 0.0018351810067772495,
+      "frac_le_0": 0.915,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_dino",
+      "metric": "macro_f1",
+      "value_a": 0.7450996425033138,
+      "value_b": 0.7432822608549955,
+      "diff": 0.0018173816483183503,
+      "ci_low": -0.04475398458219983,
+      "ci_high": 0.051898682561016984,
+      "frac_le_0": 0.442,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_dino",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.6580661597972522,
+      "value_b": 0.7360383486728024,
+      "diff": -0.07797218887555013,
+      "ci_low": -0.15236898951408398,
+      "ci_high": -0.004908337098949274,
+      "frac_le_0": 0.984,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_imagenet",
+      "metric": "auprc_clean",
+      "value_a": 0.9866733722180598,
+      "value_b": 0.988887010211891,
+      "diff": -0.002213637993831119,
+      "ci_low": -0.014680151700604943,
+      "ci_high": 0.006001230912365527,
+      "frac_le_0": 0.639,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_imagenet",
+      "metric": "auprc_stain",
+      "value_a": 0.981932106208864,
+      "value_b": 0.9849429962488159,
+      "diff": -0.003010890039951919,
+      "ci_low": -0.023144157959792418,
+      "ci_high": 0.011374698434817285,
+      "frac_le_0": 0.618,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_imagenet",
+      "metric": "auprc_10pct",
+      "value_a": 0.9806079674583362,
+      "value_b": 0.9751384408046487,
+      "diff": 0.005469526653687495,
+      "ci_low": -0.009353830132637502,
+      "ci_high": 0.01719586274611011,
+      "frac_le_0": 0.218,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_imagenet",
+      "metric": "macro_f1",
+      "value_a": 0.7670764692074349,
+      "value_b": 0.7175347116438369,
+      "diff": 0.04954175756359802,
+      "ci_low": 0.005050338604141782,
+      "ci_high": 0.09657955728785346,
+      "frac_le_0": 0.016,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ref_imagenet",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.658124949979992,
+      "value_b": 0.6765434507136187,
+      "diff": -0.018418500733626608,
+      "ci_low": -0.1070560479373541,
+      "ci_high": 0.06912817656616108,
+      "frac_le_0": 0.668,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_imagenet",
+      "metric": "auprc_clean",
+      "value_a": 0.984271246859749,
+      "value_b": 0.988887010211891,
+      "diff": -0.004615763352141977,
+      "ci_low": -0.01890297525758024,
+      "ci_high": 0.0071452341945444815,
+      "frac_le_0": 0.719,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_imagenet",
+      "metric": "auprc_stain",
+      "value_a": 0.9814819478241704,
+      "value_b": 0.9849429962488159,
+      "diff": -0.003461048424645452,
+      "ci_low": -0.02405415127217613,
+      "ci_high": 0.011891247964391446,
+      "frac_le_0": 0.607,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_imagenet",
+      "metric": "auprc_10pct",
+      "value_a": 0.9820020083605436,
+      "value_b": 0.9751384408046487,
+      "diff": 0.0068635675558949005,
+      "ci_low": -0.004891812906970544,
+      "ci_high": 0.017564037976159037,
+      "frac_le_0": 0.119,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_imagenet",
+      "metric": "macro_f1",
+      "value_a": 0.7450996425033138,
+      "value_b": 0.7175347116438369,
+      "diff": 0.027564930859476977,
+      "ci_low": -0.01998712114787763,
+      "ci_high": 0.0767369221640117,
+      "frac_le_0": 0.117,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ref_imagenet",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.6580661597972522,
+      "value_b": 0.6765434507136187,
+      "diff": -0.018477290916366407,
+      "ci_low": -0.10604459312536588,
+      "ci_high": 0.06583655893396229,
+      "frac_le_0": 0.658,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_joint",
+      "metric": "auprc_clean",
+      "value_a": 0.9866733722180598,
+      "value_b": 0.9877344634063046,
+      "diff": -0.0010610911882447116,
+      "ci_low": -0.01055760886890226,
+      "ci_high": 0.006732815247363904,
+      "frac_le_0": 0.584,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_joint",
+      "metric": "auprc_stain",
+      "value_a": 0.981932106208864,
+      "value_b": 0.9836824440349309,
+      "diff": -0.0017503378260669278,
+      "ci_low": -0.019521371370541236,
+      "ci_high": 0.009947228693278855,
+      "frac_le_0": 0.56,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_joint",
+      "metric": "auprc_10pct",
+      "value_a": 0.9806079674583362,
+      "value_b": 0.9722870755946774,
+      "diff": 0.008320891863658808,
+      "ci_low": -0.007038466231733281,
+      "ci_high": 0.025469317664529874,
+      "frac_le_0": 0.159,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_joint",
+      "metric": "macro_f1",
+      "value_a": 0.7670764692074349,
+      "value_b": 0.7244248344004233,
+      "diff": 0.04265163480701162,
+      "ci_low": 0.004519506907750854,
+      "ci_high": 0.0815893934114561,
+      "frac_le_0": 0.015,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f1",
+      "b": "ssl_joint",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.658124949979992,
+      "value_b": 0.7813870548219287,
+      "diff": -0.12326210484193667,
+      "ci_low": -0.18665854570036214,
+      "ci_high": -0.06238262688209565,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_joint",
+      "metric": "auprc_clean",
+      "value_a": 0.984271246859749,
+      "value_b": 0.9877344634063046,
+      "diff": -0.0034632165465555698,
+      "ci_low": -0.017449831938948224,
+      "ci_high": 0.0063933664011630665,
+      "frac_le_0": 0.677,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_joint",
+      "metric": "auprc_stain",
+      "value_a": 0.9814819478241704,
+      "value_b": 0.9836824440349309,
+      "diff": -0.002200496210760461,
+      "ci_low": -0.021923155509980377,
+      "ci_high": 0.011748951977985802,
+      "frac_le_0": 0.549,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_joint",
+      "metric": "auprc_10pct",
+      "value_a": 0.9820020083605436,
+      "value_b": 0.9722870755946774,
+      "diff": 0.009714932765866213,
+      "ci_low": -0.003972184792358785,
+      "ci_high": 0.02584499497093968,
+      "frac_le_0": 0.093,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_joint",
+      "metric": "macro_f1",
+      "value_a": 0.7450996425033138,
+      "value_b": 0.7244248344004233,
+      "diff": 0.020674808102890574,
+      "ci_low": -0.023828259433351623,
+      "ci_high": 0.06866428106082059,
+      "frac_le_0": 0.173,
+      "excludes_0": false
+    },
+    {
+      "a": "ssl_v2_full_f2",
+      "b": "ssl_joint",
+      "metric": "knn_balanced_acc",
+      "value_a": 0.6580661597972522,
+      "value_b": 0.7813870548219287,
+      "diff": -0.12332089502467647,
+      "ci_low": -0.19694226347851246,
+      "ci_high": -0.05607721104567204,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    }
+  ],
+  "per_seed_diff": {
+    "ssl_v2_a - ssl_v2_cont: auprc_10pct": [
+      -0.0020953290867778973,
+      0.002067636610916024,
+      0.0002098832086854241,
+      -0.0138161756247408,
+      -0.009024850419641961
+    ],
+    "ssl_v2_b - ssl_v2_cont: auprc_10pct": [
+      -0.00028251109333887747,
+      0.0017821296581386203,
+      -0.00016625452152896347,
+      -0.0032788102662464347,
+      -0.006193928270048943
+    ],
+    "ssl_v2_full_f1 - ssl_v2_cont: auprc_10pct": [
+      -0.003144049188247844,
+      0.004730412129731021,
+      -0.003929280078621256,
+      -0.012785213186772837,
+      -0.006576445258249075
+    ],
+    "ssl_v2_full_f2 - ssl_v2_cont: auprc_10pct": [
+      -0.010270799843144052,
+      0.0021448760248399257,
+      -0.003429913009289076,
+      -0.005097178737464736,
+      0.0019186444939357505
+    ],
+    "ssl_v2_full_f1 - ref_dino: auprc_10pct": [
+      -0.006226006033405174,
+      0.0017234134221549846,
+      -0.0032171743460996938,
+      -0.017470122731138238,
+      -0.004216234930208063
+    ],
+    "ssl_v2_full_f2 - ref_dino: auprc_10pct": [
+      -0.013352756688301382,
+      -0.0008621226827361106,
+      -0.0027178072767675143,
+      -0.009782088281830137,
+      0.004278854821976763
+    ],
+    "ssl_v2_full_f1 - ref_imagenet: auprc_10pct": [
+      0.010839090689518494,
+      0.011939400475039608,
+      0.008002392127833602,
+      -0.005305369771766544,
+      0.0018721197478123175
+    ],
+    "ssl_v2_full_f2 - ref_imagenet: auprc_10pct": [
+      0.0037123400346222857,
+      0.009353864370148512,
+      0.008501759197165781,
+      0.002382664677541557,
+      0.010367209499997143
+    ],
+    "ssl_v2_full_f1 - ssl_joint: auprc_10pct": [
+      0.005133702592169942,
+      0.013889458996596549,
+      0.009181970825311914,
+      0.005120597510822722,
+      0.008278729393393358
+    ],
+    "ssl_v2_full_f2 - ssl_joint: auprc_10pct": [
+      -0.001993048062726266,
+      0.011303922891705454,
+      0.009681337894644093,
+      0.012808631960130823,
+      0.016773819145578184
+    ]
+  },
+  "refit_check": [
+    {
+      "encoder": "ssl_v2_a",
+      "metric": "auprc_clean",
+      "refit": 0.9937255467820258,
+      "probe_json": 0.9936750030586977,
+      "abs_dev": 5.0543723328133616e-05
+    },
+    {
+      "encoder": "ssl_v2_a",
+      "metric": "auprc_stain",
+      "refit": 0.9925308332721094,
+      "probe_json": 0.9925348572226631,
+      "abs_dev": 4.023950553655453e-06
+    },
+    {
+      "encoder": "ssl_v2_a",
+      "metric": "auprc_10pct",
+      "refit": 0.9804171155124564,
+      "probe_json": 0.9804310354742294,
+      "abs_dev": 1.391996177302346e-05
+    },
+    {
+      "encoder": "ssl_v2_a",
+      "metric": "macro_f1",
+      "refit": 0.7637826629726056,
+      "probe_json": 0.7637826629726056,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_a",
+      "metric": "knn_balanced_acc",
+      "refit": 0.7247838468720822,
+      "probe_json": 0.7247838468720822,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_cont",
+      "metric": "auprc_clean",
+      "refit": 0.9929845448277883,
+      "probe_json": 0.9929642369187708,
+      "abs_dev": 2.0307909017525105e-05
+    },
+    {
+      "encoder": "ssl_v2_cont",
+      "metric": "auprc_stain",
+      "refit": 0.9911918842234838,
+      "probe_json": 0.9911942557481285,
+      "abs_dev": 2.3715246446620597e-06
+    },
+    {
+      "encoder": "ssl_v2_cont",
+      "metric": "auprc_10pct",
+      "refit": 0.9849488825747683,
+      "probe_json": 0.9849706967666428,
+      "abs_dev": 2.1814191874525157e-05
+    },
+    {
+      "encoder": "ssl_v2_cont",
+      "metric": "macro_f1",
+      "refit": 0.7523077234647495,
+      "probe_json": 0.7523077234647495,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_cont",
+      "metric": "knn_balanced_acc",
+      "refit": 0.7372249899959985,
+      "probe_json": 0.7372249899959985,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_b",
+      "metric": "auprc_clean",
+      "refit": 0.9956907091793321,
+      "probe_json": 0.995690709179332,
+      "abs_dev": 1.1102230246251565e-16
+    },
+    {
+      "encoder": "ssl_v2_b",
+      "metric": "auprc_stain",
+      "refit": 0.9949012457502225,
+      "probe_json": 0.9949064228055134,
+      "abs_dev": 5.177055290905841e-06
+    },
+    {
+      "encoder": "ssl_v2_b",
+      "metric": "auprc_10pct",
+      "refit": 0.9833210076761633,
+      "probe_json": 0.9833151321845973,
+      "abs_dev": 5.875491565943136e-06
+    },
+    {
+      "encoder": "ssl_v2_b",
+      "metric": "macro_f1",
+      "refit": 0.7681317244846656,
+      "probe_json": 0.7681317244846656,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_b",
+      "metric": "knn_balanced_acc",
+      "refit": 0.6943964585834334,
+      "probe_json": 0.6943964585834334,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_full_f1",
+      "metric": "auprc_clean",
+      "refit": 0.9866733722180598,
+      "probe_json": 0.9866733722180598,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_full_f1",
+      "metric": "auprc_stain",
+      "refit": 0.981932106208864,
+      "probe_json": 0.9818416267819919,
+      "abs_dev": 9.047942687201438e-05
+    },
+    {
+      "encoder": "ssl_v2_full_f1",
+      "metric": "auprc_10pct",
+      "refit": 0.9806079674583362,
+      "probe_json": 0.980583119100005,
+      "abs_dev": 2.48483583312753e-05
+    },
+    {
+      "encoder": "ssl_v2_full_f1",
+      "metric": "macro_f1",
+      "refit": 0.7670764692074349,
+      "probe_json": 0.7670764692074349,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_full_f1",
+      "metric": "knn_balanced_acc",
+      "refit": 0.658124949979992,
+      "probe_json": 0.658124949979992,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_full_f2",
+      "metric": "auprc_clean",
+      "refit": 0.984271246859749,
+      "probe_json": 0.9843203930558395,
+      "abs_dev": 4.914619609053261e-05
+    },
+    {
+      "encoder": "ssl_v2_full_f2",
+      "metric": "auprc_stain",
+      "refit": 0.9814819478241704,
+      "probe_json": 0.9814789210078357,
+      "abs_dev": 3.026816334683602e-06
+    },
+    {
+      "encoder": "ssl_v2_full_f2",
+      "metric": "auprc_10pct",
+      "refit": 0.9820020083605436,
+      "probe_json": 0.9819756117979347,
+      "abs_dev": 2.639656260894352e-05
+    },
+    {
+      "encoder": "ssl_v2_full_f2",
+      "metric": "macro_f1",
+      "refit": 0.7450996425033138,
+      "probe_json": 0.7450996425033138,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_v2_full_f2",
+      "metric": "knn_balanced_acc",
+      "refit": 0.6580661597972522,
+      "probe_json": 0.6580661597972522,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "auprc_clean",
+      "refit": 0.9878865619593824,
+      "probe_json": 0.987827406943798,
+      "abs_dev": 5.915501558440006e-05
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "auprc_stain",
+      "refit": 0.985552434804632,
+      "probe_json": 0.9854774906821543,
+      "abs_dev": 7.494412247766036e-05
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "auprc_10pct",
+      "refit": 0.9864891923820756,
+      "probe_json": 0.9864865953265559,
+      "abs_dev": 2.5970555196375145e-06
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "macro_f1",
+      "refit": 0.7432822608549955,
+      "probe_json": 0.7445342099942552,
+      "abs_dev": 0.0012519491392597448
+    },
+    {
+      "encoder": "ref_dino",
+      "metric": "knn_balanced_acc",
+      "refit": 0.7360383486728024,
+      "probe_json": 0.7360383486728024,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "auprc_clean",
+      "refit": 0.988887010211891,
+      "probe_json": 0.9888511317087765,
+      "abs_dev": 3.5878503114483706e-05
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "auprc_stain",
+      "refit": 0.9849429962488159,
+      "probe_json": 0.9849393944494238,
+      "abs_dev": 3.60179939207228e-06
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "auprc_10pct",
+      "refit": 0.9751384408046487,
+      "probe_json": 0.9751414959293887,
+      "abs_dev": 3.055124739970161e-06
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "macro_f1",
+      "refit": 0.7175347116438369,
+      "probe_json": 0.7175347116438369,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ref_imagenet",
+      "metric": "knn_balanced_acc",
+      "refit": 0.6765434507136187,
+      "probe_json": 0.6765434507136187,
+      "abs_dev": 0.0
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "auprc_clean",
+      "refit": 0.9877344634063046,
+      "probe_json": 0.9876910935623414,
+      "abs_dev": 4.336984396313692e-05
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "auprc_stain",
+      "refit": 0.9836824440349309,
+      "probe_json": 0.9836726011509798,
+      "abs_dev": 9.842883951116654e-06
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "auprc_10pct",
+      "refit": 0.9722870755946774,
+      "probe_json": 0.9722266087981281,
+      "abs_dev": 6.0466796549363266e-05
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "macro_f1",
+      "refit": 0.7244248344004233,
+      "probe_json": 0.7280040211324074,
+      "abs_dev": 0.0035791867319840964
+    },
+    {
+      "encoder": "ssl_joint",
+      "metric": "knn_balanced_acc",
+      "refit": 0.7813870548219287,
+      "probe_json": 0.7813870548219287,
+      "abs_dev": 0.0
+    }
+  ],
+  "n_resamples": 1000,
+  "seed": 0,
+  "split": "val",
+  "n_images": 181,
+  "n_crops": 2312
+}

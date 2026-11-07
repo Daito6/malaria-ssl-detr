@@ -1,0 +1,643 @@
+{
+  "encoders": {
+    "b": {
+      "1": "ssl_v2_b",
+      "2": "ssl_v2_b"
+    },
+    "b2": {
+      "1": "ssl_v2_b_seed43",
+      "2": "ssl_v2_b_seed43"
+    },
+    "cont2": {
+      "1": "ssl_v2_cont_seed43",
+      "2": "ssl_v2_cont_seed43"
+    },
+    "dino": {
+      "1": "ref_dino",
+      "2": "ref_dino"
+    }
+  },
+  "means": {},
+  "folds": {
+    "1": {
+      "n_images": 60,
+      "n_crops": 1149,
+      "n_infected_crops": 150
+    },
+    "2": {
+      "n_images": 60,
+      "n_crops": 1154,
+      "n_infected_crops": 153
+    }
+  },
+  "n_resamples": 1000,
+  "seed": 0,
+  "runs": [
+    {
+      "encoder": "b",
+      "tag_fold1": "ssl_v2_b",
+      "tag_fold2": "ssl_v2_b",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.9427475284282454,
+      "ci_low": 0.9096679761049672,
+      "ci_high": 0.9691038486321827
+    },
+    {
+      "encoder": "b",
+      "tag_fold1": "ssl_v2_b",
+      "tag_fold2": "ssl_v2_b",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.9274923083797413,
+      "ci_low": 0.8934826622450351,
+      "ci_high": 0.9595558775325373
+    },
+    {
+      "encoder": "b",
+      "tag_fold1": "ssl_v2_b",
+      "tag_fold2": "ssl_v2_b",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.9351199184039933,
+      "ci_low": 0.9128512597796659,
+      "ci_high": 0.9567432014207534
+    },
+    {
+      "encoder": "b",
+      "tag_fold1": "ssl_v2_b",
+      "tag_fold2": "ssl_v2_b",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.8393427231721311,
+      "ci_low": 0.7646312126049039,
+      "ci_high": 0.9066413913152381
+    },
+    {
+      "encoder": "b",
+      "tag_fold1": "ssl_v2_b",
+      "tag_fold2": "ssl_v2_b",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.7752219334204863,
+      "ci_low": 0.690224701197134,
+      "ci_high": 0.8683693062503073
+    },
+    {
+      "encoder": "b",
+      "tag_fold1": "ssl_v2_b",
+      "tag_fold2": "ssl_v2_b",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.8072823282963086,
+      "ci_low": 0.7539165467198479,
+      "ci_high": 0.8648929929173512
+    },
+    {
+      "encoder": "b2",
+      "tag_fold1": "ssl_v2_b_seed43",
+      "tag_fold2": "ssl_v2_b_seed43",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.9547747436452922,
+      "ci_low": 0.9220941762219523,
+      "ci_high": 0.9783187979106696
+    },
+    {
+      "encoder": "b2",
+      "tag_fold1": "ssl_v2_b_seed43",
+      "tag_fold2": "ssl_v2_b_seed43",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.9466101306905405,
+      "ci_low": 0.9191152165279767,
+      "ci_high": 0.9716385198267933
+    },
+    {
+      "encoder": "b2",
+      "tag_fold1": "ssl_v2_b_seed43",
+      "tag_fold2": "ssl_v2_b_seed43",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.9506924371679164,
+      "ci_low": 0.9304060609962518,
+      "ci_high": 0.9681450000514817
+    },
+    {
+      "encoder": "b2",
+      "tag_fold1": "ssl_v2_b_seed43",
+      "tag_fold2": "ssl_v2_b_seed43",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.8587324430718112,
+      "ci_low": 0.7932130635023684,
+      "ci_high": 0.9208676134752354
+    },
+    {
+      "encoder": "b2",
+      "tag_fold1": "ssl_v2_b_seed43",
+      "tag_fold2": "ssl_v2_b_seed43",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.8375538819649138,
+      "ci_low": 0.7722443440764025,
+      "ci_high": 0.9063946261959368
+    },
+    {
+      "encoder": "b2",
+      "tag_fold1": "ssl_v2_b_seed43",
+      "tag_fold2": "ssl_v2_b_seed43",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.8481431625183624,
+      "ci_low": 0.8068276483747314,
+      "ci_high": 0.893888030506973
+    },
+    {
+      "encoder": "cont2",
+      "tag_fold1": "ssl_v2_cont_seed43",
+      "tag_fold2": "ssl_v2_cont_seed43",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.9543314706893465,
+      "ci_low": 0.9205248115388265,
+      "ci_high": 0.9814938852435103
+    },
+    {
+      "encoder": "cont2",
+      "tag_fold1": "ssl_v2_cont_seed43",
+      "tag_fold2": "ssl_v2_cont_seed43",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.9264322334689735,
+      "ci_low": 0.8930831267533068,
+      "ci_high": 0.96186111557751
+    },
+    {
+      "encoder": "cont2",
+      "tag_fold1": "ssl_v2_cont_seed43",
+      "tag_fold2": "ssl_v2_cont_seed43",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.94038185207916,
+      "ci_low": 0.9164946932332396,
+      "ci_high": 0.9631268630391291
+    },
+    {
+      "encoder": "cont2",
+      "tag_fold1": "ssl_v2_cont_seed43",
+      "tag_fold2": "ssl_v2_cont_seed43",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.8389404344518007,
+      "ci_low": 0.7723088980041823,
+      "ci_high": 0.9023655734986316
+    },
+    {
+      "encoder": "cont2",
+      "tag_fold1": "ssl_v2_cont_seed43",
+      "tag_fold2": "ssl_v2_cont_seed43",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.7921537131698775,
+      "ci_low": 0.708314736446263,
+      "ci_high": 0.8787072914345326
+    },
+    {
+      "encoder": "cont2",
+      "tag_fold1": "ssl_v2_cont_seed43",
+      "tag_fold2": "ssl_v2_cont_seed43",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.815547073810839,
+      "ci_low": 0.7650535305613677,
+      "ci_high": 0.8686082208442457
+    },
+    {
+      "encoder": "dino",
+      "tag_fold1": "ref_dino",
+      "tag_fold2": "ref_dino",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value": 0.9407743416300162,
+      "ci_low": 0.9067390114145686,
+      "ci_high": 0.9699313832601374
+    },
+    {
+      "encoder": "dino",
+      "tag_fold1": "ref_dino",
+      "tag_fold2": "ref_dino",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value": 0.880107551981033,
+      "ci_low": 0.823238122731961,
+      "ci_high": 0.9367194474049559
+    },
+    {
+      "encoder": "dino",
+      "tag_fold1": "ref_dino",
+      "tag_fold2": "ref_dino",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value": 0.9104409468055246,
+      "ci_low": 0.8791770347159744,
+      "ci_high": 0.9424819780350985
+    },
+    {
+      "encoder": "dino",
+      "tag_fold1": "ref_dino",
+      "tag_fold2": "ref_dino",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value": 0.9339085801062338,
+      "ci_low": 0.8925009504411258,
+      "ci_high": 0.9702802367250455
+    },
+    {
+      "encoder": "dino",
+      "tag_fold1": "ref_dino",
+      "tag_fold2": "ref_dino",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value": 0.9164721105114337,
+      "ci_low": 0.8601642781491081,
+      "ci_high": 0.9638673261265127
+    },
+    {
+      "encoder": "dino",
+      "tag_fold1": "ref_dino",
+      "tag_fold2": "ref_dino",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value": 0.9251903453088337,
+      "ci_low": 0.890809186977371,
+      "ci_high": 0.9557122177437993
+    }
+  ],
+  "diffs": [
+    {
+      "a": "b2",
+      "b": "cont2",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value_a": 0.9547747436452922,
+      "value_b": 0.9543314706893465,
+      "diff": 0.00044327295594570604,
+      "ci_low": -0.01405019709603932,
+      "ci_high": 0.017339335441999455,
+      "frac_le_0": 0.495,
+      "excludes_0": false
+    },
+    {
+      "a": "b2",
+      "b": "cont2",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value_a": 0.9466101306905405,
+      "value_b": 0.9264322334689735,
+      "diff": 0.02017789722156693,
+      "ci_low": 0.0011758464612432352,
+      "ci_high": 0.04071867902198572,
+      "frac_le_0": 0.02,
+      "excludes_0": true
+    },
+    {
+      "a": "b2",
+      "b": "cont2",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value_a": 0.9506924371679164,
+      "value_b": 0.94038185207916,
+      "diff": 0.010310585088756374,
+      "ci_low": -0.0022231043736878286,
+      "ci_high": 0.023230530661317722,
+      "frac_le_0": 0.06,
+      "excludes_0": false
+    },
+    {
+      "a": "b2",
+      "b": "cont2",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value_a": 0.8587324430718112,
+      "value_b": 0.8389404344518007,
+      "diff": 0.019792008620010515,
+      "ci_low": -0.018887485517420866,
+      "ci_high": 0.05895188095528639,
+      "frac_le_0": 0.193,
+      "excludes_0": false
+    },
+    {
+      "a": "b2",
+      "b": "cont2",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value_a": 0.8375538819649138,
+      "value_b": 0.7921537131698775,
+      "diff": 0.04540016879503628,
+      "ci_low": -0.0009303801960716698,
+      "ci_high": 0.09613656400856622,
+      "frac_le_0": 0.028,
+      "excludes_0": false
+    },
+    {
+      "a": "b2",
+      "b": "cont2",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value_a": 0.8481431625183624,
+      "value_b": 0.815547073810839,
+      "diff": 0.032596088707523396,
+      "ci_low": 0.002638892972916704,
+      "ci_high": 0.06327048896556839,
+      "frac_le_0": 0.013,
+      "excludes_0": true
+    },
+    {
+      "a": "b2",
+      "b": "dino",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value_a": 0.9547747436452922,
+      "value_b": 0.9407743416300162,
+      "diff": 0.014000402015276081,
+      "ci_low": -0.012751385250194853,
+      "ci_high": 0.040686837322988535,
+      "frac_le_0": 0.144,
+      "excludes_0": false
+    },
+    {
+      "a": "b2",
+      "b": "dino",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value_a": 0.9466101306905405,
+      "value_b": 0.880107551981033,
+      "diff": 0.06650257870950749,
+      "ci_low": 0.027201273403501904,
+      "ci_high": 0.10848031439655516,
+      "frac_le_0": 0.0,
+      "excludes_0": true
+    },
+    {
+      "a": "b2",
+      "b": "dino",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value_a": 0.9506924371679164,
+      "value_b": 0.9104409468055246,
+      "diff": 0.04025149036239184,
+      "ci_low": 0.014706479123665423,
+      "ci_high": 0.06567673585011016,
+      "frac_le_0": 0.001,
+      "excludes_0": true
+    },
+    {
+      "a": "b2",
+      "b": "dino",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value_a": 0.8587324430718112,
+      "value_b": 0.9339085801062338,
+      "diff": -0.07517613703442261,
+      "ci_low": -0.12925962445280761,
+      "ci_high": -0.02211072538655175,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "b2",
+      "b": "dino",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value_a": 0.8375538819649138,
+      "value_b": 0.9164721105114337,
+      "diff": -0.07891822854651998,
+      "ci_low": -0.1355841650315293,
+      "ci_high": -0.02631214329161203,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "b2",
+      "b": "dino",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value_a": 0.8481431625183624,
+      "value_b": 0.9251903453088337,
+      "diff": -0.07704718279047129,
+      "ci_low": -0.11547757596750045,
+      "ci_high": -0.037977641878261935,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "b",
+      "b": "b2",
+      "eval": "fold1",
+      "metric": "linear_auprc",
+      "value_a": 0.9427475284282454,
+      "value_b": 0.9547747436452922,
+      "diff": -0.01202721521704686,
+      "ci_low": -0.02584433338280494,
+      "ci_high": 0.0017832320190288454,
+      "frac_le_0": 0.952,
+      "excludes_0": false
+    },
+    {
+      "a": "b",
+      "b": "b2",
+      "eval": "fold2",
+      "metric": "linear_auprc",
+      "value_a": 0.9274923083797413,
+      "value_b": 0.9466101306905405,
+      "diff": -0.01911782231079917,
+      "ci_low": -0.03365339168791074,
+      "ci_high": -0.003719147803034841,
+      "frac_le_0": 0.997,
+      "excludes_0": true
+    },
+    {
+      "a": "b",
+      "b": "b2",
+      "eval": "avg",
+      "metric": "linear_auprc",
+      "value_a": 0.9351199184039933,
+      "value_b": 0.9506924371679164,
+      "diff": -0.015572518763923071,
+      "ci_low": -0.024308810441271728,
+      "ci_high": -0.006575182922721159,
+      "frac_le_0": 1.0,
+      "excludes_0": true
+    },
+    {
+      "a": "b",
+      "b": "b2",
+      "eval": "fold1",
+      "metric": "knn_auprc",
+      "value_a": 0.8393427231721311,
+      "value_b": 0.8587324430718112,
+      "diff": -0.01938971989968008,
+      "ci_low": -0.06789047706174065,
+      "ci_high": 0.026143523835084496,
+      "frac_le_0": 0.792,
+      "excludes_0": false
+    },
+    {
+      "a": "b",
+      "b": "b2",
+      "eval": "fold2",
+      "metric": "knn_auprc",
+      "value_a": 0.7752219334204863,
+      "value_b": 0.8375538819649138,
+      "diff": -0.06233194854442747,
+      "ci_low": -0.10973595139895864,
+      "ci_high": -0.012419964862403633,
+      "frac_le_0": 0.991,
+      "excludes_0": true
+    },
+    {
+      "a": "b",
+      "b": "b2",
+      "eval": "avg",
+      "metric": "knn_auprc",
+      "value_a": 0.8072823282963086,
+      "value_b": 0.8481431625183624,
+      "diff": -0.04086083422205378,
+      "ci_low": -0.0749173062296866,
+      "ci_high": -0.008639020949557971,
+      "frac_le_0": 0.995,
+      "excludes_0": true
+    }
+  ],
+  "refit_check": [
+    {
+      "encoder": "b",
+      "fold": 1,
+      "metric": "linear_auprc",
+      "refit": 0.9427475284282454,
+      "probe_json": 0.9427294192523277,
+      "abs_dev": 1.8109175917713216e-05
+    },
+    {
+      "encoder": "b",
+      "fold": 1,
+      "metric": "knn_auprc",
+      "refit": 0.8393427231721311,
+      "probe_json": 0.8397264982848038,
+      "abs_dev": 0.0003837751126727351
+    },
+    {
+      "encoder": "b2",
+      "fold": 1,
+      "metric": "linear_auprc",
+      "refit": 0.9547747436452922,
+      "probe_json": 0.9548026254200574,
+      "abs_dev": 2.7881774765203815e-05
+    },
+    {
+      "encoder": "b2",
+      "fold": 1,
+      "metric": "knn_auprc",
+      "refit": 0.8587324430718112,
+      "probe_json": 0.8540082804808214,
+      "abs_dev": 0.004724162590989733
+    },
+    {
+      "encoder": "cont2",
+      "fold": 1,
+      "metric": "linear_auprc",
+      "refit": 0.9543314706893465,
+      "probe_json": 0.9543147579184844,
+      "abs_dev": 1.671277086212619e-05
+    },
+    {
+      "encoder": "cont2",
+      "fold": 1,
+      "metric": "knn_auprc",
+      "refit": 0.8389404344518007,
+      "probe_json": 0.8452176345765003,
+      "abs_dev": 0.006277200124699678
+    },
+    {
+      "encoder": "dino",
+      "fold": 1,
+      "metric": "linear_auprc",
+      "refit": 0.9407743416300162,
+      "probe_json": 0.9407270296585384,
+      "abs_dev": 4.7311971477781434e-05
+    },
+    {
+      "encoder": "dino",
+      "fold": 1,
+      "metric": "knn_auprc",
+      "refit": 0.9339085801062338,
+      "probe_json": 0.9339085801062339,
+      "abs_dev": 1.1102230246251565e-16
+    },
+    {
+      "encoder": "b",
+      "fold": 2,
+      "metric": "linear_auprc",
+      "refit": 0.9274923083797413,
+      "probe_json": 0.927362496855972,
+      "abs_dev": 0.00012981152376922989
+    },
+    {
+      "encoder": "b",
+      "fold": 2,
+      "metric": "knn_auprc",
+      "refit": 0.7752219334204863,
+      "probe_json": 0.7749041544516714,
+      "abs_dev": 0.00031777896881490797
+    },
+    {
+      "encoder": "b2",
+      "fold": 2,
+      "metric": "linear_auprc",
+      "refit": 0.9466101306905405,
+      "probe_json": 0.9466268286125793,
+      "abs_dev": 1.6697922038844126e-05
+    },
+    {
+      "encoder": "b2",
+      "fold": 2,
+      "metric": "knn_auprc",
+      "refit": 0.8375538819649138,
+      "probe_json": 0.8383979110457199,
+      "abs_dev": 0.0008440290808061635
+    },
+    {
+      "encoder": "cont2",
+      "fold": 2,
+      "metric": "linear_auprc",
+      "refit": 0.9264322334689735,
+      "probe_json": 0.9263975625363622,
+      "abs_dev": 3.4670932611335914e-05
+    },
+    {
+      "encoder": "cont2",
+      "fold": 2,
+      "metric": "knn_auprc",
+      "refit": 0.7921537131698775,
+      "probe_json": 0.7918298904438849,
+      "abs_dev": 0.0003238227259926285
+    },
+    {
+      "encoder": "dino",
+      "fold": 2,
+      "metric": "linear_auprc",
+      "refit": 0.880107551981033,
+      "probe_json": 0.8799169288672357,
+      "abs_dev": 0.00019062311379725028
+    },
+    {
+      "encoder": "dino",
+      "fold": 2,
+      "metric": "knn_auprc",
+      "refit": 0.9164721105114337,
+      "probe_json": 0.916963635034522,
+      "abs_dev": 0.0004915245230883158
+    }
+  ]
+}

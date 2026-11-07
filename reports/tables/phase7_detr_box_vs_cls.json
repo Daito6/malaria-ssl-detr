@@ -1,0 +1,728 @@
+{
+  "class": "infected",
+  "iou": 0.5,
+  "n_resamples": 1000,
+  "seed": 42,
+  "rows": [
+    {
+      "run": "a_coco_detr_binary",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.935035703920097,
+      "ci_low": 0.9135104872721787,
+      "ci_high": 0.9560022796041499,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9438812748357798,
+      "ci_low": 0.921390553968701,
+      "ci_high": 0.9669349376431134,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9832214765100671,
+      "ci_low": 0.9685314685314685,
+      "ci_high": 0.9964422209413062,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7776694450286268,
+      "ci_low": 0.7230768977950205,
+      "ci_high": 0.8297682952140045,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9452443272582592,
+      "ci_low": 0.9248743879944775,
+      "ci_high": 0.965156090721097,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9542616170626875,
+      "ci_low": 0.9371580855747048,
+      "ci_high": 0.9726979646120588,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9865771812080537,
+      "ci_low": 0.9714285714285714,
+      "ci_high": 0.9969045010716837,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.8271742654317676,
+      "ci_low": 0.7798490866252545,
+      "ci_high": 0.8780194524296391,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9453525331187396,
+      "ci_low": 0.9251889024890605,
+      "ci_high": 0.9641691359066888,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9528018814370286,
+      "ci_low": 0.9356964427868231,
+      "ci_high": 0.9702921409070644,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9865771812080537,
+      "ci_low": 0.9726013967230728,
+      "ci_high": 0.9968652037617555,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.826407766084406,
+      "ci_low": 0.7821367968796271,
+      "ci_high": 0.8642642863904167,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed43",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9338091959001715,
+      "ci_low": 0.9050754354037313,
+      "ci_high": 0.9550954431677855,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed43",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9421782499391776,
+      "ci_low": 0.919058363574475,
+      "ci_high": 0.9663067922906293,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed43",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9765100671140939,
+      "ci_low": 0.9501479506635807,
+      "ci_high": 0.9961255103852299,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed43",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7414481957764211,
+      "ci_low": 0.6869092715270484,
+      "ci_high": 0.8003950875493031,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed43",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.944282127937541,
+      "ci_low": 0.9240760378024755,
+      "ci_high": 0.9623076446605096,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed43",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9524774957424378,
+      "ci_low": 0.9346622820786119,
+      "ci_high": 0.9701817719948062,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed43",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9865771812080537,
+      "ci_low": 0.9725085910652921,
+      "ci_high": 0.9968946503086361,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed43",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7769432019513025,
+      "ci_low": 0.7295006823060077,
+      "ci_high": 0.8406941511152832,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed43",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9446690504691626,
+      "ci_low": 0.9247204432422359,
+      "ci_high": 0.9568182744416969,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed43",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9517476279296083,
+      "ci_low": 0.9339397783997072,
+      "ci_high": 0.9693566729575154,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed43",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9798657718120806,
+      "ci_low": 0.963363205060622,
+      "ci_high": 0.9932891517586586,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed43",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.8158296820700004,
+      "ci_low": 0.7712754217495779,
+      "ci_high": 0.8649160140298534,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed44",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9353819242010842,
+      "ci_low": 0.9146012645574513,
+      "ci_high": 0.9560802878840632,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed44",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9466385532398022,
+      "ci_low": 0.9253071717777958,
+      "ci_high": 0.9683524640599939,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed44",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9697986577181208,
+      "ci_low": 0.9478698782787588,
+      "ci_high": 0.9894773265343288,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed44",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.7610911992297098,
+      "ci_low": 0.704063821581893,
+      "ci_high": 0.8193571101406214,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed44",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.944380132344491,
+      "ci_low": 0.9244944056328872,
+      "ci_high": 0.9631839016668856,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed44",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.951828724353256,
+      "ci_low": 0.9343635966397879,
+      "ci_high": 0.9703046029687075,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed44",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9798657718120806,
+      "ci_low": 0.9632341663659328,
+      "ci_high": 0.9932203389830508,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed44",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.8338023549115673,
+      "ci_low": 0.7834122011619709,
+      "ci_high": 0.8821366210884738,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed44",
+      "split": "val",
+      "metric": "agnostic_AP50",
+      "value": 0.9444794918540099,
+      "ci_low": 0.9244765843453919,
+      "ci_high": 0.9620287470774148,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed44",
+      "split": "val",
+      "metric": "agnostic_recall_all",
+      "value": 0.9525585921660855,
+      "ci_low": 0.935708875328144,
+      "ci_high": 0.9700540808866268,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed44",
+      "split": "val",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9731543624161074,
+      "ci_low": 0.9550097930404126,
+      "ci_high": 0.9897628275582807,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed44",
+      "split": "val",
+      "metric": "infected_AP50",
+      "value": 0.8173910584585016,
+      "ci_low": 0.7639555180891942,
+      "ci_high": 0.8714405790676183,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9722080267704639,
+      "ci_low": 0.9617298055026646,
+      "ci_high": 0.980399898797519,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9836065573770492,
+      "ci_low": 0.9751942002834338,
+      "ci_high": 0.9904214805116682,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9834983498349835,
+      "ci_low": 0.9645135460911491,
+      "ci_high": 0.9968051118210862,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.5512502672213583,
+      "ci_low": 0.4857599364100366,
+      "ci_high": 0.6212842765111022,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9662208140781684,
+      "ci_low": 0.958958793088455,
+      "ci_high": 0.9753886657620215,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.985972621260774,
+      "ci_low": 0.9800626391572744,
+      "ci_high": 0.9911178298862611,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9801980198019802,
+      "ci_low": 0.9576532843774819,
+      "ci_high": 0.996805618946194,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.614324976489645,
+      "ci_low": 0.5600429004831154,
+      "ci_high": 0.6811615413322171,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9662799484508541,
+      "ci_low": 0.9570492675171534,
+      "ci_high": 0.9776751609960013,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9880006760182525,
+      "ci_low": 0.9795594390877175,
+      "ci_high": 0.9936441639238365,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9867986798679867,
+      "ci_low": 0.9679657903799793,
+      "ci_high": 1.0,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.5602820907968378,
+      "ci_low": 0.5011489978145265,
+      "ci_high": 0.6244100527413116,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed43",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9713841919742032,
+      "ci_low": 0.9683897597107581,
+      "ci_high": 0.9807308801287645,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed43",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9864796349501437,
+      "ci_low": 0.9816495939825481,
+      "ci_high": 0.9912059474864088,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed43",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9834983498349835,
+      "ci_low": 0.9639269746646796,
+      "ci_high": 0.9968659339161587,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed43",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.5826177407537237,
+      "ci_low": 0.5142234144321491,
+      "ci_high": 0.6571258125719205,
+      "checkpoint_epoch": 37,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed43",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9655389842798829,
+      "ci_low": 0.9575439789881,
+      "ci_high": 0.9760295737778392,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed43",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9864796349501437,
+      "ci_low": 0.9800554097955251,
+      "ci_high": 0.9925563441223053,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed43",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9900990099009901,
+      "ci_low": 0.9744326230135343,
+      "ci_high": 1.0,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed43",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.6436338980846921,
+      "ci_low": 0.5918065926559114,
+      "ci_high": 0.700057228200045,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed43",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9662383538735813,
+      "ci_low": 0.9550184108141483,
+      "ci_high": 0.9763598449690762,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed43",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9841135710664188,
+      "ci_low": 0.9752334614940532,
+      "ci_high": 0.9914400408096272,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed43",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9933993399339934,
+      "ci_low": 0.9790191387559809,
+      "ci_high": 1.0,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed43",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.5697351110783391,
+      "ci_low": 0.5116354015154294,
+      "ci_high": 0.6349030493703085,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed44",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9704521459751311,
+      "ci_low": 0.9598970578178324,
+      "ci_high": 0.9796594368853313,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed44",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.984282575629542,
+      "ci_low": 0.975719046479214,
+      "ci_high": 0.9911666481086756,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed44",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9834983498349835,
+      "ci_low": 0.9640707793047,
+      "ci_high": 0.9967537704231252,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "a_coco_detr_binary_seed44",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.5173781339684815,
+      "ci_low": 0.44686043480703225,
+      "ci_high": 0.5913206184382157,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed44",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9666429149574,
+      "ci_low": 0.9630778699263116,
+      "ci_high": 0.9776035801492532,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed44",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9885076897076222,
+      "ci_low": 0.984183459345508,
+      "ci_high": 0.9927070268657127,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed44",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9867986798679867,
+      "ci_low": 0.96968399750934,
+      "ci_high": 1.0,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_dino_full_seed44",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.6009595245837237,
+      "ci_low": 0.5472093418965899,
+      "ci_high": 0.670734062348835,
+      "checkpoint_epoch": 39,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed44",
+      "split": "test",
+      "metric": "agnostic_AP50",
+      "value": 0.9655391714002904,
+      "ci_low": 0.9614117151718963,
+      "ci_high": 0.975885642350856,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed44",
+      "split": "test",
+      "metric": "agnostic_recall_all",
+      "value": 0.9876626668920061,
+      "ci_low": 0.9826559865135888,
+      "ci_high": 0.9918839667605898,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed44",
+      "split": "test",
+      "metric": "agnostic_recall_infected",
+      "value": 0.9603960396039604,
+      "ci_low": 0.9381443298969072,
+      "ci_high": 0.9798657718120806,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    },
+    {
+      "run": "b_vit_v2_b_seed44",
+      "split": "test",
+      "metric": "infected_AP50",
+      "value": 0.5980682220622349,
+      "ci_low": 0.5438945564366947,
+      "ci_high": 0.6558074142428616,
+      "checkpoint_epoch": 35,
+      "nms_iou": 0.5
+    }
+  ]
+}
