@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* Theme: <html data-theme="light|dark"> (resolved from the user's choice or the OS setting in useTheme). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  color-scheme: light;
+  --c-bg: #f4f4f2;
+  --c-panel: #fcfcfb;
+  --c-panel-2: #efefec;
+  --c-border: #d9d8d3;
+  --c-text: #0b0b0b;
+  --c-text-2: #52514e;
+  --c-muted: #6b6a65;
+  --c-accent: #1f5fbf;
+  --c-accent-text: #ffffff;
+  --c-focus: #1f5fbf;
+  --c-u: #2a78d6; /* uninfected: categorical slot 1 (light step) */
+  --c-i: #eb6834; /* infected: categorical slot 2 (light step) */
+  /* model series on the robustness curve: categorical slots 1-3, validated all-pairs (aqua < 3:1 -> direct labels
+     + table view) */
+  --c-m1: #2a78d6;
+  --c-m2: #eb6834;
+  --c-m3: #1baf7a;
+  --c-warn-bg: #fff4d6;
+  --c-warn-border: #e2b84a;
+  --c-warn-text: #4d3300;
+  --c-danger-bg: #fde8e8;
+  --c-danger-text: #8a1c1c;
+  --c-stage: #262625;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-bg: #111110;
+  --c-panel: #1a1a19;
+  --c-panel-2: #242423;
+  --c-border: #3a3936;
+  --c-text: #f0efec;
+  --c-text-2: #c3c2b7;
+  --c-muted: #a09f97;
+  --c-accent: #3987e5;
+  --c-accent-text: #0b0b0b;
+  --c-focus: #7fb0f0;
+  --c-u: #3987e5; /* dark step of the same hue */
+  --c-i: #d95926;
+  --c-m1: #3987e5;
+  --c-m2: #d95926;
+  --c-m3: #199e70;
+  --c-warn-bg: #2e2410;
+  --c-warn-border: #7a6022;
+  --c-warn-text: #f3d58c;
+  --c-danger-bg: #3a1616;
+  --c-danger-text: #f6b4b4;
+  --c-stage: #0c0c0b;
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-panel: var(--c-panel);
+  --color-panel-2: var(--c-panel-2);
+  --color-line: var(--c-border);
+  --color-ink: var(--c-text);
+  --color-ink-2: var(--c-text-2);
+  --color-muted: var(--c-muted);
+  --color-accent: var(--c-accent);
+  --color-accent-ink: var(--c-accent-text);
+  --color-cls-u: var(--c-u);
+  --color-cls-i: var(--c-i);
+  --color-warn-bg: var(--c-warn-bg);
+  --color-warn-line: var(--c-warn-border);
+  --color-warn-ink: var(--c-warn-text);
+  --color-danger-bg: var(--c-danger-bg);
+  --color-danger-ink: var(--c-danger-text);
+  --color-stage: var(--c-stage);
+}
+
+html,
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+}
+
+body {
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+}
+
+input[type="range"] {
+  accent-color: var(--c-accent);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,60 @@
+# SmearScan model registry. Paths are relative to the project root and must exist on disk;
+# a missing file makes the model "unavailable" with the path in the error message.
+#
+# kind: detr       -> end-to-end DETR run: <run>/config.yaml, <checkpoint>, <run>/thresholds.json (chosen on val)
+# kind: two_stage  -> class-agnostic boxes of a `detr` entry + linear classifier on frozen-encoder crop features,
+#                     refit from saved TRAIN features and cached in app/cache/ (see app/crop_classifier.py)
+#
+# A new end-to-end checkpoint is one more entry of the form
+#   - {id: <run>, kind: detr, run: runs/<run>, name: {uk: ..., en: ...}}
+# (checkpoint defaults to <run>/checkpoints/best.pt, thresholds to <run>/thresholds.json).
+#
+# normalization: expected input mean / std of the backbone; checked against the built model at load time
+# ("imagenet" = ImageNet mean / std, the DETR input normalization).
+
+models:
+  - id: a_coco_detr_binary
+    kind: detr
+    run: runs/a_coco_detr_binary
+    checkpoint: runs/a_coco_detr_binary/checkpoints/best.pt
+    normalization: imagenet
+    name: {uk: "Baseline A: DETR R50 (COCO)", en: "Baseline A: DETR R50 (COCO)"}
+    description:
+      uk: "DETR з ResNet-50, ініціалізований з COCO, донавчений на train (бінарно: infected / uninfected)."
+      en: "COCO-initialized DETR with a ResNet-50 backbone, fine-tuned on train (binary: infected / uninfected)."
+
+  - id: b_vit_imagenet
+    kind: detr
+    run: runs/b_vit_imagenet
+    checkpoint: runs/b_vit_imagenet/checkpoints/best.pt
+    normalization: {mean: [0.5, 0.5, 0.5], std: [0.5, 0.5, 0.5]}
+    name: {uk: "ViT-DETR (ImageNet ViT-S/16)", en: "ViT-DETR (ImageNet ViT-S/16)"}
+    description:
+      uk: "DETR з бекбоном ViT-S/16 (ImageNet augreg), повне донавчання (рецепт full, фаза 4)."
+      en: "DETR with a ViT-S/16 backbone (ImageNet augreg), full fine-tuning (recipe full, phase 4)."
+
+  - id: b_vit_joint
+    kind: detr
+    run: runs/b_vit_joint
+    checkpoint: runs/b_vit_joint/checkpoints/best.pt
+    normalization: imagenet   # our SSL encoders were trained with ImageNet mean / std
+    name: {uk: "ViT-DETR (SSL joint ViT-S/16)", en: "ViT-DETR (SSL joint ViT-S/16)"}
+    description:
+      uk: "DETR з бекбоном ViT-S/16, передтренованим нашим SSL (MAE + InfoNCE, ssl_joint), повне донавчання (фаза 4)."
+      en: "DETR with a ViT-S/16 backbone pretrained by our SSL (MAE + InfoNCE, ssl_joint), full fine-tuning (phase 4)."
+
+  - id: two_stage_dino
+    kind: two_stage
+    boxes: a_coco_detr_binary
+    encoder: {ref: dino, ssl_config: configs/ssl/base.yaml}
+    normalization: imagenet
+    train_features: runs/two_stage/ref_dino/train.pt
+    training: clean
+    reference:
+      candidates: runs/a_coco_detr_binary/candidates_val.json
+      features: runs/two_stage/ref_dino/a_coco_detr_binary_val.pt
+      selection: {file: reports/tables/phase5_two_stage_dino.json, run: a_coco_detr_binary, encoder: ref_dino}
+    name: {uk: "Двоетапна: рамки DETR + DINO", en: "Two-stage: DETR boxes + DINO"}
+    description:
+      uk: "Рамки Baseline A без класу + лінійний класифікатор на заморожених ознаках DINO ViT-S/16 (фаза 5, exploratory)."
+      en: "Class-agnostic Baseline A boxes + linear classifier on frozen DINO ViT-S/16 features (phase 5, exploratory)."
