@@ -1,0 +1,28 @@
+# EXPLORATORY: zero-shot evaluation on NIH-NLM thin smears (P. falciparum), configs/nih_zeroshot.yaml.
+# Nothing is trained or selected on NIH (models: BBBC041 train; variant / thresholds: BBBC041 val).
+# Prerequisite (CPU, done): python scripts/prepare_nih.py  -> data/processed/nih_nlm/ (cache 2291x1289, tiles).
+# Started by the user in PowerShell outside Claude Code:
+#   conda activate medthesis
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/nih_zeroshot.txt
+# Steps run one after another (no CPU-heavy step overlaps a GPU step). Estimate from the 10-frame smoke: predict
+# ~10-20 min per DETR run, features ~20-30 min per encoder (~2.1M crops), evaluate (CPU) ~30-60 min -> ~4-5 h.
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log)
+
+# ---- ref_imagenet has no BBBC041 val candidate features for the A seeds 43 / 44 yet (needed for its val selection)
+nih_zeroshot | python scripts/two_stage.py features --runs a_coco_detr_binary_seed43 a_coco_detr_binary_seed44 --encoders ref:imagenet
+
+# ---- GPU: baseline A on the NIH tiles (all queries) -> end-to-end detections + two-stage candidates
+nih_zeroshot | python scripts/nih_zeroshot.py predict --run a_coco_detr_binary
+nih_zeroshot | python scripts/nih_zeroshot.py predict --run a_coco_detr_binary_seed43
+nih_zeroshot | python scripts/nih_zeroshot.py predict --run a_coco_detr_binary_seed44
+
+# ---- GPU: crop features of the NIH GT cells and candidates; p(infected) of the clean BBBC041 linear classifier
+nih_zeroshot | python scripts/nih_zeroshot.py features --tag ref_imagenet
+nih_zeroshot | python scripts/nih_zeroshot.py features --tag ref_dino
+nih_zeroshot | python scripts/nih_zeroshot.py features --tag ssl_v2_b
+nih_zeroshot | python scripts/nih_zeroshot.py features --tag ssl_v2_b_seed43
+nih_zeroshot | python scripts/nih_zeroshot.py features --tag ssl_v2_cont
+nih_zeroshot | python scripts/nih_zeroshot.py features --tag ssl_v2_cont_seed43
+
+# ---- CPU: metrics, patient bootstrap (1000), paired differences -> reports/tables/nih_zeroshot_*.csv / .json
+nih_zeroshot | python scripts/nih_zeroshot.py evaluate
