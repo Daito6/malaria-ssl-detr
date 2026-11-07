@@ -1,0 +1,7 @@
+# SmearScan backend, on top of the project environment (requirements.txt + `pip install -e .`, conda env medthesis).
+# Versions as installed and tested in medthesis.
+fastapi==0.141.1
+uvicorn==0.53.0
+pydantic==2.13.5
+httpx==0.28.1        # FastAPI TestClient (tests)
+ruff==0.17.0         # lint / format (dev)

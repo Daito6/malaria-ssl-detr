@@ -1,0 +1,13 @@
+# Lint / format settings for the SmearScan backend (app/ only): `ruff check app` and `ruff format app`.
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "BLE"]
+ignore = ["B008"]   # FastAPI's Query(...) in defaults
+
+[lint.isort]
+known-first-party = ["app", "malaria_ssl"]
+
+[format]
+quote-style = "double"
