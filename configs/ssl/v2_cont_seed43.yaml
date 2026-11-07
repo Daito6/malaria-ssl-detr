@@ -1,0 +1,5 @@
+# Phase 7 EXPLORATORY, SSL seed check: ssl_v2_cont (control) with ONLY the seed changed: 42 -> 43 (sampling order,
+# views / augmentations, MAE masks, fresh decoder / projector; the DINO init weights are the same). Post hoc, paired
+# with v2_b_seed43.yaml.
+base: configs/ssl/v2_cont.yaml
+seed: 43

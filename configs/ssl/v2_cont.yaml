@@ -1,0 +1,15 @@
+# Phase 7 EXPLORATORY (SSL v2, reports/phase7_plan.md). CONTROL ssl_v2_cont: continued joint MAE + InfoNCE
+# pretraining from the DINO ViT-S/16 (timm vit_small_patch16_224.dino = probe.references.dino, input mean / std from
+# its pretrained_cfg = ImageNet stats) on TRAIN images only, without any of the new components (a) / (b) / (c).
+# Every other v2 config = this file + its own block(s) only (tests/test_ssl_v2.py).
+# Fixed in advance (not tuned, in particular not on test): as phase 5 imagenet_cont / joint_cont except init:
+#   same objective / views / augmentations as ssl_joint (mask 0.75, InfoNCE tau 0.2, lambda_con 0.2, DETR-scale
+#   views); fresh MAE decoder and projector; 30 epochs x 25600 pairs; blr 1.5e-4 (lr 7.5e-5 at batch 128), 5% warmup.
+base: configs/ssl/base.yaml
+model:
+  init: dino
+optim:
+  blr: 1.5e-4
+train:
+  epochs: 30
+  grad_checkpointing: true   # memory only (the v2_full smoke without it filled the 16 GiB GPU); same for every v2 run

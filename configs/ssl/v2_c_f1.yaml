@@ -1,0 +1,17 @@
+# Phase 7 EXPLORATORY: ssl_v2_c, adaptation fold 1 = ssl_v2_cont + (c) cell crops: the `cells` and `target` blocks only.
+# (c) = extra, cell-centred views from class-agnostic detector candidates (two_stage.py candidates of
+# a_coco_detr_binary, seed 42: image id + box + objectness, NMS 0.5; no class scores, no labels) on the unlabeled
+# TRAIN images and on the UNLABELED images of test fold 1 (data/splits/test_folds.json: ids + file names; the
+# candidates of the other fold are dropped). Phase-5 protocol: evaluated on the crops of fold 2 only.
+# With probability cells.fraction the 260 px anchor is centred on a uniformly drawn candidate with objectness >= 0.5
+# (the crops then always contain the cell centre, as the probe / two-stage windows do); otherwise uniform as before.
+# target.fraction 0.5 = phase 5 (domain-balanced sampling). Fixed in advance, not tuned.
+base: configs/ssl/v2_cont.yaml
+cells:
+  candidates_run: runs/a_coco_detr_binary
+  min_objectness: 0.5
+  fraction: 0.5
+target:
+  folds_file: data/splits/test_folds.json
+  fold: 1
+  fraction: 0.5

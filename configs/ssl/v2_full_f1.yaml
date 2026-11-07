@@ -1,0 +1,22 @@
+# Phase 7 EXPLORATORY: ssl_v2_full, adaptation fold 1 = ssl_v2_c_f1 + the (a) `dino` block of v2_a.yaml + the (b)
+# `stain_consistency` block of v2_b.yaml, copied unchanged (tests/test_ssl_v2.py checks they are identical).
+# Evaluated on the crops of fold 2 only.
+base: configs/ssl/v2_c_f1.yaml
+dino:
+  lambda: 1.0
+  head_hidden: 2048
+  head_bottleneck: 256
+  n_prototypes: 8192
+  student_temp: 0.1
+  teacher_temp: 0.04
+  center_momentum: 0.9
+  ema_momentum: 0.996
+  head_warmup_epochs: 1
+  local_crops: {n: 6, scale: [0.05, 0.4], ratio: [0.75, 1.3333], out_size: 96}
+stain_consistency:
+  lambda: 1.0
+  hed_sigma: 0.08
+  color_jitter: {brightness: 0.3, contrast: 0.3, saturation: 0.3, hue: 0.05}
+  blur_sigma: [0.5, 1.0]
+  jpeg_quality: [30, 60]
+  resolution: [0.79, 1.0]

@@ -1,0 +1,17 @@
+# Phase 7 EXPLORATORY: ssl_v2_b = ssl_v2_cont + (b) stain consistency (the `stain_consistency` block only).
+# Twin = view 1 (after its usual augmentation) + resolution change + the stain-shift family of the stain-shifted
+# probe / phase-4 DETR stain_aug (probe.stain_shift values), every transform with p = 1, no geometry change, so the
+# patch tokens stay aligned. Loss = mean over patches of 1 - cos(twin token, stop-grad clean token).
+# Ranges are the measured / already-used ones (fixed in advance, not tuned):
+#   HED sigma 0.08, colour jitter 0.3 / 0.3 / 0.3 / 0.05, blur sigma 0.5-1.0, JPEG 30-60 (= probe.stain_shift);
+#   resolution: down / up resample by 0.79-1.0 (1 / 1.27: test cells are x1.27 larger in raw px, phase 1; at the
+#     DETR input the factor is x1.05 (phase 4 scale diagnostic), so only resolution, not geometry, is varied);
+#   lambda 1.0.
+base: configs/ssl/v2_cont.yaml
+stain_consistency:
+  lambda: 1.0
+  hed_sigma: 0.08
+  color_jitter: {brightness: 0.3, contrast: 0.3, saturation: 0.3, hue: 0.05}
+  blur_sigma: [0.5, 1.0]
+  jpeg_quality: [30, 60]
+  resolution: [0.79, 1.0]
