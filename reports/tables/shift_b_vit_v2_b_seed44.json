@@ -1,0 +1,24 @@
+{
+  "run": "b_vit_v2_b_seed44",
+  "class": "infected",
+  "val_threshold": 0.8630117774009705,
+  "iou": 0.5,
+  "val": {
+    "n_gt": 298,
+    "median_score": 0.9650421738624573,
+    "frac_ge_val_threshold": 0.9429530201342282,
+    "frac_no_target_detection": 0.02348993288590604,
+    "frac_other_class_scores_higher": 0.013422818791946308,
+    "frac_no_detection_any_class": 0.016778523489932886,
+    "frac_target_scores_highest": 0.9697986577181208
+  },
+  "test": {
+    "n_gt": 303,
+    "median_score": 0.7293920516967773,
+    "frac_ge_val_threshold": 0.39933993399339934,
+    "frac_no_target_detection": 0.2508250825082508,
+    "frac_other_class_scores_higher": 0.48184818481848185,
+    "frac_no_detection_any_class": 0.0231023102310231,
+    "frac_target_scores_highest": 0.49504950495049505
+  }
+}

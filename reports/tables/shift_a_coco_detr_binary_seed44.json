@@ -1,0 +1,24 @@
+{
+  "run": "a_coco_detr_binary_seed44",
+  "class": "infected",
+  "val_threshold": 0.7897783517837524,
+  "iou": 0.5,
+  "val": {
+    "n_gt": 298,
+    "median_score": 0.9657973647117615,
+    "frac_ge_val_threshold": 0.9161073825503355,
+    "frac_no_target_detection": 0.06375838926174497,
+    "frac_other_class_scores_higher": 0.040268456375838924,
+    "frac_no_detection_any_class": 0.026845637583892617,
+    "frac_target_scores_highest": 0.9328859060402684
+  },
+  "test": {
+    "n_gt": 303,
+    "median_score": 0.5702506899833679,
+    "frac_ge_val_threshold": 0.42574257425742573,
+    "frac_no_target_detection": 0.41914191419141916,
+    "frac_other_class_scores_higher": 0.429042904290429,
+    "frac_no_detection_any_class": 0.013201320132013201,
+    "frac_target_scores_highest": 0.5577557755775577
+  }
+}
