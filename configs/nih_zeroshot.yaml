@@ -1,0 +1,65 @@
+# EXPLORATORY: zero-shot evaluation on an external TARGET domain, NIH-NLM thin blood smears (P. falciparum).
+# Nothing is trained or tuned on NIH: models / classifiers come from BBBC041 train, score variants and thresholds
+# from BBBC041 val (max F1), applied unchanged to NIH. See scripts/prepare_nih.py, scripts/nih_zeroshot.py,
+# src/malaria_ssl/data/nih.py. Sources: images Kassim et al., IEEE JBHI 2020 (NLM licence, "Courtesy of the U.S.
+# National Library of Medicine"); COCO boxes Wilm et al., arXiv 2507.18483, Zenodo 10.5281/zenodo.17514694 (Apache 2.0).
+
+data_config: configs/data.yaml
+probe_config: configs/ssl/base.yaml   # probe crop window / patch-token pooling / linear classifier (two-stage)
+
+nih:
+  raw_dir: data/raw/nih_nlm
+  annotations_dir: data/raw/nih_nlm/annotations
+  zip: data/raw/nih_nlm/images/NIH-NLM-ThinBloodSmearsPf.zip
+  images_dir: data/raw/nih_nlm/images
+  xlsx: data/raw/nih_nlm/docs/Dataset_statistics.xlsx
+  processed_dir: data/processed/nih_nlm
+  md5:                                 # Zenodo record 17514694
+    nih_polys_coco.json: 98813625042d2a6765bf1e549330a6bb
+    nih_points_coco.json: 52b3c27369575036678cb14dca8d51eb
+    categories.json: be2fce36e7bfc2e7cb0c32e6dd612990
+    LICENSE.txt: 86d3f3a95c324c9479bd8986968f4327
+
+scale:
+  bbbc_long_side: 800                  # = augment.eval_long_side of the DETR runs (1600x1200 -> 800x600)
+  factor: 0.4313                       # measured by prepare_nih.py: 56.5 (BBBC train median max side @800) / 131.0 (NIH)
+
+tiles:
+  size: [800, 600]                     # the BBBC041 eval input of the DETR runs
+  overlap: 160                         # px of the resized frame, > the largest resized cell
+  fov_threshold: 30                    # grey level: pixels above are inside the circular field of view
+  min_fov_fraction: 0.05               # tiles with less of the field of view are not evaluated
+
+eval:
+  runs: [a_coco_detr_binary, a_coco_detr_binary_seed43, a_coco_detr_binary_seed44]   # baseline A, 3 seeds
+  mean_name: a_3s
+  encoders: [ref_imagenet, ref_dino, ssl_v2_b, ssl_v2_b_seed43, ssl_v2_cont, ssl_v2_cont_seed43]
+  encoder_specs:                       # two_stage.py / features spec of each tag
+    ref_imagenet: ref:imagenet
+    ref_dino: ref:dino
+    ssl_v2_b: run:runs/ssl_v2_b
+    ssl_v2_b_seed43: run:runs/ssl_v2_b_seed43
+    ssl_v2_cont: run:runs/ssl_v2_cont
+    ssl_v2_cont_seed43: run:runs/ssl_v2_cont_seed43
+  training: clean                      # crop classifier fitted on clean BBBC041 train GT crops
+  iou: 0.5
+  max_dets: 300                        # COCOeval maxDets (per image and class)
+  seam_nms_iou: 0.5                    # end-to-end A: cross-tile duplicates only
+  candidate_nms_iou: 0.5               # two-stage candidates: class-agnostic NMS per frame (as on BBBC041)
+  ece_bins: 15
+  bootstrap: 1000                      # resamples of PATIENTS (5 images each)
+  seed: 42
+  subsets: [all, polys, points]        # all = main set; polys = cleaner labels (sensitivity)
+  pairs:                               # A:B paired differences (two-stage tags, or e2e = baseline A end-to-end)
+    - ssl_v2_b:ssl_v2_cont
+    - ssl_v2_b_seed43:ssl_v2_cont_seed43
+    - ssl_v2_b:ssl_v2_b_seed43
+    - ssl_v2_b:ref_dino
+    - ssl_v2_b_seed43:ref_dino
+    - ssl_v2_cont:ref_dino
+    - ref_imagenet:ref_dino
+    - ref_dino:e2e
+    - ssl_v2_b:e2e
+    - ssl_v2_b_seed43:e2e
+  out_dir: runs/nih_zeroshot
+  tables: reports/tables/nih_zeroshot
