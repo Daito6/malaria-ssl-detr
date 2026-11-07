@@ -1,8 +1,8 @@
 # CLAUDE.md
 
 ## Project goal
-Master's thesis: "Classification and segmentation of medical images with Detection Transformer
-(DETR)". Self-supervised pretraining of a ViT backbone on unlabeled blood-smear images
+Master's thesis on classification of medical images with Detection Transformer (DETR); segmentation
+was removed from the thesis by the user on 2026-11-07. Self-supervised pretraining of a ViT backbone on unlabeled blood-smear images
 (MAE reconstruction + contrastive InfoNCE, jointly), then plugging the backbone into DETR
 (transformer initialized from COCO, adapted with LoRA / lower LR) and comparing against
 baselines on malaria detection.
@@ -246,3 +246,7 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   [-0.007, 0.146]. Stage 2 (seeds 43, 44 for dino_full, imagenet, A; needs `paired_detr_diff.py --mean`) criterion
   (dino_full test AP50 > 0.5276 and > 0.5213; fixed before running, reads test) is met: 0.6143. Stage 2 NOT launched,
   awaits a user decision.
+- Phase 7 and after: `docs/thesis_log.md` is the up-to-date chronology (SSL v2, second SSL seed, NIH zero-shot,
+  unlabeled adaptation, SmearScan `app/`). Best result: two-stage A boxes + `ssl_v2_b` features, test AP50 0.751 / 0.773
+  (2 SSL seeds), NIH 0.557 / 0.579. Open work: `adapt.py evaluate --target nih` stopped at 30 of 324 combinations
+  (~35 h in total, no resume; the user keeps NIH in the thesis, to finish later); robustness curve part 2 not run.
