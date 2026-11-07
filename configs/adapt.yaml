@@ -1,0 +1,56 @@
+# EXPLORATORY: unlabeled target adaptation of the two-stage scheme (boxes of baseline A + frozen-encoder linear crop
+# classifier fitted on clean BBBC041 train GT crops). Targets: NIH-NLM (main) and BBBC041 test (second).
+# No target label is used by any method; target labels are read only by `evaluate` to compute the metrics.
+# Hyperparameters are chosen by `adapt.py select` on BBBC041 VAL candidates cropped from the stain-shifted val images
+# (probe.stain_shift, seed 2024 + image id; clean-val boxes) and copied into `selected` BEFORE `evaluate` runs on a
+# target; `evaluate` refuses to run if `selected` differs from reports/tables/adapt_selection.csv.
+#
+# What each method uses (transductivity). "cells" = candidates with objectness >= the BBBC041-val cell threshold of
+# the box run (max F1 of class-agnostic matching on val, as nih_zeroshot.py); statistics are computed on the cells
+# and the map is applied to every candidate. Source statistics: BBBC041 val clean candidates (cells) of the box run.
+#   none          BBBC041 clean-val max-F1 threshold (= nih_zeroshot / two_stage)            no target data
+#   none_stainthr threshold = max F1 on stain-shifted val, no adaptation (control)            no target data
+#   adabn         mean / std of all target cells (diagonal)                                   whole target set
+#   coral         mean / shrunk covariance of all target cells                                whole target set
+#   cbr           class-balanced mean / var of all target cells, pseudo-labels of the classifier   whole target set
+#   irc           median / MAD of the cells of ONE IMAGE (shrunk toward the pooled target cells
+#                 with pseudo-count `shrink`; shrink 0 = the image alone)                     one image (+ pooled if shrink > 0)
+#   irc_patient   as irc, group = patient (NIH only; on BBBC041 = irc)                        one patient's 5 images
+#   +em / +bbse   target infected fraction pi of all target cells (EM, Saerens 2002; BBSE with
+#                 tpr / fpr of the hard rule p >= 0.5 on labelled BBBC041 clean-val cells), posterior
+#                 re-weighted to pi, threshold = the score quantile giving a predicted-positive
+#                 fraction pi among the target cells                                          whole target set
+# Feature methods without a prior step take their threshold from max F1 on the stain-shifted val after the same
+# method was applied to it (val as its own target). The score variant is objectness x p(infected) for every method
+# (it was selected for every encoder / box run in nih_zeroshot_selection.csv).
+
+nih_config: configs/nih_zeroshot.yaml
+probe_config: configs/ssl/base.yaml
+runs: [a_coco_detr_binary, a_coco_detr_binary_seed43, a_coco_detr_binary_seed44]
+mean_name: a_3s
+encoders: [ref_dino, ssl_v2_b, ssl_v2_b_seed43, ref_imagenet, ssl_v2_cont, ssl_v2_cont_seed43]   # processing order only
+iou: 0.5
+max_dets: 300
+ece_bins: 15
+bootstrap: 1000          # NIH: resamples of patients; BBBC041 test: resamples of images
+seed: 42
+
+grid:                    # searched by `select` (mean stain-shifted val infected AP50 over encoders x box runs)
+  coral: {lam: [0.001, 0.01, 0.1, 1.0]}
+  cbr: {mode: [soft, hard], iters: [1, 3]}
+  irc: {shrink: [0, 16, 64], scale: [false, true]}
+
+selected:                # copied from reports/tables/adapt_selection.csv (select, 2026-11-01), before `evaluate`
+  coral: {lam: 1.0}
+  cbr: {iters: 1, mode: hard}
+  irc: {scale: false, shrink: 64}
+
+methods: [none, none_stainthr, adabn, coral, cbr, irc, irc_patient,
+          none+em, none+bbse, adabn+em, adabn+bbse, coral+em, coral+bbse, cbr+em, cbr+bbse,
+          irc+em, irc+bbse, irc_patient+em]
+
+parasitemia_bins: [0.0, 0.01, 0.05, 0.20]   # bins 0 | (0, 1%) | [1%, 5%) | [5%, 20%) | >= 20% (true image parasitemia)
+bins_methods: [none, none+em, irc, irc+em]
+
+out_dir: runs/adapt
+tables: reports/tables/adapt

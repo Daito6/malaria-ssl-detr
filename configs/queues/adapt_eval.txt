@@ -1,0 +1,12 @@
+# EXPLORATORY: unlabeled target adaptation, evaluation on the targets (configs/adapt.yaml). CPU only.
+# Prerequisites: configs/queues/adapt_features.txt done AND `selected` in configs/adapt.yaml copied from
+# reports/tables/adapt_selection.csv (evaluate refuses to run otherwise).
+# Started by the user in PowerShell outside Claude Code:
+#   conda activate medthesis
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/adapt_eval.txt
+# Estimate (not measured on the full sets): BBBC041 test < 1 h; NIH ~4-6 h (324 COCOeval preparations on ~550k
+# candidates each + 1000 patient resamples).
+# Format: <run name> | <command>
+
+adapt_eval | python scripts/adapt.py evaluate --target bbbc_test
+adapt_eval | python scripts/adapt.py evaluate --target nih
