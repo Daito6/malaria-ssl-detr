@@ -130,6 +130,16 @@ def cmd_features(args) -> None:
                 feats[torch.as_tensor(crops["order"])] = f  # back to candidate order
                 torch.save({"features": feats, "n": len(cands)}, path)
                 log.info("%s: %s %s candidates %d", tag, run, split, len(cands))
+            path = out / f"{run}_val_stain.pt"
+            if args.val_stain and not path.exists():   # clean-val boxes, crops from the stain-shifted val images
+                cands = load_candidates(run, "val")
+                crops = candidate_crops(cands, index["val"], pcfg["long_side"])
+                f = extract_features(enc, arrays["val"], crops, pcfg, device, amp,
+                                     shift=(build_stain_shift(sc), sc["seed"]), input_norm=norm)
+                feats = torch.zeros_like(f)
+                feats[torch.as_tensor(crops["order"])] = f
+                torch.save({"features": feats, "n": len(cands), "stain_seed": sc["seed"]}, path)
+                log.info("%s: %s val_stain candidates %d", tag, run, len(cands))
         enc.cpu()
 
 
@@ -357,6 +367,8 @@ def main() -> None:
     f.add_argument("--runs", nargs="+", required=True)
     f.add_argument("--encoders", nargs="+", required=True, help="ref:imagenet | ref:dino | run:<ssl run> | detr:<vit_detr run>")
     f.add_argument("--config", default="configs/ssl/base.yaml")
+    f.add_argument("--val-stain", action="store_true",
+                   help="also <run>_val_stain.pt: val candidates cropped from the probe's stain-shifted val images")
     e = sub.add_parser("evaluate")
     e.add_argument("--runs", nargs="+", required=True)
     e.add_argument("--tags", nargs="+", required=True)

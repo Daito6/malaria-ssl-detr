@@ -25,20 +25,34 @@ def iou_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return inter / np.maximum(union, 1e-9)
 
 
+def ioa_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Intersection over the area of a (N,4) with b (M,4), xywh (COCOeval's IoU for crowd GT)."""
+    if len(a) == 0 or len(b) == 0:
+        return np.zeros((len(a), len(b)))
+    iw = np.clip(np.minimum((a[:, 0] + a[:, 2])[:, None], (b[:, 0] + b[:, 2])[None])
+                 - np.maximum(a[:, 0][:, None], b[:, 0][None]), 0, None)
+    ih = np.clip(np.minimum((a[:, 1] + a[:, 3])[:, None], (b[:, 1] + b[:, 3])[None])
+                 - np.maximum(a[:, 1][:, None], b[:, 1][None]), 0, None)
+    return iw * ih / np.maximum(a[:, 2] * a[:, 3], 1e-9)[:, None]
+
+
 def _group(gt: dict[str, Any], dets: list[dict[str, Any]]):
-    g = defaultdict(list)
+    g, crowd = defaultdict(list), defaultdict(list)
     for a in gt["annotations"]:
-        g[(a["image_id"], a["category_id"])].append(a["bbox"])
+        (crowd if a.get("iscrowd", 0) else g)[(a["image_id"], a["category_id"])].append(a["bbox"])
     d = defaultdict(list)
     for x in dets:
         d[(x["image_id"], x["category_id"])].append((x["score"], x["bbox"]))
-    return g, d
+    return g, d, crowd
 
 
 def match_per_class(gt: dict[str, Any], dets: list[dict[str, Any]], iou_thr: float
                     ) -> dict[int, dict[int, dict[str, np.ndarray]]]:
-    """{cat_id: {image_id: {"scores": (D,), "tp": (D,) bool, "n_gt": int}}} for every GT image."""
-    g, d = _group(gt, dets)
+    """{cat_id: {image_id: {"scores": (D,), "tp": (D,) bool, "n_gt": int}}} for every GT image.
+
+    GT with `iscrowd` = 1 are ignore regions (as in COCOeval): they are not counted in n_gt, and a detection
+    left unmatched by the real GT is dropped (neither TP nor FP) if it covers >= iou_thr of its area with one."""
+    g, d, crowd = _group(gt, dets)
     img_ids = [im["id"] for im in gt["images"]]
     out: dict[int, dict[int, dict[str, Any]]] = {}
     for c in (cat["id"] for cat in gt["categories"]):
@@ -57,6 +71,10 @@ def match_per_class(gt: dict[str, Any], dets: list[dict[str, Any]], iou_thr: flo
                     k = int(cand.argmax())
                     if cand[k] >= iou_thr:
                         tp[j], taken[k] = True, True
+            cboxes = np.asarray(crowd.get((i, c), []), dtype=float).reshape(-1, 4)
+            if len(dd) and len(cboxes):
+                kept = tp | ~(ioa_matrix(dboxes, cboxes) >= iou_thr).any(1)
+                scores, tp = scores[kept], tp[kept]
             per_img[i] = {"scores": scores, "tp": tp, "n_gt": len(gboxes)}
         out[c] = per_img
     return out

@@ -177,8 +177,13 @@ def knn_predict(train_x: torch.Tensor, train_y: torch.Tensor, test_x: torch.Tens
 def linear_predict(train_x: torch.Tensor, train_y: torch.Tensor, test_x: torch.Tensor, n_classes: int,
                    l2: float, max_iter: int) -> torch.Tensor:
     """Class probabilities from a class-balanced, L2-regularised multinomial logistic regression."""
+    return linear_fit(train_x, train_y, n_classes, l2, max_iter)(test_x)
+
+
+def linear_fit(train_x: torch.Tensor, train_y: torch.Tensor, n_classes: int, l2: float, max_iter: int):
+    """The model of linear_predict, fitted once: returns x -> class probabilities."""
     mean, std = train_x.mean(0), train_x.std(0, unbiased=False).clamp_min(1e-6)
-    xtr, xte = (train_x - mean) / std, (test_x - mean) / std
+    xtr = (train_x - mean) / std
     counts = torch.bincount(train_y, minlength=n_classes).float()
     cw = torch.where(counts > 0, len(train_y) / (n_classes * counts.clamp_min(1)), torch.zeros_like(counts))
     lin = torch.nn.Linear(xtr.shape[1], n_classes).to(xtr.device)
@@ -192,8 +197,12 @@ def linear_predict(train_x: torch.Tensor, train_y: torch.Tensor, test_x: torch.T
         return loss
 
     opt.step(closure)
-    with torch.no_grad():
-        return lin(xte).softmax(1)
+
+    def predict(x: torch.Tensor) -> torch.Tensor:
+        with torch.no_grad():
+            return lin((x - mean) / std).softmax(1)
+
+    return predict
 
 
 # --------------------------------------------------------------------------- metrics
