@@ -244,8 +244,8 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   dino_full - imagenet +0.087 [0.018, 0.153], dino_full - A +0.063 [-0.008, 0.141] (recall -0.092 [-0.153, -0.030]),
   dino_frozen - imagenet_frozen +0.316 [0.252, 0.369]. Two-stage DINO on A boxes 0.690 - dino_full end-to-end +0.075
   [-0.007, 0.146]. Stage 2 (seeds 43, 44 for dino_full, imagenet, A; needs `paired_detr_diff.py --mean`) criterion
-  (dino_full test AP50 > 0.5276 and > 0.5213; fixed before running, reads test) is met: 0.6143. Stage 2 NOT launched,
-  awaits a user decision.
+  (dino_full test AP50 > 0.5276 and > 0.5213; fixed before running, reads test) is met: 0.6143. Stage 2 done
+  (`reports/phase6_stage2_summary.md`).
 - Phase 7 and after: `docs/thesis_log.md` is the up-to-date chronology (SSL v2, second SSL seed, NIH zero-shot,
   unlabeled adaptation, SmearScan `app/`). Best result: two-stage A boxes + `ssl_v2_b` features, test AP50 0.751 / 0.773
   (2 SSL seeds), NIH 0.557 / 0.579. Open work: `adapt.py evaluate --target nih` stopped at 30 of 324 combinations
