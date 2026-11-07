@@ -1,0 +1,25 @@
+# EXPLORATORY: crop features for unlabeled target adaptation of the two-stage scheme (configs/adapt.yaml).
+# GPU only, no CPU-heavy step. Nothing is fitted here; the saved p(infected) of runs/nih_zeroshot are not overwritten
+# (the re-extraction is compared with them: runs/nih_zeroshot/features/<tag>_reextract_check.json).
+# Started by the user in PowerShell outside Claude Code:
+#   conda activate medthesis
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/adapt_features.txt
+# Estimate: val_stain ~0.5 min per (encoder, box run) -> ~10 min; NIH ~39 min per encoder -> ~4 h. Disk ~1.5 GB per
+# encoder (fp16) in runs/nih_zeroshot/features/<tag>_features.pt.
+# Format: <run name> | <command>   (run name = runs/<run name>, used for queue.log)
+
+# ---- BBBC041 val candidates cropped from the stain-shifted val images (hyperparameter selection domain)
+adapt_features | python scripts/two_stage.py features --runs a_coco_detr_binary a_coco_detr_binary_seed43 a_coco_detr_binary_seed44 --encoders ref:imagenet ref:dino run:runs/ssl_v2_b run:runs/ssl_v2_b_seed43 run:runs/ssl_v2_cont run:runs/ssl_v2_cont_seed43 --val-stain
+
+# ---- NIH crop features (GT cells + candidates of the 3 box runs), same crops and encoders as nih_zeroshot.txt
+adapt_features | python scripts/nih_zeroshot.py features --tag ref_imagenet --save-features
+adapt_features | python scripts/nih_zeroshot.py features --tag ref_dino --save-features
+adapt_features | python scripts/nih_zeroshot.py features --tag ssl_v2_b --save-features
+adapt_features | python scripts/nih_zeroshot.py features --tag ssl_v2_b_seed43 --save-features
+adapt_features | python scripts/nih_zeroshot.py features --tag ssl_v2_cont --save-features
+adapt_features | python scripts/nih_zeroshot.py features --tag ssl_v2_cont_seed43 --save-features
+
+# ---- CPU, after every GPU step above: hyperparameter grid on the stain-shifted BBBC041 val (no target data)
+#      -> reports/tables/adapt_selection.csv; then copy the choice into `selected` of configs/adapt.yaml and run
+#      configs/queues/adapt_eval.txt
+adapt_features | python scripts/adapt.py select
