@@ -248,5 +248,8 @@ Non-obvious decisions (details in `reports/phase3_summary.md`):
   (`reports/phase6_stage2_summary.md`).
 - Phase 7 and after: `docs/thesis_log.md` is the up-to-date chronology (SSL v2, second SSL seed, NIH zero-shot,
   unlabeled adaptation, SmearScan `app/`). Best result: two-stage A boxes + `ssl_v2_b` features, test AP50 0.751 / 0.773
-  (2 SSL seeds), NIH 0.557 / 0.579. Open work: `adapt.py evaluate --target nih` stopped at 30 of 324 combinations
-  (~35 h in total, no resume; the user keeps NIH in the thesis, to finish later); robustness curve part 2 not run.
+  (2 SSL seeds), NIH 0.557 / 0.579. `adapt.py evaluate` now saves every (box run, encoder) pair to
+  `reports/tables/adapt_<target>_parts/` and resumes from them. NIH priority subset (ssl_v2_b, ref_dino, ssl_v2_b_seed43 x
+  A seeds 42, 43) done: `reports/adapt_summary.md`, `notebooks/09_nih_adaptation.ipynb`; encoder diffs from the parts via
+  `scripts/adapt_encoder_diff.py`. Open work: full NIH evaluate (the other 12 pairs, queue line 2 of
+  `configs/queues/adapt_eval_priority.txt`); robustness curve part 2 not run.

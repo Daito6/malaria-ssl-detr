@@ -1,0 +1,34 @@
+{
+ "exploratory": true,
+ "target": "nih",
+ "n_resamples": 1000,
+ "resampling": "patients",
+ "seed": 42,
+ "n_images": 965,
+ "n_patients": 193,
+ "selected": {
+  "coral": {
+   "lam": 1.0
+  },
+  "cbr": {
+   "iters": 1,
+   "mode": "hard"
+  },
+  "irc": {
+   "scale": false,
+   "shrink": 64
+  }
+ },
+ "config_sha256": "9eec4bb462028a60173bc8cf20ced4cc1651fd56b7fabdd8aea0615fa591d99b",
+ "limit": null,
+ "subset": true,
+ "encoders": [
+  "ref_dino",
+  "ssl_v2_b",
+  "ssl_v2_b_seed43"
+ ],
+ "runs": [
+  "a_coco_detr_binary",
+  "a_coco_detr_binary_seed43"
+ ]
+}
