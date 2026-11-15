@@ -6,6 +6,8 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/adapt_eval.txt
 # Estimate (not measured on the full sets): BBBC041 test < 1 h; NIH ~4-6 h (324 COCOeval preparations on ~550k
 # candidates each + 1000 patient resamples).
+# Every finished (box run, encoder) pair is saved (reports/tables/adapt_<target>_parts/); a restarted evaluate skips
+# the saved pairs. Priority order for NIH: configs/queues/adapt_eval_priority.txt.
 # Format: <run name> | <command>
 
 adapt_eval | python scripts/adapt.py evaluate --target bbbc_test

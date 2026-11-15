@@ -13,6 +13,14 @@ method's threshold, crop AUPRC / ECE of p(infected) on the labelled cells matche
 parasitemia MAE / bias per image and per patient (pooled counts), screening AUROC (patient has >= 1 infected cell;
 BBBC041: image), all with 1000 paired resamples (NIH patients, BBBC041 images) and differences to `none`;
 NIH: the same per true image-parasitemia bin for `bins_methods`.
+Every finished (box run, encoder) pair is saved atomically to <tables>_<target>[_smoke]_parts/<run>__<tag>.pt
+(raw point values and resamples, keyed by the sha256 of the config, of the probe config file and of its resolved
+`probe` section, target, --limit, resamples); a rerun skips complete pairs with the same key (another key: warning,
+recomputed) and assembles the same tables. --force ignores them. Pairs are processed PRIORITY_ENCODERS first.
+--encoders / --runs compute only those pairs and write <tables>_<target>_subset_* (the full tables are never
+overwritten by a subset; a later run without filters reuses the saved pairs).
+
+    python scripts/adapt.py evaluate --target nih --encoders ssl_v2_b ref_dino --runs a_coco_detr_binary
 """
 from __future__ import annotations
 
@@ -37,6 +45,7 @@ from malaria_ssl.eval.paired import prepare_run, summarize_diff
 from malaria_ssl.eval.zeroshot import counted, to_coco_dets
 from malaria_ssl.ssl.probe import linear_fit
 from malaria_ssl.utils.config import load_config, load_experiment, resolve_path
+from malaria_ssl.utils.run import atomic_save
 
 log = logging.getLogger("adapt")
 INF = 2   # infected category id (BBBC041 binary = NIH binary)
@@ -351,106 +360,208 @@ def metrics(r, crops, est_img, true_img, est_pat, true_pat, pat_label, ids, w_im
     return out
 
 
+PART_VERSION = 1
+# Processing order of the (run, encoder) pairs: these encoders first (all their box runs), then the rest in config
+# order. Only the order of work; the tables are assembled in config order and the resamples do not depend on it.
+# A constant, not a config key: changing it must not change the config hash of the saved pairs.
+PRIORITY_ENCODERS = ("ssl_v2_b", "ref_dino", "ssl_v2_b_seed43")
+
+
+def part_key(args, cfg, methods, pcfg) -> dict:
+    """Everything a saved (run, encoder) pair depends on besides the pair itself: the adapt config, the probe config
+    file and its resolved `probe` section (linear l2 / max_iter come from its base chain, configs/ssl/probe.yaml)."""
+    probe = hashlib.sha256(json.dumps(pcfg, sort_keys=True, default=str).encode()).hexdigest()
+    return {"version": PART_VERSION, "config_sha256": sha256(args.config),
+            "probe_config_sha256": sha256(cfg["probe_config"]), "probe_resolved_sha256": probe,
+            "target": args.target, "limit": args.limit, "n_resamples": args.n or cfg["bootstrap"],
+            "methods": list(methods)}
+
+
+def pick(names, available, what: str) -> list:
+    """The requested names in config order (None = all); unknown names -> error listing the available ones."""
+    if not names:
+        return list(available)
+    unknown = [n for n in names if n not in available]
+    if unknown:
+        raise SystemExit(f"unknown {what} {unknown}; available: {list(available)}")
+    return [a for a in available if a in names]
+
+
+def pair_order(encoders, runs) -> list[tuple[str, str]]:
+    """(run, encoder) pairs: PRIORITY_ENCODERS first in that order, then the other encoders in config order."""
+    first = [t for t in PRIORITY_ENCODERS if t in encoders]
+    return [(run, tag) for tag in first + [t for t in encoders if t not in first] for run in runs]
+
+
+def load_part(path, key: dict):
+    """The saved pair if it is complete and has the same key, else None (with a warning if the file exists)."""
+    if not path.exists():
+        return None
+    try:
+        part = torch.load(path, weights_only=False)
+    except Exception as e:   # noqa: BLE001 - a broken file is recomputed
+        log.warning("%s is unreadable (%s): recomputing", path, e)
+        return None
+    old = part.get("key", {}) if isinstance(part, dict) else {}
+    if old != key:
+        log.warning("%s was computed with a different %s: recomputing and overwriting it", path,
+                    [k for k in key if old.get(k) != key[k]] or "key")
+        return None
+    if not part.get("complete"):
+        log.warning("%s is incomplete: recomputing", path)
+        return None
+    return part
+
+
+def evaluate_pair(run, tag, predict, sel, cfg, args, methods, nih, sampler):
+    """All methods of one (box run, encoder) pair -> (part, sampler); raw values keyed (run, tag, method[, bin])."""
+    t_run = time.time()
+    points, boots, bin_points, bin_boots, info_rows = {}, {}, {}, {}, []
+    src, gt_val = bbbc_split("val", run, tag)
+    stain, _ = bbbc_split("val", run, tag, stain=True)
+    tau = cell_threshold(gt_val, src)
+    src_cells, stain_cells = src["obj"] >= tau, stain["obj"] >= tau
+    src_x = src["x"][torch.as_tensor(src_cells)]
+    src_p = predict(src_x)
+    val_lab = cell_labels(gt_val, src, cfg["iou"])
+    val_ids = sorted(im["id"] for im in gt_val["images"])
+
+    c, gt, ids, patient, true_img_d, true_pat_d = load_target(args.target, run, tag, cfg, args.limit)
+    if sampler is None:   # once per evaluate: the same resamples for every pair
+        sampler = Sampler(ids, patient, args.n or cfg["bootstrap"], cfg["seed"])
+    if list(ids) != sampler.ids:
+        raise SystemExit(f"{run} {tag}: target images differ from the other pairs")
+    true_img = np.array([true_img_d[i] for i in ids])
+    true_pat = np.array([true_pat_d[p] for p in sampler.patients])
+    pat_label = true_pat > 0
+    edges = np.asarray(cfg["parasitemia_bins"])
+    img_bin = np.where(true_img == 0, 0, np.searchsorted(edges[1:], true_img, side="right") + 1)
+    cells = c["obj"] >= tau
+    cnt = counted(c["image_id"], c["box"], gt, cfg["iou"])   # NIH: ambiguous regions do not count (evaluation)
+    img_pos = np.array([sampler.pos[int(i)] for i in c["image_id"]])
+    groups = {"irc": c["image_id"], "irc_patient": np.array([patient[int(i)] for i in c["image_id"]])}
+    g = gt_arrays(gt)
+    gm = match_gt_to_candidates(g["image_id"], g["box"], c["image_id"], c["box"], cfg["iou"])
+    gpos = np.array([sampler.pos[int(i)] for i in g["image_id"][gm >= 0]])
+    n_cell = np.bincount(img_pos[cells & cnt], minlength=len(ids))
+    feats_cache = {}
+    for m in methods:
+        t0 = time.time()
+        base, prior = split_method(m)
+        params = params_of(base, sel)
+        key_base = "none" if base == "none_stainthr" else base
+        if key_base not in feats_cache:
+            x, info = transform(key_base, params, c, cells, groups.get(key_base), src_x, src_p, predict)
+            feats_cache[key_base] = (predict(x), info)
+        p, info = feats_cache[key_base]
+        pi = float("nan")
+        if prior:
+            if prior == "em":
+                pi = em_prior(p[cells])
+            else:   # tpr / fpr on labelled clean-val cells after the same base method (val as its own target)
+                xv, _ = transform(key_base, params, src, src["obj"] >= tau, src["image_id"], src_x, src_p, predict)
+                pv, lv = predict(xv), val_lab
+                ok = (src["obj"] >= tau) & (lv >= 0)
+                pi = bbse_prior(p[cells], float((pv[ok & (lv == 1)] >= 0.5).mean()),
+                                float((pv[ok & (lv == 0)] >= 0.5).mean()))
+            p = prior_adjust(p, pi)
+        s = c["obj"] * p
+        if prior:
+            thr = quantile_threshold(s[cells], pi)
+        elif base == "none":   # clean-val max F1 (nih_zeroshot / two_stage)
+            pv = predict(src["x"])
+            thr = best_f1_threshold(match_per_class(gt_val, to_coco_dets(src["image_id"], src["box"],
+                                                                        src["obj"] * pv, INF), cfg["iou"])[INF])[0]
+        else:   # max F1 on stain-shifted val after the same method
+            vgroup = stain["image_id"]
+            xv, _ = transform(key_base, params, stain, stain_cells, vgroup, src_x, src_p, predict)
+            sv = stain["obj"] * predict(xv)
+            thr = best_f1_threshold(match_per_class(gt_val, to_coco_dets(stain["image_id"], stain["box"], sv, INF),
+                                                    cfg["iou"])[INF])[0]
+        r = prepare(gt, to_coco_dets(c["image_id"], c["box"], s, INF), thr, cfg)
+        inf = (s >= thr) & cnt
+        n_inf = np.bincount(img_pos[inf], minlength=len(ids))
+        est_img = np.where(n_cell > 0, n_inf / np.maximum(n_cell, 1), 0.0)
+        pi_cell = np.bincount(sampler.img_pat, weights=n_inf, minlength=len(sampler.patients))
+        pc_cell = np.bincount(sampler.img_pat, weights=n_cell, minlength=len(sampler.patients))
+        est_pat = np.where(pc_cell > 0, pi_cell / np.maximum(pc_cell, 1), 0.0)
+        crops = Crops(gpos, g["infected"][gm >= 0], p[gm[gm >= 0]], cfg["ece_bins"])
+        key = (run, tag, m)
+        args_m = (r, crops, est_img, true_img, est_pat, true_pat, pat_label, ids)
+        points[key] = metrics(*args_m, *sampler.full, nih)
+        boots[key] = np.array([[metrics(*args_m, wi, wp, nih)[k] for k in METRICS] for wi, wp in sampler.samples])
+        if nih and m in cfg["bins_methods"]:
+            for b in range(len(edges) + 1):
+                inb = (img_bin == b).astype(int)
+                if not inb.any():
+                    continue
+                bp = metrics(*args_m, inb, sampler.full[1], nih)
+                bin_points[key + (b,)] = {k: bp[k] for k in BIN_METRICS}
+                bin_boots[key + (b,)] = np.array([[metrics(*args_m, wi * inb, wp, nih)[k] for k in BIN_METRICS]
+                                                 for wi, wp in sampler.samples])
+        info_rows.append({"run": run, "encoder": tag, "method": m, "params": json.dumps(params, sort_keys=True),
+                          "threshold": thr, "cell_threshold": tau, "pi_hat": pi,
+                          "pred_pos_frac_cells": float((s[cells] >= thr).mean()),
+                          "true_cell_pi": float(g["infected"].mean()), **info})
+        log.info("%s %s %s: AP50 %.4f R %.4f par_img_bias %.4f pi %.4f (%.0f s)", run, tag, m,
+                 points[key]["AP50"], points[key]["recall"], points[key]["par_img_bias"], pi, time.time() - t0)
+    log.info("%s %s done in %.0f s", run, tag, time.time() - t_run)
+    h = hashlib.sha256(json.dumps([str(i) for i in sampler.ids]).encode())
+    for w_img, w_pat in sampler.samples:
+        h.update(np.ascontiguousarray(w_img, dtype=np.int64).tobytes())
+        h.update(np.ascontiguousarray(w_pat, dtype=np.int64).tobytes())
+    shared = {"fingerprint": h.hexdigest(), "img_bin": img_bin, "n_resamples": len(sampler.samples),
+              "n_images": len(sampler.ids), "n_patients": len(sampler.patients)}
+    part = {"complete": True, "points": points, "boots": boots, "bin_points": bin_points, "bin_boots": bin_boots,
+            "info_rows": info_rows, "shared": shared}
+    return part, sampler
+
+
 def cmd_evaluate(args, cfg) -> None:
     sel = check_selected(cfg)
     pcfg = load_experiment(cfg["probe_config"])["probe"]
     nih = args.target == "nih"
     methods = [m for m in cfg["methods"] if nih or split_method(m)[0] != "irc_patient"]
+    encoders = pick(args.encoders, cfg["encoders"], "encoder tag(s)")
+    runs = pick(args.runs, cfg["runs"], "box run(s)")
+    subset = (encoders, runs) != (list(cfg["encoders"]), list(cfg["runs"]))
     suffix = "_smoke" if args.limit else ""
     out = resolve_path(f"{cfg['tables']}_{args.target}{suffix}")
+    parts_dir = out.parent / f"{out.name}_parts"   # shared by full and subset runs
+    if subset:   # never overwrite the full tables with a part of the pairs
+        out = out.parent / f"{out.name}_subset"
+    key = part_key(args, cfg, methods, pcfg)
+    order = pair_order(encoders, runs)
+    log.info("%d pairs, order: %s", len(order), ", ".join(f"{t}/{r}" for r, t in order))
+    parts, shared, sampler, predict = {}, None, None, {}
+    for run, tag in order:
+        part_path = parts_dir / f"{run}__{tag}.pt"
+        part = None if args.force else load_part(part_path, key)
+        if part is None:
+            if tag not in predict:   # fitted only if a pair of this encoder has to be computed
+                predict = {tag: classifier(tag, pcfg)}
+            part, sampler = evaluate_pair(run, tag, predict[tag], sel, cfg, args, methods, nih, sampler)
+            part["key"] = key
+            atomic_save(part, part_path)
+            log.info("%s %s saved to %s", run, tag, part_path)
+        else:
+            log.info("%s %s: reusing %s", run, tag, part_path)
+        if shared is None:
+            shared = part["shared"]
+        elif not (shared["fingerprint"] == part["shared"]["fingerprint"]
+                  and np.array_equal(shared["img_bin"], part["shared"]["img_bin"])):
+            raise SystemExit(f"{part_path}: resamples differ from the other pairs; rerun with --force")
+        parts[(run, tag)] = part
     points, boots, bin_points, bin_boots, info_rows = {}, {}, {}, {}, []
-    sampler = edges = None
-    for tag in cfg["encoders"]:
-        predict = classifier(tag, pcfg)
-        for run in cfg["runs"]:
-            t_run = time.time()
-            src, gt_val = bbbc_split("val", run, tag)
-            stain, _ = bbbc_split("val", run, tag, stain=True)
-            tau = cell_threshold(gt_val, src)
-            src_cells, stain_cells = src["obj"] >= tau, stain["obj"] >= tau
-            src_x = src["x"][torch.as_tensor(src_cells)]
-            src_p = predict(src_x)
-            val_lab = cell_labels(gt_val, src, cfg["iou"])
-            val_ids = sorted(im["id"] for im in gt_val["images"])
-
-            c, gt, ids, patient, true_img_d, true_pat_d = load_target(args.target, run, tag, cfg, args.limit)
-            if sampler is None:
-                sampler = Sampler(ids, patient, args.n or cfg["bootstrap"], cfg["seed"])
-                true_img = np.array([true_img_d[i] for i in ids])
-                true_pat = np.array([true_pat_d[p] for p in sampler.patients])
-                pat_label = true_pat > 0
-                edges = np.asarray(cfg["parasitemia_bins"])
-                img_bin = np.where(true_img == 0, 0, np.searchsorted(edges[1:], true_img, side="right") + 1)
-            cells = c["obj"] >= tau
-            cnt = counted(c["image_id"], c["box"], gt, cfg["iou"])   # NIH: ambiguous regions do not count (evaluation)
-            img_pos = np.array([sampler.pos[int(i)] for i in c["image_id"]])
-            groups = {"irc": c["image_id"], "irc_patient": np.array([patient[int(i)] for i in c["image_id"]])}
-            g = gt_arrays(gt)
-            gm = match_gt_to_candidates(g["image_id"], g["box"], c["image_id"], c["box"], cfg["iou"])
-            gpos = np.array([sampler.pos[int(i)] for i in g["image_id"][gm >= 0]])
-            n_cell = np.bincount(img_pos[cells & cnt], minlength=len(ids))
-            feats_cache = {}
-            for m in methods:
-                t0 = time.time()
-                base, prior = split_method(m)
-                params = params_of(base, sel)
-                key_base = "none" if base == "none_stainthr" else base
-                if key_base not in feats_cache:
-                    x, info = transform(key_base, params, c, cells, groups.get(key_base), src_x, src_p, predict)
-                    feats_cache[key_base] = (predict(x), info)
-                p, info = feats_cache[key_base]
-                pi = float("nan")
-                if prior:
-                    if prior == "em":
-                        pi = em_prior(p[cells])
-                    else:   # tpr / fpr on labelled clean-val cells after the same base method (val as its own target)
-                        xv, _ = transform(key_base, params, src, src["obj"] >= tau, src["image_id"], src_x, src_p, predict)
-                        pv, lv = predict(xv), val_lab
-                        ok = (src["obj"] >= tau) & (lv >= 0)
-                        pi = bbse_prior(p[cells], float((pv[ok & (lv == 1)] >= 0.5).mean()),
-                                        float((pv[ok & (lv == 0)] >= 0.5).mean()))
-                    p = prior_adjust(p, pi)
-                s = c["obj"] * p
-                if prior:
-                    thr = quantile_threshold(s[cells], pi)
-                elif base == "none":   # clean-val max F1 (nih_zeroshot / two_stage)
-                    pv = predict(src["x"])
-                    thr = best_f1_threshold(match_per_class(gt_val, to_coco_dets(src["image_id"], src["box"],
-                                                                                src["obj"] * pv, INF), cfg["iou"])[INF])[0]
-                else:   # max F1 on stain-shifted val after the same method
-                    vgroup = stain["image_id"]
-                    xv, _ = transform(key_base, params, stain, stain_cells, vgroup, src_x, src_p, predict)
-                    sv = stain["obj"] * predict(xv)
-                    thr = best_f1_threshold(match_per_class(gt_val, to_coco_dets(stain["image_id"], stain["box"], sv, INF),
-                                                            cfg["iou"])[INF])[0]
-                r = prepare(gt, to_coco_dets(c["image_id"], c["box"], s, INF), thr, cfg)
-                inf = (s >= thr) & cnt
-                n_inf = np.bincount(img_pos[inf], minlength=len(ids))
-                est_img = np.where(n_cell > 0, n_inf / np.maximum(n_cell, 1), 0.0)
-                pi_cell = np.bincount(sampler.img_pat, weights=n_inf, minlength=len(sampler.patients))
-                pc_cell = np.bincount(sampler.img_pat, weights=n_cell, minlength=len(sampler.patients))
-                est_pat = np.where(pc_cell > 0, pi_cell / np.maximum(pc_cell, 1), 0.0)
-                crops = Crops(gpos, g["infected"][gm >= 0], p[gm[gm >= 0]], cfg["ece_bins"])
-                key = (run, tag, m)
-                args_m = (r, crops, est_img, true_img, est_pat, true_pat, pat_label, ids)
-                points[key] = metrics(*args_m, *sampler.full, nih)
-                boots[key] = np.array([[metrics(*args_m, wi, wp, nih)[k] for k in METRICS] for wi, wp in sampler.samples])
-                if nih and m in cfg["bins_methods"]:
-                    for b in range(len(edges) + 1):
-                        inb = (img_bin == b).astype(int)
-                        if not inb.any():
-                            continue
-                        bp = metrics(*args_m, inb, sampler.full[1], nih)
-                        bin_points[key + (b,)] = {k: bp[k] for k in BIN_METRICS}
-                        bin_boots[key + (b,)] = np.array([[metrics(*args_m, wi * inb, wp, nih)[k] for k in BIN_METRICS]
-                                                         for wi, wp in sampler.samples])
-                info_rows.append({"run": run, "encoder": tag, "method": m, "params": json.dumps(params, sort_keys=True),
-                                  "threshold": thr, "cell_threshold": tau, "pi_hat": pi,
-                                  "pred_pos_frac_cells": float((s[cells] >= thr).mean()),
-                                  "true_cell_pi": float(g["infected"].mean()), **info})
-                log.info("%s %s %s: AP50 %.4f R %.4f par_img_bias %.4f pi %.4f (%.0f s)", run, tag, m,
-                         points[key]["AP50"], points[key]["recall"], points[key]["par_img_bias"], pi, time.time() - t0)
-            log.info("%s %s done in %.0f s", run, tag, time.time() - t_run)
+    for tag in encoders:   # assembled in config order, independent of the processing order
+        for run in runs:
+            part = parts[(run, tag)]
+            points.update(part["points"])
+            boots.update(part["boots"])
+            bin_points.update(part["bin_points"])
+            bin_boots.update(part["bin_boots"])
+            info_rows += part["info_rows"]
+    img_bin = shared["img_bin"]
 
     def with_means(pt, bt):   # seed mean of the box runs on the same resamples
         for k in list(pt):
@@ -500,10 +611,12 @@ def cmd_evaluate(args, cfg) -> None:
     if nih:
         pd.DataFrame(bins_rows).to_csv(f"{out}_bins.csv", index=False, float_format="%.4f")
         pd.DataFrame(bins_diffs).to_csv(f"{out}_bins_diff.csv", index=False, float_format="%.4f")
-    meta = {"exploratory": True, "target": args.target, "n_resamples": len(sampler.samples),
-            "resampling": "patients" if nih else "images", "seed": cfg["seed"], "n_images": len(sampler.ids),
-            "n_patients": len(sampler.patients) if nih else None, "selected": sel,
+    meta = {"exploratory": True, "target": args.target, "n_resamples": shared["n_resamples"],
+            "resampling": "patients" if nih else "images", "seed": cfg["seed"], "n_images": shared["n_images"],
+            "n_patients": shared["n_patients"] if nih else None, "selected": sel,
             "config_sha256": sha256(args.config), "limit": args.limit}
+    if subset:
+        meta.update({"subset": True, "encoders": encoders, "runs": runs})
     (out.parent / f"{out.name}_meta.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     print(f"wrote {out}_runs.csv, _diff.csv, _info.csv{', _bins.csv, _bins_diff.csv' if nih else ''}, _meta.json")
 
@@ -518,6 +631,9 @@ def main() -> None:
     e = sub.add_parser("evaluate")
     e.add_argument("--target", required=True, choices=["nih", "bbbc_test"])
     e.add_argument("--n", type=int, default=None, help="override the number of resamples (smoke)")
+    e.add_argument("--force", action="store_true", help="ignore the saved (run, encoder) pairs, recompute all")
+    e.add_argument("--encoders", nargs="+", default=None, help="only these encoder tags (default: all of the config)")
+    e.add_argument("--runs", nargs="+", default=None, help="only these box runs (default: all of the config)")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = yaml.safe_load(resolve_path(args.config).read_text(encoding="utf-8"))

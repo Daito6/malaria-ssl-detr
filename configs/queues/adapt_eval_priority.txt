@@ -1,0 +1,16 @@
+# EXPLORATORY: unlabeled target adaptation on NIH, PRIORITY SUBSET first (configs/adapt.yaml). CPU only.
+# Prerequisites as configs/queues/adapt_eval.txt.
+# Started by the user in PowerShell outside Claude Code:
+#   conda activate medthesis
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_queue.ps1 -Queue configs/queues/adapt_eval_priority.txt
+# Line 1: 3 encoders x 2 box runs = 6 of the 18 NIH pairs -> reports/tables/adapt_nih_subset_* (no a_3s mean: it needs
+#         all 3 box runs). Line 2: the full evaluate; it reuses the 6 saved pairs and computes the other 12 ->
+#         reports/tables/adapt_nih_* (the full tables).
+# Every finished pair is saved in reports/tables/adapt_nih_parts/<run>__<tag>.pt; after a power cut just start the
+# queue again: saved pairs are skipped (QUEUE DONE lines are skipped by run_queue.ps1 as well).
+# Estimate from the stopped run (30 of 324 method combinations, ~35 h for all): ~2 h per pair -> line 1 ~12 h,
+# line 2 ~24 h (not measured per pair).
+# Format: <run name> | <command>
+
+adapt_eval | python scripts/adapt.py evaluate --target nih --encoders ssl_v2_b ref_dino ssl_v2_b_seed43 --runs a_coco_detr_binary a_coco_detr_binary_seed43
+adapt_eval | python scripts/adapt.py evaluate --target nih
